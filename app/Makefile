@@ -17,7 +17,6 @@ SRC_FILES += \
   $(PROJ_DIR)/driver_3rdparty/axp/axp_config.c \
   $(PROJ_DIR)/driver_3rdparty/axp/axp_supply.c \
   $(PROJ_DIR)/main.c \
-  $(PROJ_DIR)/nfc.c \
   $(PROJ_DIR)/power_manage.c \
   $(PROJ_DIR)/rtc_calendar.c \
   $(SDK_ROOT)/components/ble/ble_advertising/ble_advertising.c \
@@ -112,7 +111,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
   $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
   $(SDK_ROOT)/components/libraries/util/nrf_assert.c \
-  $(SDK_ROOT)/components/nfc/platform/nfc_platform.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
@@ -131,7 +129,6 @@ SRC_FILES += \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_uart.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_nfct.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_rng.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_rtc.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_saadc.c \
@@ -146,6 +143,9 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c \
   $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
+  # $(PROJ_DIR)/nfc.c \
+  # $(SDK_ROOT)/components/nfc/platform/nfc_platform.c \
+  # $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_nfct.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -256,33 +256,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/usbd/class/hid/mouse \
   $(SDK_ROOT)/components/libraries/usbd/class/msc \
   $(SDK_ROOT)/components/libraries/util \
-  $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser \
-  $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser/ac_rec_parser \
-  $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser/ble_oob_advdata_parser \
-  $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser/le_oob_rec_parser \
-  $(SDK_ROOT)/components/nfc/ndef/connection_handover/ac_rec \
-  $(SDK_ROOT)/components/nfc/ndef/connection_handover/ble_oob_advdata \
-  $(SDK_ROOT)/components/nfc/ndef/connection_handover/ble_pair_lib \
-  $(SDK_ROOT)/components/nfc/ndef/connection_handover/ble_pair_msg \
-  $(SDK_ROOT)/components/nfc/ndef/connection_handover/common \
-  $(SDK_ROOT)/components/nfc/ndef/connection_handover/ep_oob_rec \
-  $(SDK_ROOT)/components/nfc/ndef/connection_handover/hs_rec \
-  $(SDK_ROOT)/components/nfc/ndef/connection_handover/le_oob_rec \
-  $(SDK_ROOT)/components/nfc/ndef/generic/message \
-  $(SDK_ROOT)/components/nfc/ndef/generic/record \
-  $(SDK_ROOT)/components/nfc/ndef/launchapp \
-  $(SDK_ROOT)/components/nfc/ndef/parser/message \
-  $(SDK_ROOT)/components/nfc/ndef/parser/record \
-  $(SDK_ROOT)/components/nfc/ndef/text \
-  $(SDK_ROOT)/components/nfc/ndef/uri \
-  $(SDK_ROOT)/components/nfc/platform \
-  $(SDK_ROOT)/components/nfc/t2t_lib \
-  $(SDK_ROOT)/components/nfc/t2t_parser \
-  $(SDK_ROOT)/components/nfc/t4t_lib \
-  $(SDK_ROOT)/components/nfc/t4t_parser/apdu \
-  $(SDK_ROOT)/components/nfc/t4t_parser/cc_file \
-  $(SDK_ROOT)/components/nfc/t4t_parser/hl_detection_procedure \
-  $(SDK_ROOT)/components/nfc/t4t_parser/tlv \
   $(SDK_ROOT)/components/softdevice/common \
   $(SDK_ROOT)/components/softdevice/s132/headers \
   $(SDK_ROOT)/components/softdevice/s132/headers/nrf52 \
@@ -301,12 +274,39 @@ INC_FOLDERS += \
   $(SDK_ROOT)/modules/nrfx/drivers/include \
   $(SDK_ROOT)/modules/nrfx/hal \
   $(SDK_ROOT)/modules/nrfx/mdk \
+  # $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser \
+  # $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser/ac_rec_parser \
+  # $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser/ble_oob_advdata_parser \
+  # $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser/le_oob_rec_parser \
+  # $(SDK_ROOT)/components/nfc/ndef/connection_handover/ac_rec \
+  # $(SDK_ROOT)/components/nfc/ndef/connection_handover/ble_oob_advdata \
+  # $(SDK_ROOT)/components/nfc/ndef/connection_handover/ble_pair_lib \
+  # $(SDK_ROOT)/components/nfc/ndef/connection_handover/ble_pair_msg \
+  # $(SDK_ROOT)/components/nfc/ndef/connection_handover/common \
+  # $(SDK_ROOT)/components/nfc/ndef/connection_handover/ep_oob_rec \
+  # $(SDK_ROOT)/components/nfc/ndef/connection_handover/hs_rec \
+  # $(SDK_ROOT)/components/nfc/ndef/connection_handover/le_oob_rec \
+  # $(SDK_ROOT)/components/nfc/ndef/generic/message \
+  # $(SDK_ROOT)/components/nfc/ndef/generic/record \
+  # $(SDK_ROOT)/components/nfc/ndef/launchapp \
+  # $(SDK_ROOT)/components/nfc/ndef/parser/message \
+  # $(SDK_ROOT)/components/nfc/ndef/parser/record \
+  # $(SDK_ROOT)/components/nfc/ndef/text \
+  # $(SDK_ROOT)/components/nfc/ndef/uri \
+  # $(SDK_ROOT)/components/nfc/platform \
+  # $(SDK_ROOT)/components/nfc/t2t_lib \
+  # $(SDK_ROOT)/components/nfc/t2t_parser \
+  # $(SDK_ROOT)/components/nfc/t4t_lib \
+  # $(SDK_ROOT)/components/nfc/t4t_parser/apdu \
+  # $(SDK_ROOT)/components/nfc/t4t_parser/cc_file \
+  # $(SDK_ROOT)/components/nfc/t4t_parser/hl_detection_procedure \
+  # $(SDK_ROOT)/components/nfc/t4t_parser/tlv \
 
 # Libraries common to all targets
 LIB_FILES += \
-  $(SDK_ROOT)/components/nfc/t4t_lib/nfc_t4t_lib_gcc.a \
   $(SDK_ROOT)/external/nrf_cc310/lib/cortex-m4/hard-float/libnrf_cc310_0.9.12.a \
   $(SDK_ROOT)/external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_3.0.1.a \
+  # $(SDK_ROOT)/components/nfc/t4t_lib/nfc_t4t_lib_gcc.a \
 
 # Optimization flags
 OPT = -O3 -g3

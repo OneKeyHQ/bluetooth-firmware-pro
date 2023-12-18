@@ -115,9 +115,9 @@ uint8_t get_irq_charge_status(void)
 
     axp216_read(AXP_INTSTS2,1,&reg);
     NRF_LOG_INFO("charge status %d ",reg);
-    if(reg & 0x08 == 0x08){
+    if((reg & 0x08) == 0x08){
         charge_status = IRQ_CHARGING_BAT;
-    }else if(reg & 0x04 == 0x04){
+    }else if((reg & 0x04) == 0x04){
         charge_status = IRQ_CHARGE_OVER;
     }
     //compare

@@ -35,4 +35,12 @@ void usr_spi_enable(void);
 
 void usr_spi_disable(void);
 
+#define DATA_RECV_BUF_SIZE 1024
+extern bool data_recived_flag;
+extern uint8_t data_recived_buf[DATA_RECV_BUF_SIZE];
+extern uint16_t data_recived_len;
+
+void read_st_resp_data(void);
+int twi_master_init(void);
+
 #endif

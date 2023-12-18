@@ -81,7 +81,7 @@
 #include "sdk_macros.h"
 #include "app_timer.h"
 #include "app_uart.h"
-#include "nfc.h"
+// #include "nfc.h"
 #include "custom_board.h"
 #include "app_scheduler.h"
 #include "ble_dfu.h"
@@ -299,7 +299,7 @@
 
 //CHANNEL
 #define BLE_CHANNEL                     0x01
-#define NFC_CHANNEL                     0x02
+// #define NFC_CHANNEL                     0x02
 #define UART_CHANNEL                    0x03
 
 #define UART_DEF						0x00
@@ -884,7 +884,7 @@ void mac_address_get(void)
         }
         else
         {
-            mac_ascii[j]=0x41+((mac[i]>>4)&0x0f-0x0A);
+            mac_ascii[j]=0x41+(((mac[i]>>4)&0x0f)-0x0A); //(mac[i]>>4)&0x0f-0x0A
             j++;
         }
 
@@ -895,7 +895,7 @@ void mac_address_get(void)
         }
         else
         {
-            mac_ascii[j]=0x41+(mac[i]&0x0f-0x0A);
+            mac_ascii[j]=0x41+((mac[i]&0x0f)-0x0A); // mac[i]&0x0f-0x0A
             j++;
         }
     }    
@@ -2465,11 +2465,11 @@ static void scheduler_init(void)
 }
 static void main_loop(void)
 {   
-	app_sched_event_put(NULL,NULL,ble_ctl_process);
-	app_sched_event_put(NULL,NULL,rsp_st_uart_cmd);
-	app_sched_event_put(NULL,NULL,manage_bat_level);
-	app_sched_event_put(NULL,NULL,nfc_poll);
-    app_sched_event_put(NULL,NULL,ble_resp_data);
+	app_sched_event_put(NULL,0,ble_ctl_process);
+	app_sched_event_put(NULL,0,rsp_st_uart_cmd);
+	app_sched_event_put(NULL,0,manage_bat_level);
+	// app_sched_event_put(NULL,NULL,nfc_poll);
+    app_sched_event_put(NULL,0,ble_resp_data);
 }
 
 static void watch_dog_init(void){
@@ -2517,7 +2517,7 @@ int main(void)
 
     ctl_advertising();	    
 	
-    nfc_init();
+    // nfc_init();
     watch_dog_init();
 
     // Enter main loop.
