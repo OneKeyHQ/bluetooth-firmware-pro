@@ -13,7 +13,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt -y install curl wget ninja-build
+          sudo apt -y install curl wget
           sudo apt -y install build-essential libtool gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi
           sudo apt -y install python3 python3-pip python-is-python3
           sudo python -m pip install -U pip
@@ -27,11 +27,15 @@ jobs:
           echo "fw_revision=$(sed -n 's/^#define FW_REVISION\s*"\(.*\)"/\1/p' app/firmware_config.h)" >> $GITHUB_OUTPUT
           echo "artifacts_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"" >> $GITHUB_OUTPUT
 
-      - name: Build and Sign
+      - name: Build binaries
+        run: |
+          ./make_binaries.sh
+
+      - name: Build signed images
         env:
           BT_SIG_PK: ${{ secrets.BT_SIG_PK }}
         run: |
-          ./build.sh
+          ./make_images.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3

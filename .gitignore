@@ -1,6 +1,12 @@
-*.bak
+# vscode related
 .vscode
-artifacts*
+.build
+.install
+# artifacts
 _build
+artifacts*
+*.bak
 ble-firmware/external/micro-ecc/nrf52hf_armgcc/armgcc/micro_ecc_lib_nrf52.a
+# secrets
 temp.pk
+build_local_signed.sh
