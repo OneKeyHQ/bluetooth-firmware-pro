@@ -13,8 +13,6 @@ find_program(CMAKE_OBJCOPY NAMES ${TOOL_CHAIN_PREFIX}-objcopy)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-set(SOURCE_NAME ${CMAKE_PROJECT_NAME})
-
 ###############################
 # Project
 project(OnekeyProBTFW_BL LANGUAGES C ASM)
