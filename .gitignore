@@ -3,6 +3,7 @@
 .build
 .install
 # artifacts
+build
 _build
 artifacts*
 ble-firmware/external/micro-ecc/nrf52hf_armgcc/armgcc/micro_ecc_lib_nrf52.a

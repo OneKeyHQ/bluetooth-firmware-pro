@@ -1,5 +1,5 @@
 # cmake options
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.22.1)
 
 ###############################
 # Toolchain
@@ -324,7 +324,9 @@ target_sources(
   data_transmission.c
   driver_3rdparty/axp/axp_config.c
   driver_3rdparty/axp/axp_supply.c
+  driver_3rdparty/lm/lm_config.c
   power_manage.c
+  flashled_manage.c
   rtc_calendar.c
   # nfc.c
   ${NRF_SDK_SRC}
@@ -333,6 +335,7 @@ target_sources(
 target_include_directories(
   ${CMAKE_PROJECT_NAME} PRIVATE
   driver_3rdparty/axp
+  driver_3rdparty/lm
   ${NRF_SDK_INC}
 )
 

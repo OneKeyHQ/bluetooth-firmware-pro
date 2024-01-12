@@ -96,6 +96,7 @@
 #include "power_manage.h"
 #include "rtc_calendar.h"
 #include "data_transmission.h"
+#include "flashled_manage.h"
 
 #if defined (UART_PRESENT)
 #include "nrf_uart.h"
@@ -135,6 +136,13 @@
 #define PWR_OPEN_EMMC                   3
 #define PWR_BAT_PERCENT                 5
 #define PWR_USB_STATUS                  6
+
+
+
+#define LED_DEF                         0
+#define LED_SET_BRIHTNESS               1
+#define LED_GET_BRIHTNESS               2
+
 
 #define NO_CHARGE                       0
 #define USB_CHARGE                      1
@@ -276,6 +284,13 @@
 //
 #define ST_CMD_RESET_BLE               0x84
 #define ST_VALUE_RESET_BLE             0x01
+//
+#define ST_CMD_LED                     0X85
+#define ST_SEND_SET_LED_BRIGHTNESS     0X01
+#define ST_SEND_GET_LED_BRIGHTNESS     0X02
+
+
+
 //end Receive ST CMD
 //VALUE
 #define VALUE_CONNECT                  0x01
@@ -309,6 +324,7 @@
 #define RESPONESE_VER_UART				0x04
 #define RESPONESE_SD_VER_UART           0x05
 #define RESPONESE_BOOT_VER_UART         0x06
+#define RESPONESE_LED_VER_UART          0x07
 #define DEF_RESP						0xFF
 
 #define BLE_CTL_ADDR					0x6f000
@@ -342,6 +358,7 @@ static volatile uint8_t ble_conn_flag = BLE_DEF;
 static volatile uint8_t ble_conn_nopair_flag = BLE_DEF;
 static volatile uint8_t pwr_status_flag = PWR_DEF;
 static volatile uint8_t trans_info_flag = UART_DEF;
+static volatile uint8_t led_brightness_flag = LED_DEF;
 static volatile uint8_t ble_trans_timer_flag=TIMER_INIT_FLAG;
 static uint8_t mac_ascii[12];
 static uint8_t mac[6]={0x42,0x13,0xc7,0x98,0x95,0x1a}; //Device MAC address
@@ -350,6 +367,12 @@ static char ble_adv_name[ADV_NAME_LENGTH];
 extern rtc_date_t rtc_date;
 
 static volatile uint8_t	bat_level_to_st=0x00;
+
+
+
+//add  tmp 
+unsigned char cfg;
+unsigned char write;
 
 
 #ifdef BOND_ENABLE
@@ -397,6 +420,10 @@ static uint8_t g_charge_status = 0;
 static uint8_t g_bas_update_flag = 0;
 //static uint8_t g_offlevel_flag = 0;
 static uint8_t g_key_status = 0;
+
+
+//LM    global status
+static uint8_t led_brightness_value = 0;
 
 #ifdef SCHED_ENABLE
 static ringbuffer_t m_ble_fifo;
@@ -1779,6 +1806,17 @@ void uart_event_handle(app_uart_evt_t * p_event)
                             NVIC_SystemReset();
                         }
                         break;
+                    case ST_CMD_LED:                     
+                     if(ST_SEND_GET_LED_BRIGHTNESS == data_array[5])
+                        {
+                            led_brightness_flag  = LED_GET_BRIHTNESS;
+                        }
+               else  if (ST_SEND_SET_LED_BRIGHTNESS == data_array[5])
+                        {
+                            led_brightness_flag  = LED_SET_BRIHTNESS;
+                            led_brightness_value  = data_array[6];
+                        }                  
+                        break;
 
                     default:
                         break;
@@ -2152,6 +2190,7 @@ static void system_init()
     NRF_LOG_INFO("uart init ok ......");
 #endif
     gpio_init();
+    set_led_brightness(0);
 }
 
 /**@brief Function for starting advertising.
@@ -2244,7 +2283,7 @@ static void fs_init(void)
 
     p_fs_api = &nrf_fstorage_sd;
     rc = nrf_fstorage_init(&fstorage, p_fs_api, NULL);
-    APP_ERROR_CHECK(rc);
+APP_ERROR_CHECK(rc);
 
     /* It is possible to set the start and end addresses of an fstorage instance at runtime.
      * They can be set multiple times, should it be needed. The helper function below can
@@ -2459,6 +2498,37 @@ static void ble_ctl_process(void *p_event_data,uint16_t event_size)
     }
                                                                                                                            
 }
+
+static void led_ctl_process(void *p_event_data,uint16_t event_size)
+{
+	if(ST_SEND_SET_LED_BRIGHTNESS == led_brightness_flag)
+    {
+
+        set_led_brightness(led_brightness_value);
+        #ifdef UART_TRANS
+            bak_buff[0] = ST_CMD_LED;
+            bak_buff[1] = led_brightness_flag;
+            bak_buff[2] = led_brightness_value;
+            send_stm_data(bak_buff,3);
+        #endif  
+
+        led_brightness_flag = LED_DEF; 
+       
+    }else if(ST_SEND_GET_LED_BRIGHTNESS == led_brightness_flag)
+    {
+        uint8_t   current_led_brihtness = 0;
+        current_led_brihtness = get_led_brightness();
+        #ifdef UART_TRANS
+            bak_buff[0] = ST_CMD_LED;
+            bak_buff[1] = led_brightness_flag;
+            bak_buff[2] = current_led_brihtness;
+            send_stm_data(bak_buff,3);
+        #endif  
+
+        led_brightness_flag = LED_DEF;
+	}
+}
+
 static void scheduler_init(void)
 {
     APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
@@ -2470,6 +2540,7 @@ static void main_loop(void)
 	app_sched_event_put(NULL,0,manage_bat_level);
 	// app_sched_event_put(NULL,NULL,nfc_poll);
     app_sched_event_put(NULL,0,ble_resp_data);
+    app_sched_event_put(NULL,0,led_ctl_process);
 }
 
 static void watch_dog_init(void){
@@ -2520,12 +2591,14 @@ int main(void)
     // nfc_init();
     watch_dog_init();
 
+
     // Enter main loop.
     for (;;)
     {
         main_loop();
 		app_sched_execute();
         idle_state_handle();
+        
     }
 }
 

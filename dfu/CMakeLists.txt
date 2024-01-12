@@ -1,5 +1,5 @@
 # cmake options
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.22.1)
 
 ###############################
 # Toolchain
@@ -336,6 +336,7 @@ install(
   FILES 
   ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin 
   ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.hex
+  ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}
   # DESTINATION ${PROJECT_SOURCE_DIR}/../artifacts
   DESTINATION ${CMAKE_INSTALL_PREFIX}
 )
