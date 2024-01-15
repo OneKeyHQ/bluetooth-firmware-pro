@@ -250,6 +250,8 @@
 #define BLE_CLOSE_EMMC                 0x02
 #define BLE_OPEN_EMMC                  0x03
 #define BLE_PWR_PERCENT                0X04
+
+#define BLE_CMD_FLASH_LED_STA          0x0C
 //end BLE send CMD
 //
 #define UART_CMD_BLE_CON_STA           0x01
@@ -2506,7 +2508,7 @@ static void led_ctl_process(void *p_event_data,uint16_t event_size)
 
         set_led_brightness(led_brightness_value);
         #ifdef UART_TRANS
-            bak_buff[0] = ST_CMD_LED;
+            bak_buff[0] = BLE_CMD_FLASH_LED_STA;
             bak_buff[1] = led_brightness_flag;
             bak_buff[2] = led_brightness_value;
             send_stm_data(bak_buff,3);
@@ -2519,7 +2521,7 @@ static void led_ctl_process(void *p_event_data,uint16_t event_size)
         uint8_t   current_led_brihtness = 0;
         current_led_brihtness = get_led_brightness();
         #ifdef UART_TRANS
-            bak_buff[0] = ST_CMD_LED;
+            bak_buff[0] = BLE_CMD_FLASH_LED_STA;
             bak_buff[1] = led_brightness_flag;
             bak_buff[2] = current_led_brihtness;
             send_stm_data(bak_buff,3);
@@ -2597,8 +2599,7 @@ int main(void)
     {
         main_loop();
 		app_sched_execute();
-        idle_state_handle();
-        
+        idle_state_handle();       
     }
 }
 
