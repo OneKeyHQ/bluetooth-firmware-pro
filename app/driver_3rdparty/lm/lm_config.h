@@ -22,7 +22,7 @@
 #define LED_BRIGHTNESS_VALUE         0x15  // LED brightness value
 #define LED_CONTROL_SUCCESS          0
 
-#define TWI_INSTANCE_ID    		1
+#define TWI_INSTANCE_ID    		     1
 
 ret_code_t lm36011_twi_master_init(void);
 

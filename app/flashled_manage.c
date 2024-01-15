@@ -52,7 +52,7 @@ uint8_t get_led_brightness(void)
           // 读取失败
           return ret;
         }
-     return   brightness ;
+     return   brightness;
 }
 
 

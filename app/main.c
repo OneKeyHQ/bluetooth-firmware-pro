@@ -285,9 +285,9 @@
 #define ST_CMD_RESET_BLE               0x84
 #define ST_VALUE_RESET_BLE             0x01
 //
-#define ST_CMD_LED                     0x85
-#define ST_SEND_SET_LED_BRIGHTNESS     0x01
-#define ST_SEND_GET_LED_BRIGHTNESS     0x02
+#define ST_CMD_LED                     0X85
+#define ST_SEND_SET_LED_BRIGHTNESS     0X01
+#define ST_SEND_GET_LED_BRIGHTNESS     0X02
 
 
 
@@ -2598,6 +2598,7 @@ int main(void)
         main_loop();
 		app_sched_execute();
         idle_state_handle();
+        
     }
 }
 
