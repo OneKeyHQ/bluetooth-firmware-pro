@@ -1,19 +1,31 @@
 #include "flashled_manage.h"
-#define LED_BRIGHTNESS_VALUE 0x15  // LED brightness value
+#include "nrf_log.h"
+
 
 
 //开启灯及设置亮度值
 ret_code_t set_led_brightness(uint8_t brightness)
 {      
-    ret_code_t ret = 1;        
+        ret_code_t ret;        
+        //关闭闪光灯 
         if (brightness == 0)
         {
-          ret = lm36011_write(LM36011_LED_STATUS, 0);   //关闭闪光灯    
-        } else {
-          ret = lm36011_write(LM36011_LED_STATUS, 2);   //开启闪光灯手电筒模式
-          nrf_delay_ms(100);   
-          ret  = lm36011_write(LM36011_LED_BRIGHTNESS, LED_BRIGHTNESS_VALUE);
+          ret = lm36011_write(LM36011_LED_STATUS, LED_FLASHLIGHT_OFF);    
+          return ret;   
+        } 
+        // 判断是否超过最大允许电流，如果是，设置为最大电流
+        if (brightness >= LM36011_LED_MAX_SSC)  
+        {
+           brightness = LM36011_LED_MAX_SSC;
         }
+        //开启闪光灯手电筒模式
+        ret = lm36011_write(LM36011_LED_STATUS, LED_FLASHLIGHT_MODE);   
+        if (ret != LED_CONTROL_SUCCESS) {
+           return ret;
+        }
+        nrf_delay_ms(100);   
+        ret  = lm36011_write(LM36011_LED_BRIGHTNESS, brightness);
+        //NRF_LOG_INFO("setting status = %d", ret);
     return ret;
 }
 
@@ -22,12 +34,24 @@ ret_code_t set_led_brightness(uint8_t brightness)
 uint8_t get_led_brightness(void)
 {
         uint8_t brightness = 0;
-        lm36011_read(LM36011_LED_STATUS,1, &brightness);
-        if(brightness == 0)
-        {
-           return  brightness;   //灯未开，直接返回0
+        ret_code_t ret;
+        ret = lm36011_read(LM36011_LED_STATUS, 1, &brightness);
+
+        if (ret != LED_CONTROL_SUCCESS) {
+        // 读取失败
+          return ret;
+         }
+          // 如果LED关闭，亮度为0，无需进一步读取
+        if(brightness == LED_FLASHLIGHT_OFF){
+          // 灯未开，直接返回0
+          return  brightness;   
         }
-        lm36011_read(LM36011_LED_BRIGHTNESS, 1,&brightness);  
+
+        ret = lm36011_read(LM36011_LED_BRIGHTNESS, 1,&brightness);  
+        if (ret != LED_CONTROL_SUCCESS) {
+          // 读取失败
+          return ret;
+        }
      return   brightness ;
 }
 

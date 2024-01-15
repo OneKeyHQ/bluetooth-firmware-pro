@@ -8,14 +8,19 @@
 #include <stdint.h>   // 对于 uint8_t
 
 
-#define LM36011_TWI_SDA_M		14   
-#define LM36011_TWI_SCL_M		15   
+#define LM36011_TWI_SDA_M		     14   
+#define LM36011_TWI_SCL_M		     15   
 #define	LM36011_DEVICES_ADDR	    (0x64)
-#define LM36011_ADDRESS_LEN   	1
+#define LM36011_ADDRESS_LEN   	     1
 
 #define LM36011_LED_STATUS          (0x01)   //control light switch
 #define LM36011_LED_BRIGHTNESS      (0x04)   //control light brightness
 #define LM36011_LED_RESET           (0x06)   //control light reset
+#define LM36011_LED_MAX_SSC         (0x20)   //max ssc  79ma
+#define LED_FLASHLIGHT_MODE          2
+#define LED_FLASHLIGHT_OFF           0
+#define LED_BRIGHTNESS_VALUE         0x15  // LED brightness value
+#define LED_CONTROL_SUCCESS          0
 
 #define TWI_INSTANCE_ID    		1
 
