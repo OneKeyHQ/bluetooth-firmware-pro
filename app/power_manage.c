@@ -76,15 +76,34 @@ uint8_t get_battery_percent(void)
 
 uint8_t get_charge_status(void){
     uint8_t charge_state = 0;
-    uint8_t val[2];
-    axp216_read(AXP_CHARGE_STATUS,2,val);
-    if((val[0] & AXP_STATUS_USBVA) || (val[1] & AXP_IN_CHARGE)){
+    uint8_t val;
+    axp216_read(AXP_CHARGE_STATUS,1,&val);
+    if((val & AXP_STATUS_USBVA) || (val & AXP_IN_CHARGE)){
         charge_state = 0x03;
     }else{
         charge_state = 0x02;
     }
     return charge_state;
 }
+
+
+// get the charging type when charging (usb or wireless)
+uint8_t get_charge_type(void){
+    uint8_t charge_type = 0;
+    uint8_t val;
+    axp216_read(AXP_GPIO1_CTL,1,&val);
+    axp216_write(AXP_GPIO1_CTL,((val & 0xF8) | 0x02));   //设置gpio1为通用输入功能
+    axp216_read(AXP_GPIO01_SIGNAL,2,&val);
+    if((val & AXP_IN_CHARGE_TYPE)){
+        charge_type = AXP_CHARGE_TYPE_USB;   //usb
+    }else{
+        charge_type = AXP_CHARGE_TYPE_WIRELESS;  //wireless
+    }
+    axp216_write(AXP_GPIO1_CTL,(val|0x07));   //为降低功耗，将gpio还原为浮空状态，只在检测时开启
+    return charge_type;
+}
+
+
 
 //REG48H
 uint8_t get_irq_vbus_status(void)

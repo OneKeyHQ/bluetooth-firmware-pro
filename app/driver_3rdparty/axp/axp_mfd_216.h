@@ -156,6 +156,8 @@ enum {
 #define AXP_STATUS_INCHAR    	( 1 << 14)
 #define AXP_STATUS_ICTEMOV   	( 1 << 15)
 
+#define AXP_IN_CHARGE_TYPE		( 1 << 1 )
+
 #define AXP_LDO1_MIN			3000000
 #define AXP_LDO1_MAX			3000000
 #define AXP_ALDO1_MIN			700000

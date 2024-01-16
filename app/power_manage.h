@@ -12,6 +12,10 @@
 #define AXP_DCDC4  0x10
 #define AXP_DCDC5  0x20
 
+//Charge type 
+#define AXP_CHARGE_TYPE_USB       0x01
+#define AXP_CHARGE_TYPE_WIRELESS  0x02
+
 //IRQ status
 #define IRQ_VBUS_INSERT 0x48
 #define IRQ_VBUS_REMOVE 0x24
@@ -42,7 +46,9 @@ extern void ctl_emmc_power(uint8_t value);
 
 extern uint8_t get_battery_percent(void);
 
-extern uint8_t get_charge_status(void);
+extern uint8_t get_charge_status(void);  
+
+extern uint8_t get_charge_type(void);  //get the charging type when charging
 
 extern uint8_t get_irq_vbus_status(void);
 

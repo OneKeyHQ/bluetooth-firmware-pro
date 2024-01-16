@@ -2081,16 +2081,19 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
                 enter_low_power_mode();
             }   
             break;
-        case POWER_IC_IRQ_IO:
-            
+        case POWER_IC_IRQ_IO:    
+         
             g_charge_status = get_charge_status();
+            
             if(last_charge_status != g_charge_status){
                 last_charge_status = g_charge_status;
                 bak_buff[0] = BLE_CMD_POWER_STA;
                 bak_buff[1] = g_charge_status;
-                send_stm_data(bak_buff,2);
+                bak_buff[2] = get_charge_type();
+                send_stm_data(bak_buff,3);     
+                //NRF_LOG_INFO("charge_status  = %d", g_charge_status);
+                //NRF_LOG_INFO("charge_type  = %d", get_charge_type());                
             }                     
-            //
             g_key_status = get_irq_status();
                     
             if((g_key_status == 0x01)||(g_key_status == 0x02))
@@ -2482,8 +2485,9 @@ static void ble_ctl_process(void *p_event_data,uint16_t event_size)
         break;
     case PWR_USB_STATUS:
         bak_buff[0] = BLE_CMD_POWER_STA;
-        bak_buff[1] =get_charge_status();
-        send_stm_data(bak_buff,2);
+        bak_buff[1] = get_charge_status();
+        bak_buff[2] = get_charge_type();
+        send_stm_data(bak_buff,3);
         pwr_status_flag =  PWR_DEF;
         break;
     default:
