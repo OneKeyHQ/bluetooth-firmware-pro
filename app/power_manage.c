@@ -76,9 +76,9 @@ uint8_t get_battery_percent(void)
 
 uint8_t get_charge_status(void){
     uint8_t charge_state = 0;
-    uint8_t val;
-    axp216_read(AXP_CHARGE_STATUS,1,&val);
-    if((val & AXP_STATUS_USBVA) || (val & AXP_IN_CHARGE)){
+    uint8_t val[2];
+    axp216_read(AXP_CHARGE_STATUS,2,val);
+    if((val[0] & AXP_STATUS_USBVA) || (val[1] & AXP_IN_CHARGE)){
         charge_state = 0x03;
     }else{
         charge_state = 0x02;
