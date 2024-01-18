@@ -34,10 +34,17 @@ ret_code_t open_all_power(void)
     axp216_write(AXP_ALDO3OUT_VOL,0x1E);
     //set DCDC1 Value 3.2V
     axp216_write(AXP_DC1OUT_VOL,0x10);
-    //set LDO2 Value 3.2V
-    axp216_write(AXP_ALDO2OUT_VOL,0x1F);
     //set ALDO1 Value 1.8V
-    axp216_write(AXP_ALDO1OUT_VOL,0xB);
+    axp216_write(AXP_ALDO1OUT_VOL,0x0B);
+
+    // ALDO2 -> LDO_FB
+    // set to 3.0V
+    axp216_write(AXP_ALDO2OUT_VOL,0x1C);
+    // enable output
+    axp216_read(AXP_LDO_DC_EN1,1,&val);
+    val |= 0x80;
+    axp216_write(AXP_LDO_DC_EN1,val);
+
     nrf_delay_ms(100);
     return ret;
 }
