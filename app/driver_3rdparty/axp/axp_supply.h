@@ -46,12 +46,18 @@
 #define AXP_ADC_GPIO2_ENABLE			(1 << 1)
 #define AXP_ADC_GPIO3_ENABLE			(1 << 0)
 #define AXP_ADC_CONTROL3				(0x84)
-#define AXP_VBATH_RES					(0x78)
+#define AXP_VBATH_RES					(0x78) //电池电压高位寄存器
 #define AXP_VTS_RES						(0x58)
-#define AXP_VBATL_RES					(0x79)
+#define AXP_VBATL_RES					(0x79) //电池电压低位寄存器
 #define AXP_OCVBATH_RES					(0xBC)
 #define AXP_OCVBATL_RES					(0xBD)
 #define AXP_INTTEMP						(0x56)
+
+#define AXP_CCBATH_RES                  (0X7A) //电池充电电流高位寄存器
+#define AXP_CCBATL_RES                  (0X7B) //电池充电电流低位寄存器
+#define AXP_DCBATH_RES                  (0X7C) //电池放电电流高位寄存器
+#define AXP_DCBATL_RES                  (0X7D) //电池放电电流低位寄存器
+
 #define AXP_DATA_BUFFER0				AXP_BUFFER1
 #define AXP_DATA_BUFFER1				AXP_BUFFER2
 #define AXP_DATA_BUFFER2				AXP_BUFFER3

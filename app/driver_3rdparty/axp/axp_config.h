@@ -45,7 +45,7 @@
 		AXP:300~2550,100/step
 */
 /*充电电流，uA*/
-#define STACHGCUR			750*1000
+#define STACHGCUR			450*1000
 
 
 /*目标充电电压，mV*/

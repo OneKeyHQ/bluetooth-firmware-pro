@@ -17,6 +17,7 @@
 #define LM36011_LED_BRIGHTNESS      (0x04)   //control light brightness
 #define LM36011_LED_RESET           (0x06)   //control light reset
 #define LM36011_LED_MAX_SSC         (0x20)   //max ssc  79ma
+#define LM36011_LED_MAX_PRECENT      100
 #define LED_FLASHLIGHT_MODE          2
 #define LED_FLASHLIGHT_OFF           0
 #define LED_BRIGHTNESS_VALUE         0x15  // LED brightness value

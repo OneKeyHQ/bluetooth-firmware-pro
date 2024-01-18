@@ -50,6 +50,8 @@ extern uint8_t get_charge_status(void);
 
 extern uint8_t get_charge_type(void);  //get the charging type when charging
 
+extern void get_battery_cv_msg(uint8_t bat_reg_addr,uint8_t bat_value[2]);
+
 extern uint8_t get_irq_vbus_status(void);
 
 extern uint8_t get_irq_charge_status(void);

@@ -144,6 +144,12 @@
 #define LED_GET_BRIHTNESS               2
 
 
+#define BAT_DEF                         0
+#define SEND_BAT_VOL                    1
+#define SEND_BAT_CHARGE_CUR             2
+#define SEND_BAT_DISCHARGE_CUR          3
+
+
 #define NO_CHARGE                       0
 #define USB_CHARGE                      1
 #define ERROR_STA						2
@@ -252,6 +258,7 @@
 #define BLE_PWR_PERCENT                0X04
 
 #define BLE_CMD_FLASH_LED_STA          0x0C
+#define BLE_CMD_BAT_CV_MSG             0x0D
 //end BLE send CMD
 //
 #define UART_CMD_BLE_CON_STA           0x01
@@ -290,6 +297,12 @@
 #define ST_CMD_LED                     0X85
 #define ST_SEND_SET_LED_BRIGHTNESS     0X01
 #define ST_SEND_GET_LED_BRIGHTNESS     0X02
+//
+#define STM_CMD_BAT                    0X86
+#define STM_SEND_BAT_VOL               0X01  //Send battery voltage
+#define STM_SEND_BAT_CHARGE_CUR        0X02  //Send battery charge current
+#define STM_SEND_BAT_DISCHARGE_CUR     0X03  //Send battery discharge current
+
 
 
 
@@ -361,6 +374,7 @@ static volatile uint8_t ble_conn_nopair_flag = BLE_DEF;
 static volatile uint8_t pwr_status_flag = PWR_DEF;
 static volatile uint8_t trans_info_flag = UART_DEF;
 static volatile uint8_t led_brightness_flag = LED_DEF;
+static volatile uint8_t bat_msg_flag = BAT_DEF;
 static volatile uint8_t ble_trans_timer_flag=TIMER_INIT_FLAG;
 static uint8_t mac_ascii[12];
 static uint8_t mac[6]={0x42,0x13,0xc7,0x98,0x95,0x1a}; //Device MAC address
@@ -1813,11 +1827,29 @@ void uart_event_handle(app_uart_evt_t * p_event)
                         {
                             led_brightness_flag  = LED_GET_BRIHTNESS;
                         }
-               else  if (ST_SEND_SET_LED_BRIGHTNESS == data_array[5])
+                      else  if (ST_SEND_SET_LED_BRIGHTNESS == data_array[5])
                         {
                             led_brightness_flag  = LED_SET_BRIHTNESS;
                             led_brightness_value  = data_array[6];
                         }                  
+                        break;
+
+                    case STM_CMD_BAT:
+                        switch (data_array[5])
+                        {
+                            case STM_SEND_BAT_VOL:
+                                bat_msg_flag = SEND_BAT_VOL;
+                                break;
+                            case STM_SEND_BAT_CHARGE_CUR:
+                                bat_msg_flag = SEND_BAT_CHARGE_CUR;
+                                break;
+                            case STM_SEND_BAT_DISCHARGE_CUR:
+                                bat_msg_flag = SEND_BAT_DISCHARGE_CUR;
+                                break;
+                            default:
+                                bat_msg_flag = BAT_DEF;
+                                break;
+                        }                    
                         break;
 
                     default:
@@ -2535,6 +2567,34 @@ static void led_ctl_process(void *p_event_data,uint16_t event_size)
 	}
 }
 
+
+static void bat_msg_report_process(void *p_event_data,uint16_t event_size)
+{
+	  
+    if(bat_msg_flag == SEND_BAT_VOL || 
+       bat_msg_flag == SEND_BAT_CHARGE_CUR || 
+       bat_msg_flag == SEND_BAT_DISCHARGE_CUR)
+    {
+        uint8_t bat_values[2] = {0};
+        // 根据 bat_msg_flag 选择相应的寄存器地址
+        uint8_t axp_reg = (bat_msg_flag == SEND_BAT_VOL) ? AXP_VBATH_RES :
+                          (bat_msg_flag == SEND_BAT_CHARGE_CUR) ? AXP_CCBATH_RES :
+                          AXP_DCBATH_RES; 
+        //获取电池对应信息
+        get_battery_cv_msg(axp_reg, bat_values); 
+
+        #ifdef UART_TRANS
+            bak_buff[0] = BLE_CMD_BAT_CV_MSG;
+            bak_buff[1] = bat_msg_flag;
+            bak_buff[2] = bat_values[0];
+            bak_buff[3] = bat_values[1];
+            send_stm_data(bak_buff, 4);
+        #endif  
+        bat_msg_flag = BAT_DEF; 
+    }
+}
+
+
 static void scheduler_init(void)
 {
     APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
@@ -2547,6 +2607,8 @@ static void main_loop(void)
 	// app_sched_event_put(NULL,NULL,nfc_poll);
     app_sched_event_put(NULL,0,ble_resp_data);
     app_sched_event_put(NULL,0,led_ctl_process);
+    app_sched_event_put(NULL,0,bat_msg_report_process);
+    
 }
 
 static void watch_dog_init(void){
@@ -2603,7 +2665,7 @@ int main(void)
     {
         main_loop();
 		app_sched_execute();
-        idle_state_handle();       
+        idle_state_handle();   
     }
 }
 

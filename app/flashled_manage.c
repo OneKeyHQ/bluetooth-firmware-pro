@@ -6,6 +6,7 @@
 //开启灯及设置亮度值
 ret_code_t set_led_brightness(uint8_t brightness)
 {      
+        uint8_t brightness_regist_value = 0;
         ret_code_t ret;        
         //关闭闪光灯 
         if (brightness == 0)
@@ -13,10 +14,17 @@ ret_code_t set_led_brightness(uint8_t brightness)
           ret = lm36011_write(LM36011_LED_STATUS, LED_FLASHLIGHT_OFF);    
           return ret;   
         } 
-        // 判断是否超过最大允许电流，如果是，设置为最大电流
-        if (brightness >= LM36011_LED_MAX_SSC)  
+        // 判断是否超过最大设置比例
+        if (brightness >= LM36011_LED_MAX_PRECENT)  
         {
-           brightness = LM36011_LED_MAX_SSC;
+           brightness = LM36011_LED_MAX_PRECENT;
+        }
+        // 计算对应亮度比例对应的值
+        brightness_regist_value = ((uint32_t)brightness * LM36011_LED_MAX_SSC) / LM36011_LED_MAX_PRECENT;
+        // 判断是否超过最大允许电流，如果是，设置为最大电流（防止后期亮度比例允许超过100）
+        if (brightness_regist_value >= LM36011_LED_MAX_SSC)  
+        {
+           brightness_regist_value = LM36011_LED_MAX_SSC;
         }
         //开启闪光灯手电筒模式
         ret = lm36011_write(LM36011_LED_STATUS, LED_FLASHLIGHT_MODE);   
@@ -24,7 +32,7 @@ ret_code_t set_led_brightness(uint8_t brightness)
            return ret;
         }
         nrf_delay_ms(100);   
-        ret  = lm36011_write(LM36011_LED_BRIGHTNESS, brightness);
+        ret  = lm36011_write(LM36011_LED_BRIGHTNESS, brightness_regist_value);
         //NRF_LOG_INFO("setting status = %d", ret);
     return ret;
 }

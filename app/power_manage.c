@@ -212,6 +212,18 @@ uint8_t get_irq_status(void)
     }
 }
 
+
+//获取电池相关信息
+void get_battery_cv_msg(uint8_t bat_reg_addr,uint8_t bat_value[2])
+{
+    uint8_t  val[2]  = {0};
+    axp216_read(bat_reg_addr,2,val);
+    val[1] &= 0x0F;  //不用的位置零 
+    bat_value[0] = val[0];
+    bat_value[1] = val[1];
+}
+
+
 void set_wakeup_irq(uint8_t set_value)
 {
     uint8_t reg_val;
