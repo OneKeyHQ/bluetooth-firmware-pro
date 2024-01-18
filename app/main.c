@@ -196,8 +196,8 @@
 #define SEC_PARAM_MAX_KEY_SIZE          16                                          /**< Maximum encryption key size. */
 
 #define PASSKEY_LENGTH                  6                                           /**< Length of pass-key received by the stack for display. */
-#define HEAD_NAME_LENGTH                6
-#define ADV_NAME_LENGTH                 10
+#define HEAD_NAME_LENGTH                4
+#define ADV_NAME_LENGTH                 8
 #define MAC_ADDRESS_LENGTH              6
 
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
