@@ -264,7 +264,7 @@ static const uint64_t AXP_NOTIFIER_ON = (AXP_IRQ_USBIN |AXP_IRQ_USBRE |AXP_IRQ_U
 				       		             AXP_IRQ_ACIN  |AXP_IRQ_ACRE  |AXP_IRQ_ACOV	|
 				       		             AXP_IRQ_BATIN |AXP_IRQ_BATRE |
 				       		             AXP_IRQ_CHAST |AXP_IRQ_CHAOV |AXP_IRQ_POKSH|
-										 AXP_IRQ_POKLO );//|
+										 AXP_IRQ_POKLO |AXP_IRQ_PEKFE |AXP_IRQ_PEKRE);//|
 						                // (uint64_t)AXP_IRQ_PEKFE |(uint64_t)AXP_IRQ_PEKRE);
 
 /* 需要做插入火牛、usb关机重启进boot时power_start设置为1，否则为0*/

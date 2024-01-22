@@ -2125,14 +2125,19 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
                 send_stm_data(bak_buff,3);     
                 //NRF_LOG_INFO("charge_status  = %d", g_charge_status);
                 //NRF_LOG_INFO("charge_type  = %d", get_charge_type());                
-            }                     
-            g_key_status = get_irq_status();
-                    
-            if((g_key_status == 0x01)||(g_key_status == 0x02))
-            {
-                bak_buff[0] = BLE_CMD_KEY_STA;
-                bak_buff[1] = g_key_status;
-                send_stm_data(bak_buff,2); 
+            }  
+
+          
+            uint8_t key_statuses[5] = {0};
+            uint8_t key_status_count = get_irq_status(key_statuses);
+            for (int i = 0; i < key_status_count; ++i) {
+               uint8_t g_key_status = key_statuses[i];
+               if ((g_key_status == 0x01) || (g_key_status == 0x02) || (g_key_status == 0x20) || (g_key_status == 0x40) ) 
+               {
+                   bak_buff[0] = BLE_CMD_KEY_STA;
+                   bak_buff[1] = g_key_status;
+                   send_stm_data(bak_buff, 2);
+               }
             }
             clear_irq_reg();
             break;
