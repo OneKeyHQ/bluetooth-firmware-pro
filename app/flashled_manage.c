@@ -26,13 +26,14 @@ ret_code_t set_led_brightness(uint8_t brightness)
         {
            brightness_regist_value = LM36011_LED_MAX_SSC;
         }
-        //开启闪光灯手电筒模式
-        ret = lm36011_write(LM36011_LED_STATUS, LED_FLASHLIGHT_MODE);   
+        //设置闪光灯亮度值
+        ret = lm36011_write(LM36011_LED_BRIGHTNESS, brightness_regist_value);
         if (ret != LED_CONTROL_SUCCESS) {
            return ret;
         }
-        nrf_delay_ms(100);   
-        ret  = lm36011_write(LM36011_LED_BRIGHTNESS, brightness_regist_value);
+        nrf_delay_ms(100);
+        //开启闪光灯手电筒模式
+        ret = lm36011_write(LM36011_LED_STATUS, LED_FLASHLIGHT_MODE);   
         //NRF_LOG_INFO("setting status = %d", ret);
     return ret;
 }
