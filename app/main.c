@@ -2683,35 +2683,6 @@ int main(void)
         main_loop();
 		app_sched_execute();
         idle_state_handle();   
-
-    //     uint8_t value = 0;
-    //     axp216_read(0x82, 1,&value);  
-    //     //NRF_LOG_INFO("0x82_values = %d", value);
-    //     axp216_write(0x82,0xe3);  
-    //     value = 0;
-    //     axp216_read(0x82, 1,&value);  
-    //     //w(0x82, 1,&value);  
-    //    // NRF_LOG_INFO("0x82_values_2 = %d", value);
-        
-    //     uint8_t bat_values[2] = {0};
-    //     // axp内部温度
-    //     uint8_t axp_reg = 0x56;
-    //     //获取电池对应信息
-    //     get_battery_cv_msg(axp_reg, bat_values); 
-    //     NRF_LOG_INFO("axp_values = %d", (bat_values[0] << 4) + bat_values[1]);
-    //     nrf_delay_ms(1000);
-    //     axp_reg = 0x58;
-    //     bat_values[0] = 0;
-    //     bat_values[1] = 0;
-    //     get_battery_cv_msg(axp_reg, bat_values); 
-    //     NRF_LOG_INFO("batter_values = %d", (bat_values[0] << 4) + bat_values[1]);
-    //     nrf_delay_ms(1000);
-    //     // axp_reg = 0x7C;
-    //     // bat_values[0] = 0;
-    //     // bat_values[1] = 0;
-    //     // get_battery_cv_msg(axp_reg, bat_values); 
-    //     // NRF_LOG_INFO("FANGDIAN = %d", (bat_values[0] << 4) + bat_values[1]);
-    //     // nrf_delay_ms(1000);
     }
 }
 
