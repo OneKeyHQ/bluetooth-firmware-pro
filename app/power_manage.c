@@ -197,30 +197,11 @@ uint8_t get_irq_battery_status(void)
 }
 
 //REG 4CH  
-uint8_t get_irq_status(uint8_t *key_statuses)
+uint8_t get_irq_status(void)
 {
-    uint8_t key_status_count = 0, reg = 0;
-
-    axp216_read(AXP_INTSTS5, 1, &reg);
-    //NRF_LOG_INFO("key status %d ", reg);
-
-    if ((reg & IRQ_SHORT_PRESS) == IRQ_SHORT_PRESS) {
-        key_statuses[key_status_count++] = 0x01;  //短按
-    }
-    if ((reg & IRQ_LONG_PRESS) == IRQ_LONG_PRESS) {
-        key_statuses[key_status_count++] = 0x02;  //长按
-    }
-    if ((reg & IRQ_FALLING_EDGE) == IRQ_FALLING_EDGE) {
-        key_statuses[key_status_count++] = 0x20;  //下降沿
-    }
-    if ((reg & IRQ_RISING_EDGE) == IRQ_RISING_EDGE) {
-        key_statuses[key_status_count++] = 0x40;  //上升沿
-    }
-    if ((reg & IRQ_OFF_LEVEL) == IRQ_OFF_LEVEL) {
-        key_statuses[key_status_count++] = IRQ_OFF_LEVEL;
-    }
-
-    return key_status_count; 
+    uint8_t  reg = 0;
+    axp216_read(AXP_INTSTS5, 1, &reg); 
+    return reg; 
 }
 
 
@@ -233,6 +214,7 @@ void get_battery_cv_msg(uint8_t bat_reg_addr,uint8_t bat_value[2])
     bat_value[0] = val[0];
     bat_value[1] = val[1];
 }
+
 
 
 

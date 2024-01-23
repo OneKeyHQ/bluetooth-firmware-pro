@@ -63,7 +63,7 @@ extern uint8_t get_irq_charge_status(void);
 extern uint8_t get_irq_battery_status(void);
 
 
-extern uint8_t get_irq_status(uint8_t *key_statuses);
+extern uint8_t get_irq_status(void);
 
 extern void test_dcdc(void);
 

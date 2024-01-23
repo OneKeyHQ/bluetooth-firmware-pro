@@ -2126,21 +2126,31 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
                 //NRF_LOG_INFO("charge_status  = %d", g_charge_status);
                 //NRF_LOG_INFO("charge_type  = %d", get_charge_type());                
             }  
-
-          
-            uint8_t key_statuses[5] = {0};
-            uint8_t key_status_count = get_irq_status(key_statuses);
-            for (int i = 0; i < key_status_count; ++i) {
-               uint8_t g_key_status = key_statuses[i];
-               if ((g_key_status == 0x01) || (g_key_status == 0x02) || (g_key_status == 0x20) || (g_key_status == 0x40) ) 
-               {
-                   bak_buff[0] = BLE_CMD_KEY_STA;
-                   bak_buff[1] = g_key_status;
-                   send_stm_data(bak_buff, 2);
+            // AXP interrupt processing logic
+            uint8_t irq_req_value = get_irq_status();
+            if ((irq_req_value & IRQ_SHORT_PRESS) == IRQ_SHORT_PRESS) {    // SHORT (Short press trigger)
+                bak_buff[0] = BLE_CMD_KEY_STA;
+                bak_buff[1] = 0x01;
+                send_stm_data(bak_buff, 2);
                }
-            }
-            clear_irq_reg();
+            if ((irq_req_value & IRQ_LONG_PRESS) == IRQ_LONG_PRESS) {      // LONG (Long  press trigger)
+                bak_buff[0] = BLE_CMD_KEY_STA;
+                bak_buff[1] = 0x02;
+                send_stm_data(bak_buff, 2);
+               }
+            if ((irq_req_value & IRQ_FALLING_EDGE) == IRQ_FALLING_EDGE) {  // FALLING (Press trigger)
+                bak_buff[0] = BLE_CMD_KEY_STA;
+                bak_buff[1] = 0x20;  
+                send_stm_data(bak_buff, 2);
+               }
+            if ((irq_req_value & IRQ_RISING_EDGE) == IRQ_RISING_EDGE) {    // RISING (Release trigger)
+                bak_buff[0] = BLE_CMD_KEY_STA;
+                bak_buff[1] = 0x40;
+                send_stm_data(bak_buff, 2);
+               }
+            clear_irq_reg(); //clear irq
             break;
+ 
         default:
             break;
     }
@@ -2600,6 +2610,8 @@ static void bat_msg_report_process(void *p_event_data,uint16_t event_size)
 }
 
 
+
+
 static void scheduler_init(void)
 {
     APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
@@ -2671,6 +2683,35 @@ int main(void)
         main_loop();
 		app_sched_execute();
         idle_state_handle();   
+
+    //     uint8_t value = 0;
+    //     axp216_read(0x82, 1,&value);  
+    //     //NRF_LOG_INFO("0x82_values = %d", value);
+    //     axp216_write(0x82,0xe3);  
+    //     value = 0;
+    //     axp216_read(0x82, 1,&value);  
+    //     //w(0x82, 1,&value);  
+    //    // NRF_LOG_INFO("0x82_values_2 = %d", value);
+        
+    //     uint8_t bat_values[2] = {0};
+    //     // axp内部温度
+    //     uint8_t axp_reg = 0x56;
+    //     //获取电池对应信息
+    //     get_battery_cv_msg(axp_reg, bat_values); 
+    //     NRF_LOG_INFO("axp_values = %d", (bat_values[0] << 4) + bat_values[1]);
+    //     nrf_delay_ms(1000);
+    //     axp_reg = 0x58;
+    //     bat_values[0] = 0;
+    //     bat_values[1] = 0;
+    //     get_battery_cv_msg(axp_reg, bat_values); 
+    //     NRF_LOG_INFO("batter_values = %d", (bat_values[0] << 4) + bat_values[1]);
+    //     nrf_delay_ms(1000);
+    //     // axp_reg = 0x7C;
+    //     // bat_values[0] = 0;
+    //     // bat_values[1] = 0;
+    //     // get_battery_cv_msg(axp_reg, bat_values); 
+    //     // NRF_LOG_INFO("FANGDIAN = %d", (bat_values[0] << 4) + bat_values[1]);
+    //     // nrf_delay_ms(1000);
     }
 }
 
