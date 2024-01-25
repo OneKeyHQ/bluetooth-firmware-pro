@@ -45,59 +45,59 @@
  * @brief The application main file of NFC UART Tag example.
  *
  */
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 #include "app_error.h"
 #include "app_fifo.h"
 #include "app_uart.h"
 #include "boards.h"
 #include "data_transmission.h"
-#include "nrf_drv_twi.h"
 #include "nfc_t4t_lib.h"
+#include "nrf_drv_twi.h"
 #include "sdk_config.h"
 
-#include "nrf_log_default_backends.h"
-#include "nrf_log_ctrl.h"
 #include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+#include "nrf_log_default_backends.h"
 
 #include "nrf_delay.h"
 
 #include "nfc.h"
 
-#define MAX_APDU_LEN      1024   /**< Maximal APDU length, Adafruit limitation. */
+#define MAX_APDU_LEN 1024 /**< Maximal APDU length, Adafruit limitation. */
 //#define HEADER_FIELD_SIZE 1      /**< Header field size. */
-#define HEADER_FIELD_SIZE 0                 /**< no header */    
+#define HEADER_FIELD_SIZE 0 /**< no header */
 #define PACKAGE_LENTH     64
 #define HEAD_LENTH        9
 
-static bool multi_package=false;
+static bool multi_package = false;
 
-//static uint8_t i2c_buf_dma[255];
+// static uint8_t i2c_buf_dma[255];
 
-//NFC buffer
+// NFC buffer
 uint8_t nfc_apdu[253];
-uint32_t nfc_apdu_len=0;
+uint32_t nfc_apdu_len = 0;
 uint8_t nfc_data_out_buf[APDU_BUFF_SIZE];
-uint32_t nfc_data_out_len=0;
-bool nfc_multi_packet=false;
+uint32_t nfc_data_out_len = 0;
+bool nfc_multi_packet = false;
 
-bool data_recived_flag=false;
+bool data_recived_flag = false;
 uint8_t data_recived_buf[APDU_BUFF_SIZE];
-uint16_t data_recived_len=0;
+uint16_t data_recived_len = 0;
 uint16_t data_remaining_len = 0;
 uint16_t data_recived_offset = 0;
 
 extern uint8_t spi_evt_flag;
 
-static void apdu_command(const uint8_t *p_buf,uint32_t data_len);
-bool apdu_cmd =false;
+static void apdu_command(const uint8_t *p_buf, uint32_t data_len);
+bool apdu_cmd = false;
 
-//TWI driver
-//static volatile bool twi_xfer_done = false ;
-//static uint8_t twi_xfer_dir = 0; //0-write 1-read
+// TWI driver
+// static volatile bool twi_xfer_done = false ;
+// static uint8_t twi_xfer_dir = 0; //0-write 1-read
 extern uint8_t ble_adv_switch_flag;
- uint8_t ctl_channel_flag;
+uint8_t ctl_channel_flag;
 
 #if 0
 /**
@@ -277,235 +277,191 @@ bool i2c_master_read(void)
 /**
  * @brief Callback function for handling NFC events.
  */
-static void nfc_callback(void          * context,
-                         nfc_t4t_event_t event,
-                         const uint8_t * data,
-                         size_t          dataLength,
-                         uint32_t        flags)
-{
-    ret_code_t err_code;
+static void nfc_callback(void *context, nfc_t4t_event_t event, const uint8_t *data, size_t dataLength, uint32_t flags) {
+  ret_code_t err_code;
 
-    (void)context;
+  (void)context;
 
-    switch (event)
-    {
-        case NFC_T4T_EVENT_FIELD_ON:
-            multi_package=false;
-            NRF_LOG_INFO("NFC Tag has been selected. UART transmission can start...");
+  switch (event) {
+    case NFC_T4T_EVENT_FIELD_ON:
+      multi_package = false;
+      NRF_LOG_INFO("NFC Tag has been selected. UART transmission can start...");
 #ifdef DEV_BSP
-            bsp_board_led_on(BSP_BOARD_LED_1);
+      bsp_board_led_on(BSP_BOARD_LED_1);
 #endif
-            break;
+      break;
 
-        case NFC_T4T_EVENT_FIELD_OFF:
-            multi_package=false;
-            NRF_LOG_INFO("NFC field lost. Data from UART will be discarded...");
+    case NFC_T4T_EVENT_FIELD_OFF:
+      multi_package = false;
+      NRF_LOG_INFO("NFC field lost. Data from UART will be discarded...");
 #ifdef DEV_BSP
-            bsp_board_led_off(BSP_BOARD_LED_1);
+      bsp_board_led_off(BSP_BOARD_LED_1);
 #endif
-            break;
-        case NFC_T4T_EVENT_DATA_IND:
-			spi_evt_flag = 0;
-            if (dataLength > APDU_BUFF_SIZE)
-            {
-                APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-            }                                  
-            
-            if (flags != NFC_T4T_DI_FLAG_MORE)
-            {   
-                memcpy(nfc_apdu,data,dataLength);
-                nfc_apdu_len=dataLength;
-                nfc_multi_packet=false;
-                NRF_LOG_INFO("NFC RX data length: %d", dataLength);  
-                //NRF_LOG_HEXDUMP_INFO(data,dataLength);                
-                apdu_command(data,dataLength);                                
-                if (nfc_data_out_len > 0)
-                {
-                    // Send the response PDU over NFC.
-                    err_code = nfc_t4t_response_pdu_send(nfc_data_out_buf, nfc_data_out_len + HEADER_FIELD_SIZE);
-                    APP_ERROR_CHECK(err_code);
-                    nfc_data_out_len=0;
-                }
-#ifdef DEV_BSP
-                bsp_board_led_off(BSP_BOARD_LED_2);
-#endif
-            }
-            else
-            {
-                multi_package=true;
-                memcpy(nfc_apdu,data,dataLength);
-                nfc_apdu_len=dataLength;
-                apdu_cmd = true;
-                nfc_multi_packet=true;
-                usr_spi_write((uint8_t*)data,dataLength);
-#ifdef DEV_BSP
-                bsp_board_led_on(BSP_BOARD_LED_2);
-#endif
-            }
-            break;
+      break;
+    case NFC_T4T_EVENT_DATA_IND:
+      spi_evt_flag = 0;
+      if (dataLength > APDU_BUFF_SIZE) {
+        APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+      }
 
-        default:
-            break;
-    }
+      if (flags != NFC_T4T_DI_FLAG_MORE) {
+        memcpy(nfc_apdu, data, dataLength);
+        nfc_apdu_len = dataLength;
+        nfc_multi_packet = false;
+        NRF_LOG_INFO("NFC RX data length: %d", dataLength);
+        // NRF_LOG_HEXDUMP_INFO(data,dataLength);
+        apdu_command(data, dataLength);
+        if (nfc_data_out_len > 0) {
+          // Send the response PDU over NFC.
+          err_code = nfc_t4t_response_pdu_send(nfc_data_out_buf, nfc_data_out_len + HEADER_FIELD_SIZE);
+          APP_ERROR_CHECK(err_code);
+          nfc_data_out_len = 0;
+        }
+#ifdef DEV_BSP
+        bsp_board_led_off(BSP_BOARD_LED_2);
+#endif
+      } else {
+        multi_package = true;
+        memcpy(nfc_apdu, data, dataLength);
+        nfc_apdu_len = dataLength;
+        apdu_cmd = true;
+        nfc_multi_packet = true;
+        usr_spi_write((uint8_t *)data, dataLength);
+#ifdef DEV_BSP
+        bsp_board_led_on(BSP_BOARD_LED_2);
+#endif
+      }
+      break;
+
+    default:
+      break;
+  }
 }
 
 /**
  * @brief Function for application main entry.
  */
-int nfc_init(void)
-{
-    ret_code_t err_code;
-    
-    /* Set up NFC */
-    err_code = nfc_t4t_setup(nfc_callback, NULL);
-    APP_ERROR_CHECK(err_code);
+int nfc_init(void) {
+  ret_code_t err_code;
 
-    /* Start sensing NFC field */
-    err_code = nfc_t4t_emulation_start();
-    APP_ERROR_CHECK(err_code);
-    return 0;
+  /* Set up NFC */
+  err_code = nfc_t4t_setup(nfc_callback, NULL);
+  APP_ERROR_CHECK(err_code);
+
+  /* Start sensing NFC field */
+  err_code = nfc_t4t_emulation_start();
+  APP_ERROR_CHECK(err_code);
+  return 0;
 }
 
-void nfc_disable(void)
-{
-    nfc_t4t_emulation_stop();
+void nfc_disable(void) { nfc_t4t_emulation_stop(); }
+void poll_st_resp_data() {
+  if (data_remaining_len > 63) {
+    usr_spi_read(data_recived_buf + data_recived_offset, 64);
+    memmove(data_recived_buf + data_recived_offset, data_recived_buf + data_recived_offset + 1, 63);
+    data_remaining_len -= 63;
+    data_recived_offset += 63;
+    data_recived_len += 63;
+    return;
+  }
+
+  if (data_remaining_len) {
+    usr_spi_read(data_recived_buf + data_recived_offset, 64);
+    memmove(data_recived_buf + data_recived_offset, data_recived_buf + data_recived_offset + 1, 63);
+    data_recived_len += data_remaining_len;
+    data_remaining_len = 0;
+    data_recived_offset = 0;
+    data_recived_flag = true;
+  }
 }
-void poll_st_resp_data()
-{
-    if (data_remaining_len > 63)
-    {
-        usr_spi_read(data_recived_buf + data_recived_offset, 64);
-        memmove(data_recived_buf + data_recived_offset, data_recived_buf + data_recived_offset + 1, 63);
-        data_remaining_len -= 63;
-        data_recived_offset += 63;
-        data_recived_len += 63;
-        return;
+
+void read_st_resp_data(void) {
+  uint32_t receive_offset = 0;
+  uint32_t data_len = 0;
+
+  if (nrf_gpio_pin_read(TWI_STATUS_GPIO) == 0) {
+    if (data_remaining_len) {
+      poll_st_resp_data();
+      return;
     }
 
-    if (data_remaining_len)
-    {
-        usr_spi_read(data_recived_buf + data_recived_offset, 64);
-        memmove(data_recived_buf + data_recived_offset, data_recived_buf + data_recived_offset + 1, 63);
-        data_recived_len += data_remaining_len;
-        data_remaining_len = 0;
-        data_recived_offset = 0;
+    usr_spi_read(data_recived_buf, 64);
+    receive_offset = PACKAGE_LENTH;
+    if (data_recived_buf[0] == '?' && data_recived_buf[1] == '#' && data_recived_buf[2] == '#') {
+      data_len = ((uint32_t)data_recived_buf[5] << 24) + (data_recived_buf[6] << 16) + (data_recived_buf[7] << 8) + data_recived_buf[8];
+      if (data_len <= (PACKAGE_LENTH - HEAD_LENTH)) {
+        data_recived_len = data_len + HEAD_LENTH;
         data_recived_flag = true;
-     }
-}
-
-void read_st_resp_data(void)
-{
-    uint32_t receive_offset=0;
-    uint32_t data_len =0;
-
-    if (nrf_gpio_pin_read(TWI_STATUS_GPIO) == 0)
-    {
-        if (data_remaining_len) {
-            poll_st_resp_data();
-            return;
-        }
-
-        usr_spi_read(data_recived_buf, 64);
-        receive_offset = PACKAGE_LENTH;
-        if(data_recived_buf[0] == '?' && data_recived_buf[1] == '#' && data_recived_buf[2] == '#')
-        {
-            data_len = ((uint32_t)data_recived_buf[5] << 24) + (data_recived_buf[6] << 16) + (data_recived_buf[7] << 8) + data_recived_buf[8];
-            if (data_len <= (PACKAGE_LENTH - HEAD_LENTH))
-            {
-                data_recived_len = data_len + HEAD_LENTH;
-                data_recived_flag = true;
-                data_len = 0;
-                receive_offset = 0;
-            } else {
-                data_recived_len += PACKAGE_LENTH;
-                data_remaining_len = data_len - (PACKAGE_LENTH - HEAD_LENTH);
-                data_recived_offset = receive_offset;
-            }
-        }
+        data_len = 0;
+        receive_offset = 0;
+      } else {
+        data_recived_len += PACKAGE_LENTH;
+        data_remaining_len = data_len - (PACKAGE_LENTH - HEAD_LENTH);
+        data_recived_offset = receive_offset;
+      }
     }
+  }
 }
 
-static void apdu_command(const uint8_t *p_buf,uint32_t data_len)
-{
-    static bool reading = false;
-    
-    if(multi_package)//multi_package end
-    {
-        multi_package=false;
-        apdu_cmd = true;
-        usr_spi_write((uint8_t*)p_buf,data_len);
+static void apdu_command(const uint8_t *p_buf, uint32_t data_len) {
+  static bool reading = false;
+
+  if (multi_package)  // multi_package end
+  {
+    multi_package = false;
+    apdu_cmd = true;
+    usr_spi_write((uint8_t *)p_buf, data_len);
+    nfc_data_out_len = 2;
+    memcpy(nfc_data_out_buf, "\x90\x00", nfc_data_out_len);
+  } else {
+    if (p_buf[0] == '?') {
+      data_recived_flag = false;
+      apdu_cmd = true;
+      reading = false;
+      usr_spi_write((uint8_t *)p_buf, data_len);
+      nfc_data_out_len = 2;
+      memcpy(nfc_data_out_buf, "\x90\x00", nfc_data_out_len);
+    } else if (p_buf[0] == '#' && p_buf[1] == '*' && p_buf[2] == '*') {
+      // usart
+      if (reading == false) {
+        read_st_resp_data();
+        reading = true;
+        nfc_data_out_len = 3;
+        memcpy(nfc_data_out_buf, "#**", nfc_data_out_len);
+
+      } else {
+        if (data_recived_flag == false) {
+          nfc_data_out_len = 3;
+          memcpy(nfc_data_out_buf, "#**", nfc_data_out_len);
+        } else {
+          data_recived_flag = false;
+          reading = false;
+          nfc_data_out_len = data_recived_len;
+          memcpy(nfc_data_out_buf, data_recived_buf, nfc_data_out_len);
+        }
+      }
+    } else {
+      if (p_buf[0] == 0x5A && p_buf[1] == 0xA5 && p_buf[2] == 0x07 && p_buf[3] == 0x1) {
+        if (p_buf[4] == 0x03) {
+          ble_adv_switch_flag = 3;
+        } else if (p_buf[4] == 0x02) {
+          ble_adv_switch_flag = 2;
+        }
+        ctl_channel_flag = 2;
+        nfc_data_out_len = 3;
+        memcpy(nfc_data_out_buf, "\xA5\x5\01", nfc_data_out_len);
+      } else {
         nfc_data_out_len = 2;
-        memcpy(nfc_data_out_buf,"\x90\x00",nfc_data_out_len);  
+        memcpy(nfc_data_out_buf, "\x6D\x00", nfc_data_out_len);
+      }
     }
-    else
-    {
-        if(p_buf[0] == '?')
-        {
-            data_recived_flag = false;
-            apdu_cmd = true;
-			reading = false;
-            usr_spi_write((uint8_t*)p_buf,data_len);
-            nfc_data_out_len = 2;
-            memcpy(nfc_data_out_buf,"\x90\x00",nfc_data_out_len);    
-        }
-        else if(p_buf[0] == '#' && p_buf[1] == '*' && p_buf[2] == '*')
-        {
-                //usart
-            if(reading==false)
-            {
-                read_st_resp_data();
-                reading = true;
-                nfc_data_out_len = 3;
-                memcpy(nfc_data_out_buf,"#**",nfc_data_out_len); 
-                
-            }
-            else 
-            {
-                if(data_recived_flag == false)
-                {
-                    nfc_data_out_len = 3;
-                    memcpy(nfc_data_out_buf,"#**",nfc_data_out_len); 
-                }
-                else
-                {
-                    data_recived_flag = false;
-                    reading = false;
-                    nfc_data_out_len = data_recived_len;
-                    memcpy(nfc_data_out_buf,data_recived_buf,nfc_data_out_len);
-                }
-            }
-        }
-        else
-        {
-            if(p_buf[0] == 0x5A && p_buf[1] == 0xA5 
-              && p_buf[2] == 0x07 && p_buf[3] == 0x1)
-            {
-                if(p_buf[4] == 0x03)
-                {
-                    ble_adv_switch_flag = 3;
-                }else if(p_buf[4] == 0x02)
-                {
-                    ble_adv_switch_flag = 2;
-                }
-                ctl_channel_flag = 2;
-                nfc_data_out_len = 3;
-                memcpy(nfc_data_out_buf,"\xA5\x5\01",nfc_data_out_len); 
-            }
-            else
-            {
-                nfc_data_out_len = 2;
-                memcpy(nfc_data_out_buf,"\x6D\x00",nfc_data_out_len); 
-            }
-        }
-    }
+  }
 }
 
-void nfc_poll(void *p_event_data,uint16_t event_size)
-{
-    if(apdu_cmd == true)
-    {
-        apdu_cmd = false;
-        usr_spi_write(nfc_apdu,nfc_apdu_len);
-    }
+void nfc_poll(void *p_event_data, uint16_t event_size) {
+  if (apdu_cmd == true) {
+    apdu_cmd = false;
+    usr_spi_write(nfc_apdu, nfc_apdu_len);
+  }
 }
 /** @} */
