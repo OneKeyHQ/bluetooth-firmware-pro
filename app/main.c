@@ -97,6 +97,8 @@
 #include "rtc_calendar.h"
 #include "data_transmission.h"
 #include "flashled_manage.h"
+#include "nrf_crypto_init.h"
+#include "ecdsa.h"
 
 #if defined (UART_PRESENT)
 #include "nrf_uart.h"
@@ -258,8 +260,14 @@
 #define BLE_PWR_PERCENT                0X04
 
 #define BLE_CMD_FLASH_LED_STA          0x0C
-#define BLE_CMD_BAT_CV_MSG             0x0D
-//end BLE send CMD
+#define BLE_CMD_BAT_CV_MSG    0x0D
+
+#define BLE_CMD_KEY_RESP     0x0E
+#define BLE_KEY_RESP_SUCCESS 0x00
+#define BLE_KEY_RESP_FAILED  0x01
+#define BLE_KEY_RESP_PUBKEY  0x02
+#define BLE_KEY_RESP_SIGN    0x03
+// end BLE send CMD
 //
 #define UART_CMD_BLE_CON_STA           0x01
 #define UART_CMD_BLE_PAIR_STA          0x02
@@ -269,7 +277,9 @@
 #define UART_CMD_BLE_VERSION           0x06
 #define UART_CMD_CTL_BLE               0x07
 
-#define UART_CMD_DFU_STA			   0x0a
+#define UART_CMD_DFU_STA		   0x0a
+#define UART_CMD_BLE_PUBKEY            0x0b
+#define UART_CMD_BLE_SIGN              0x0c
 
 //Receive ST CMD
 #define ST_CMD_BLE                     0x81
@@ -303,6 +313,10 @@
 #define STM_SEND_BAT_CHARGE_CUR        0X02  //Send battery charge current
 #define STM_SEND_BAT_DISCHARGE_CUR     0X03  //Send battery discharge current
 
+#define STM_CMD_KEY      0x87
+#define STM_GET_PUBKEY   0x01
+#define STM_LOCK_PUBKEY  0x02
+#define STM_REQUEST_SIGN 0x03
 
 
 
@@ -340,10 +354,14 @@
 #define RESPONESE_SD_VER_UART           0x05
 #define RESPONESE_BOOT_VER_UART         0x06
 #define RESPONESE_LED_VER_UART          0x07
+#define RESPONESE_BLE_PUBKEY            0x08
+#define RESPONESE_BLE_PUBKEY_LOCK       0x09
+#define RESPONESE_BLE_SIGN              0x0A
 #define DEF_RESP						0xFF
 
 #define BLE_CTL_ADDR					0x6f000
 #define BAT_LVL_ADDR					0x70000
+#define DEVICE_KEY_INFO_ADDR			0x71000
 #endif
 
 #define TIMER_INIT_FLAG                 0
@@ -411,8 +429,9 @@ static void twi_write_data(void *p_event_data,uint16_t event_size);
 void forwarding_to_st_data(void);
 #ifdef UART_TRANS
 static volatile uint8_t flag_uart_trans=1;
-static uint8_t uart_trans_buff[30];
-static uint8_t bak_buff[18];
+static uint8_t uart_trans_buff[128];
+static uint8_t bak_buff[128];
+static uint8_t uart_data_array[64];
 static void uart_put_data(uint8_t *pdata,uint8_t lenth);
 static void send_stm_data(uint8_t *pdata,uint8_t lenth);
 static uint8_t calcXor(uint8_t *buf, uint8_t len);
@@ -435,8 +454,6 @@ static bool ble_send_ready = false;
 static uint8_t g_charge_status = 0;
 static uint8_t g_bas_update_flag = 0;
 //static uint8_t g_offlevel_flag = 0;
-static uint8_t g_key_status = 0;
-
 
 //LM    global status
 static uint8_t led_brightness_value = 0;
@@ -444,6 +461,8 @@ static uint8_t led_brightness_value = 0;
 #ifdef SCHED_ENABLE
 static ringbuffer_t m_ble_fifo;
 #endif
+
+#define STORAGE_TRUE_FLAG 0xa55aa55a
 
 NRF_FSTORAGE_DEF(nrf_fstorage_t fstorage) =
 {
@@ -455,7 +474,7 @@ NRF_FSTORAGE_DEF(nrf_fstorage_t fstorage) =
      * The function nrf5_flash_end_addr_get() can be used to retrieve the last address on the
      * last page of flash available to write data. */
     .start_addr = 0x6f000,
-    .end_addr   = 0x71000,
+    .end_addr   = 0x72000,
 };
 
 /**@brief   Helper function to obtain the last address on the last page of the on-chip flash that
@@ -489,6 +508,26 @@ static void flash_data_write(uint32_t adress,uint32_t data)
     APP_ERROR_CHECK(rc);
 
     wait_for_flash_ready(&fstorage);
+}
+
+static void device_key_info_init(void)
+{
+    ret_code_t rc;
+    ecdsa_key_info_t key_info={0};
+    nrf_fstorage_read(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t));
+    if(key_info.key_flag != STORAGE_TRUE_FLAG)
+    {
+        key_info.key_flag = STORAGE_TRUE_FLAG;
+        generate_ecdsa_keypair(key_info.private_key,key_info.public_key);
+        
+        rc =  nrf_fstorage_erase(&fstorage,DEVICE_KEY_INFO_ADDR, FDS_PHY_PAGES_IN_VPAGE, NULL);
+        APP_ERROR_CHECK(rc);
+
+        rc = nrf_fstorage_write(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t), NULL);
+        APP_ERROR_CHECK(rc);
+
+        wait_for_flash_ready(&fstorage);
+    }
 }
 
 #ifdef SCHED_ENABLE
@@ -1705,7 +1744,6 @@ static void peer_manager_init(void)
 /**@snippet [Handling the data received over UART] */
 void uart_event_handle(app_uart_evt_t * p_event)
 {
-    static uint8_t data_array[64];
     static uint8_t index = 0;
     static uint32_t lenth = 0;
     uint8_t uart_xor_byte;
@@ -1713,46 +1751,47 @@ void uart_event_handle(app_uart_evt_t * p_event)
     switch (p_event->evt_type)
     {
         case APP_UART_DATA_READY:
-            UNUSED_VARIABLE(app_uart_get(&data_array[index]));
+            UNUSED_VARIABLE(app_uart_get(&uart_data_array[index]));
             index++;
             // NRF_LOG_INFO("receive uart data.")
 			if(1 == index)
 			{
-				if(UART_TX_TAG != data_array[0])
+				if(UART_TX_TAG != uart_data_array[0])
 				{
 					index=0;
                     return;
 				}
             }else if(2 == index)
             {
-                if(UART_TX_TAG2 != data_array[1])
+                if(UART_TX_TAG2 != uart_data_array[1])
                 {
                     index=0;
                     return;
                 }     
             }else if(3 == index)
             {
-            	if((UART_TX_TAG2 == data_array[0])&&(UART_TX_TAG == data_array[1]))
+            	if((UART_TX_TAG2 == uart_data_array[0])&&(UART_TX_TAG == uart_data_array[1]))
 	            {	                
                 	index = 0;
                     return;
 	            }
             }else if(4 == index)
             {
-				lenth = ((uint32_t)data_array[2]<<8)+data_array[3];
+				lenth = ((uint32_t)uart_data_array[2]<<8)+uart_data_array[3];
 			}
 			else if(index >= lenth+4)
             {
-                uart_xor_byte = calcXor(data_array,index-1);
-                if(uart_xor_byte != data_array[index-1])
+                uart_xor_byte = calcXor(uart_data_array,index-1);
+                if(uart_xor_byte != uart_data_array[index-1])
                 {
                     index=0;
                     return;
                 }
-                switch(data_array[4])
+
+                switch(uart_data_array[4])
                 {            
                     case ST_CMD_BLE:
-                        switch (data_array[5])
+                        switch (uart_data_array[5])
                         {
                             case ST_SEND_OPEN_BLE:
                                 ble_adv_switch_flag = BLE_ON_ALWAYS;
@@ -1774,7 +1813,7 @@ void uart_event_handle(app_uart_evt_t * p_event)
                         }                       
                         break;
                     case ST_CMD_POWER:
-                        switch (data_array[5])
+                        switch (uart_data_array[5])
                         {
                             case ST_SEND_CLOSE_SYS_PWR:
                                 pwr_status_flag = PWR_SHUTDOWN_SYS;
@@ -1797,7 +1836,7 @@ void uart_event_handle(app_uart_evt_t * p_event)
                         }                        
                         break;
                     case ST_CMD_BLE_INFO:
-                        switch (data_array[5])
+                        switch (uart_data_array[5])
                         {
                             case ST_REQ_ADV_NAME:
                                 trans_info_flag = RESPONESE_NAME_UART;
@@ -1817,25 +1856,25 @@ void uart_event_handle(app_uart_evt_t * p_event)
                         }                    
                         break;
                     case ST_CMD_RESET_BLE:
-                        if(ST_VALUE_RESET_BLE == data_array[5])
+                        if(ST_VALUE_RESET_BLE == uart_data_array[5])
                         {
                             NVIC_SystemReset();
                         }
                         break;
                     case ST_CMD_LED:                     
-                     if(ST_SEND_GET_LED_BRIGHTNESS == data_array[5])
+                     if(ST_SEND_GET_LED_BRIGHTNESS == uart_data_array[5])
                         {
                             led_brightness_flag  = LED_GET_BRIHTNESS;
                         }
-                      else  if (ST_SEND_SET_LED_BRIGHTNESS == data_array[5])
+                      else  if (ST_SEND_SET_LED_BRIGHTNESS == uart_data_array[5])
                         {
                             led_brightness_flag  = LED_SET_BRIHTNESS;
-                            led_brightness_value  = data_array[6];
+                            led_brightness_value  = uart_data_array[6];
                         }                  
                         break;
 
                     case STM_CMD_BAT:
-                        switch (data_array[5])
+                        switch (uart_data_array[5])
                         {
                             case STM_SEND_BAT_VOL:
                                 bat_msg_flag = SEND_BAT_VOL;
@@ -1851,7 +1890,22 @@ void uart_event_handle(app_uart_evt_t * p_event)
                                 break;
                         }                    
                         break;
-
+                    case STM_CMD_KEY:
+                        switch ((uart_data_array[5])) {
+                        case STM_GET_PUBKEY:
+                            trans_info_flag = RESPONESE_BLE_PUBKEY;
+                            break;
+                        case STM_LOCK_PUBKEY:
+                            trans_info_flag = RESPONESE_BLE_PUBKEY_LOCK;
+                            break;
+                        case STM_REQUEST_SIGN:
+                            trans_info_flag = RESPONESE_BLE_SIGN;
+                            break;
+                        default:
+                            break;
+                        }
+                        break;
+						
                     default:
                         break;
                 }
@@ -2373,6 +2427,7 @@ static void ctl_advertising(void)
 
 static void rsp_st_uart_cmd(void *p_event_data,uint16_t event_size)
 {
+    memset(bak_buff,0x00,sizeof(bak_buff));
 	if(RESPONESE_NAME_UART == trans_info_flag)
     {
         bak_buff[0] = BLE_CMD_ADV_NAME;
@@ -2397,7 +2452,60 @@ static void rsp_st_uart_cmd(void *p_event_data,uint16_t event_size)
         memcpy(&bak_buff[1],BT_REVISION,sizeof(BT_REVISION)-1);
         send_stm_data(bak_buff,sizeof(BT_REVISION));
 		trans_info_flag = DEF_RESP;
+    }else if(trans_info_flag == RESPONESE_BLE_PUBKEY)
+	{   
+        bak_buff[0] = BLE_CMD_KEY_RESP;
+
+        ecdsa_key_info_t key_info = {0};
+        nrf_fstorage_read(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t));
+        if (key_info.key_lock_flag == STORAGE_TRUE_FLAG) {
+        bak_buff[1] = BLE_KEY_RESP_FAILED;
+        send_stm_data(bak_buff, 2);
+        } else if (key_info.key_flag != STORAGE_TRUE_FLAG) {
+        bak_buff[1] = BLE_KEY_RESP_FAILED;
+        send_stm_data(bak_buff, 2);
+        } else {
+        bak_buff[1] = BLE_KEY_RESP_PUBKEY;
+        memcpy(&bak_buff[2], key_info.public_key, sizeof(key_info.public_key));
+        send_stm_data(bak_buff, sizeof(key_info.public_key) + 2);
+        }
+
+        trans_info_flag = DEF_RESP;
+  } else if (trans_info_flag == RESPONESE_BLE_PUBKEY_LOCK) 
+  {
+    ecdsa_key_info_t key_info = {0};
+    nrf_fstorage_read(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t));
+    if (key_info.key_lock_flag != STORAGE_TRUE_FLAG) {
+      ret_code_t rc;
+      key_info.key_lock_flag = STORAGE_TRUE_FLAG;
+      rc = nrf_fstorage_erase(&fstorage, DEVICE_KEY_INFO_ADDR, FDS_PHY_PAGES_IN_VPAGE, NULL);
+      APP_ERROR_CHECK(rc);
+
+      rc = nrf_fstorage_write(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t), NULL);
+      APP_ERROR_CHECK(rc);
+
+      wait_for_flash_ready(&fstorage);
     }
+    bak_buff[0] = BLE_CMD_KEY_RESP;
+    bak_buff[1] = BLE_KEY_RESP_SUCCESS;
+    send_stm_data(bak_buff, 2);
+    trans_info_flag = DEF_RESP;
+  } else if (trans_info_flag == RESPONESE_BLE_SIGN) {
+    uint32_t msg_len = (uart_data_array[2] << 8 | uart_data_array[3]) - 3;
+    bak_buff[0] = BLE_CMD_KEY_RESP;
+
+    ecdsa_key_info_t key_info = {0};
+    nrf_fstorage_read(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t));
+    if (key_info.key_flag != STORAGE_TRUE_FLAG) {
+      bak_buff[1] = BLE_KEY_RESP_FAILED;
+      send_stm_data(bak_buff, 2);
+    } else {
+      bak_buff[1] = BLE_KEY_RESP_SIGN;
+      sign_ecdsa_msg(key_info.private_key, uart_data_array + 6, msg_len, bak_buff + 2);
+      send_stm_data(bak_buff, 64 + 2);
+    }
+    trans_info_flag = DEF_RESP;
+  }
 }
 static void manage_bat_level(void *p_event_data,uint16_t event_size)
 {  
@@ -2651,6 +2759,10 @@ int main(void)
     system_init();
     scheduler_init();
 
+    fs_init();
+    nrf_crypto_init();
+    device_key_info_init();
+
     timers_init();
 #ifdef DEV_BSP
     buttons_leds_init();
@@ -2666,7 +2778,6 @@ int main(void)
     services_init();
     advertising_init();
     conn_params_init();
-    fs_init();
     application_timers_start();
     // Start execution.
     NRF_LOG_INFO("Debug logging for UART over RTT started.");
