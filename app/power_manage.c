@@ -6,13 +6,13 @@ ret_code_t usr_power_init(void) {
   ret_code_t ret;
 
   ret = axp216_twi_master_init();
-  nrf_delay_ms(800);  // here must delay 800ms at least
+  nrf_delay_ms(150);  // here must delay 800ms at least
   NRF_LOG_INFO("Init twi master.");
   axp216_init();
   NRF_LOG_INFO("Init axp216 chip.");
-  nrf_delay_ms(2000);
+  nrf_delay_ms(100);
   open_all_power();
-
+  nrf_delay_ms(500);
   clear_irq_reg();
   return ret;
 }
