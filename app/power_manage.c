@@ -11,9 +11,9 @@ ret_code_t usr_power_init(void)
     NRF_LOG_INFO("Init twi master.");
     axp216_init();
     NRF_LOG_INFO("Init axp216 chip.");
-    nrf_delay_ms(2000);
+    nrf_delay_ms(200);  
     open_all_power();
-
+    nrf_delay_ms(500);  // stable voltage
     clear_irq_reg();
     return ret;
 }
