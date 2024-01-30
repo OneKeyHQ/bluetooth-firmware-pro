@@ -225,7 +225,7 @@
 // <i> for more details.
 
 #ifndef NRF_BL_DEBUG_PORT_DISABLE
-#define NRF_BL_DEBUG_PORT_DISABLE 0
+#define NRF_BL_DEBUG_PORT_DISABLE 1
 #endif
 
 // <o> NRF_BL_FW_COPY_PROGRESS_STORE_STEP - Number of pages copied after which progress in the settings page is updated. 
