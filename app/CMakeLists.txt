@@ -162,6 +162,7 @@ set(
   ${NRF_SDK_ROOT}/components/toolchain/cmsis/include
   ${NRF_SDK_ROOT}/external/fprintf
   ${NRF_SDK_ROOT}/external/mbedtls/include
+  ${NRF_SDK_ROOT}/external/micro-ecc/micro-ecc
   ${NRF_SDK_ROOT}/external/nrf_cc310/include
   ${NRF_SDK_ROOT}/external/nrf_oberon
   ${NRF_SDK_ROOT}/external/nrf_oberon/include
@@ -218,6 +219,9 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/bsp/bsp_btn_ble.c
   ${NRF_SDK_ROOT}/components/libraries/button/app_button.c
   ${NRF_SDK_ROOT}/components/libraries/crc16/crc16.c
+  ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecc.c
+  ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecdh.c
+  ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecdsa.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_init.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_rng.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_rng_mbedtls.c
@@ -308,6 +312,7 @@ set(
 set(NRF_SDK_LINK
   ${NRF_SDK_ROOT}/external/nrf_cc310/lib/cortex-m4/hard-float/libnrf_cc310_0.9.12.a
   ${NRF_SDK_ROOT}/external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_3.0.1.a
+  ${NRF_SDK_ROOT}/external/micro-ecc/nrf52hf_armgcc/armgcc/micro_ecc_lib_nrf52.a
   # ${NRF_SDK_ROOT}/components/nfc/t4t_lib/nfc_t4t_lib_gcc.a
 )
 
@@ -328,6 +333,7 @@ target_sources(
   power_manage.c
   flashled_manage.c
   rtc_calendar.c
+  ecdsa.c
   # nfc.c
   ${NRF_SDK_SRC}
 )
