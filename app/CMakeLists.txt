@@ -312,8 +312,63 @@ set(
 set(NRF_SDK_LINK
   ${NRF_SDK_ROOT}/external/nrf_cc310/lib/cortex-m4/hard-float/libnrf_cc310_0.9.12.a
   ${NRF_SDK_ROOT}/external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_3.0.1.a
-  ${NRF_SDK_ROOT}/external/micro-ecc/nrf52hf_armgcc/armgcc/micro_ecc_lib_nrf52.a
+  # ${NRF_SDK_ROOT}/external/micro-ecc/nrf52hf_armgcc/armgcc/micro_ecc_lib_nrf52.a
   # ${NRF_SDK_ROOT}/components/nfc/t4t_lib/nfc_t4t_lib_gcc.a
+)
+
+###############################
+# micro-ecc
+
+set(MicroECC_DIR ${NRF_SDK_ROOT}/external/micro-ecc)
+
+add_library(
+  MicroECC STATIC
+  ${MicroECC_DIR}/micro-ecc/uECC.c
+)
+
+target_include_directories(
+  MicroECC PUBLIC
+  ${MicroECC_DIR}/micro-ecc
+  ${NRF_SDK_ROOT}/components/toolchain/cmsis/include
+)
+
+target_compile_options(
+  MicroECC PRIVATE
+  # Optimization flags
+  -Os -g3
+  # Uncomment the line below to enable link time optimization
+  # -flto
+  # C flags common to all targets
+  -DFLOAT_ABI_HARD
+  -DuECC_ENABLE_VLI_API=0
+  -DuECC_OPTIMIZATION_LEVEL=3
+  -DuECC_SQUARE_FUNC=0
+  -DuECC_SUPPORT_COMPRESSED_POINT=0
+  -DuECC_VLI_NATIVE_LITTLE_ENDIAN=1
+  -mcpu=cortex-m4
+  -mthumb -mabi=aapcs
+  # -Wall -Werror
+  -Wall -Werror
+  -mfloat-abi=hard -mfpu=fpv4-sp-d16
+  # keep every function in a separate section, this allows linker to discard unused ones
+  -ffunction-sections -fdata-sections -fno-strict-aliasing
+  -fno-builtin -fshort-enums -Wno-unused-function
+  # heap and stack
+  -D__HEAP_SIZE=4096
+  -D__STACK_SIZE=4096
+)
+
+target_link_options(
+  MicroECC PRIVATE
+  # Linker flags
+  -Os -g3
+  -mthumb -mabi=aapcs -L${NRF_SDK_ROOT}/modules/nrfx/mdk -T${MicroECC_DIR}/nrf52hf_armgcc/armgcc/ext_micro_ecc_gcc_nRF5x.ld
+  -mcpu=cortex-m4
+  -mfloat-abi=hard -mfpu=fpv4-sp-d16
+  # let linker dump unused sections
+  -Wl,--gc-sections
+  # use newlib in nano version
+  -lc -lnosys -lm
 )
 
 ###############################
@@ -402,6 +457,7 @@ target_link_options(
 target_link_libraries(
   ${CMAKE_PROJECT_NAME} PRIVATE
   ${NRF_SDK_LINK}
+  MicroECC
 )
 
 ###############################
