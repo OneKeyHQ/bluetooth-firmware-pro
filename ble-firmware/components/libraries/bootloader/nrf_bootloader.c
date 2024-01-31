@@ -354,17 +354,17 @@ static void dfu_enter_flags_clear(void)
  */
 static bool dfu_enter_check(void)
 {
-    if (!app_is_valid(crc_on_valid_app_required()))
-    {
-        NRF_LOG_DEBUG("DFU mode because app is not valid.");
-        return true;
-    }
-
     if (NRF_BL_DFU_ENTER_METHOD_BUTTON &&
        (nrf_gpio_pin_read(NRF_BL_DFU_ENTER_METHOD_BUTTON_PIN) == 0))
     {
         NRF_LOG_DEBUG("DFU mode requested via button.");
 			  button_dfu_flag = 1;
+        return true;
+    }
+    
+    if (!app_is_valid(crc_on_valid_app_required()))
+    {
+        NRF_LOG_DEBUG("DFU mode because app is not valid.");
         return true;
     }
 
