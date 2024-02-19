@@ -17,6 +17,7 @@ rm -rf _build
 mkdir -p _build
 cmake  -G 'Ninja'  -S ./  -B ./_build
 cmake --build ./_build --config Release -- -j$(nproc)
+utils/hash.py -t bluetooth -f artifacts/OnekeyProBTFW_APP.bin > artifacts/sha256.txt
 # remove build folder
 rm -f $BT_SIG_PK_FILE
 rm -rf _build

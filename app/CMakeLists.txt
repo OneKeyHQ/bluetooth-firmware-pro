@@ -399,6 +399,13 @@ target_include_directories(
   ${NRF_SDK_INC}
 )
 
+execute_process(
+	COMMAND	git rev-parse HEAD
+	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+	OUTPUT_VARIABLE GIT_VERSION
+)
+add_definitions('-DBUILD_ID=\"${GIT_VERSION}\"')
+
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Optimization flags

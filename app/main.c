@@ -97,6 +97,7 @@
 #include "nrf_power.h"
 #include "power_manage.h"
 #include "rtc_calendar.h"
+#include "nrf_crypto.h"
 
 #if defined(UART_PRESENT)
 #include "nrf_uart.h"
@@ -263,6 +264,10 @@
 #define BLE_KEY_RESP_FAILED  0x01
 #define BLE_KEY_RESP_PUBKEY  0x02
 #define BLE_KEY_RESP_SIGN    0x03
+
+#define BLE_CMD_BUILD_ID     0x10
+#define BLE_CMD_HASH         0x11
+
 // end BLE send CMD
 //
 #define UART_CMD_BLE_CON_STA  0x01
@@ -294,6 +299,9 @@
 #define ST_REQ_FIRMWARE_VER   0x02
 #define ST_REQ_SOFTDEVICE_VER 0x03
 #define ST_REQ_BOOTLOADER_VER 0x04
+#define ST_REQ_BUILD_ID       0x05
+#define ST_REQ_HASH           0x06
+
 //
 #define ST_CMD_RESET_BLE   0x84
 #define ST_VALUE_RESET_BLE 0x01
@@ -349,6 +357,8 @@
 #define RESPONESE_BLE_PUBKEY      0x08
 #define RESPONESE_BLE_PUBKEY_LOCK 0x09
 #define RESPONESE_BLE_SIGN        0x0A
+#define RESPONESE_BUILD_ID        0x0B
+#define RESPONESE_HASH            0x0C
 #define DEF_RESP                  0xFF
 
 #define BLE_CTL_ADDR         0x6f000
@@ -1641,6 +1651,12 @@ void uart_event_handle(app_uart_evt_t *p_event) {
               case ST_REQ_BOOTLOADER_VER:
                 trans_info_flag = RESPONESE_BOOT_VER_UART;
                 break;
+              case ST_REQ_BUILD_ID:
+                trans_info_flag = RESPONESE_BUILD_ID;
+                break;
+              case ST_REQ_HASH:
+                trans_info_flag = RESPONESE_HASH;
+                break;
               default:
                 trans_info_flag = UART_DEF;
                 break;
@@ -2207,6 +2223,40 @@ static void rsp_st_uart_cmd(void *p_event_data, uint16_t event_size) {
       sign_ecdsa_msg(key_info.private_key, uart_data_array + 6, msg_len, bak_buff + 2);
       send_stm_data(bak_buff, 64 + 2);
     }
+    trans_info_flag = DEF_RESP;
+  } else if (trans_info_flag == RESPONESE_BUILD_ID) {
+    bak_buff[0] = BLE_CMD_BUILD_ID;
+    memcpy(&bak_buff[1], (uint8_t *)BUILD_ID, 7);
+    send_stm_data(bak_buff,8);
+    trans_info_flag = DEF_RESP;
+  } else if (trans_info_flag == RESPONESE_HASH) {
+    ret_code_t  err_code = NRF_SUCCESS;
+    nrf_crypto_backend_hash_context_t hash_context = {0};
+    uint8_t hash[32]={0};
+    size_t hash_len = 32;
+    int chunks = 0;
+    int app_size = 0;
+    uint8_t *code_addr = (uint8_t *)0x26000;
+    uint8_t *code_len = (uint8_t *)0x7F018;
+    app_size = code_len[0] + code_len[1]*256 + code_len[2]*256*256;
+    chunks = app_size/512;
+
+    err_code = nrf_crypto_hash_init(&hash_context, &g_nrf_crypto_hash_sha256_info);
+    APP_ERROR_CHECK(err_code);
+    for(int i = 0; i<chunks; i++) {
+      err_code = nrf_crypto_hash_update(&hash_context, code_addr + i*512, 512);
+      APP_ERROR_CHECK(err_code);
+    }
+    if(app_size%512) {
+      err_code = nrf_crypto_hash_update(&hash_context, code_addr + chunks*512, app_size%512);
+      APP_ERROR_CHECK(err_code);
+    }
+    err_code = nrf_crypto_hash_finalize(&hash_context, hash, &hash_len);
+    APP_ERROR_CHECK(err_code);
+
+    bak_buff[0] = BLE_CMD_HASH;
+    memcpy(&bak_buff[1], hash, 32);
+    send_stm_data(bak_buff,33);
     trans_info_flag = DEF_RESP;
   }
 }
