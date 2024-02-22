@@ -14,10 +14,21 @@ jobs:
         run: |
           sudo apt update
           sudo apt -y install curl wget ninja-build
-          sudo apt -y install build-essential libtool gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi
+          sudo apt -y install build-essential libtool
           sudo apt -y install python3 python3-pip python-is-python3
           sudo python -m pip install -U pip
           sudo pip install wheel click
+
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "x86_64" ]; then
+            wget -q https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz
+            mkdir gcc-arm-none-eabi-12.2.rel1
+            tar -xf arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz --strip-components=1 -C gcc-arm-none-eabi-12.2.rel1
+          else
+            wget -q https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz
+            mkdir gcc-arm-none-eabi-12.2.rel1
+            tar -xf arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz --strip-components=1 -C gcc-arm-none-eabi-12.2.rel1
+          fi
 
       - name: Populate vars
         id: vars
@@ -31,6 +42,7 @@ jobs:
         env:
           BT_SIG_PK: ${{ secrets.BT_SIG_PK }}
         run: |
+          export PATH=$PATH:$PWD/gcc-arm-none-eabi-12.2.rel1/bin
           ./build.sh
 
       - name: Upload artifacts
