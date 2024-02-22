@@ -361,6 +361,7 @@ target_compile_options(
 target_link_options(
   MicroECC PRIVATE
   # Linker flags
+  -Os -g3
   -mthumb -mabi=aapcs -L${NRF_SDK_ROOT}/modules/nrfx/mdk -T${MicroECC_DIR}/nrf52hf_armgcc/armgcc/ext_micro_ecc_gcc_nRF5x.ld
   -mcpu=cortex-m4
   -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -409,7 +410,7 @@ add_definitions('-DBUILD_ID=\"${GIT_VERSION}\"')
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Optimization flags
-  -Os -g3
+  -O3 -g3
   # Uncomment the line below to enable link time optimization
   -flto
   # C flags common to all targets
@@ -450,6 +451,7 @@ target_compile_options(
 target_link_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Linker flags
+  -O3 -g3
   -mthumb -mabi=aapcs -L${NRF_SDK_ROOT}/modules/nrfx/mdk -T${PROJECT_SOURCE_DIR}/ble_app_gcc_nrf52.ld
   -mcpu=cortex-m4
   -mfloat-abi=hard -mfpu=fpv4-sp-d16
