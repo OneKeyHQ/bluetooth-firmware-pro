@@ -146,6 +146,7 @@
 #define SEND_BAT_VOL           1
 #define SEND_BAT_CHARGE_CUR    2
 #define SEND_BAT_DISCHARGE_CUR 3
+#define SEND_BAT_INNER_TEMP    4
 
 #define NO_CHARGE  0
 #define USB_CHARGE 1
@@ -314,6 +315,7 @@
 #define STM_SEND_BAT_VOL           0X01  // Send battery voltage
 #define STM_SEND_BAT_CHARGE_CUR    0X02  // Send battery charge current
 #define STM_SEND_BAT_DISCHARGE_CUR 0X03  // Send battery discharge current
+#define STM_SEND_BAT_INNER_TEMP    0X04  // Send battery inner temperature
 
 #define STM_CMD_KEY      0x87
 #define STM_GET_PUBKEY   0x01
@@ -1687,6 +1689,9 @@ void uart_event_handle(app_uart_evt_t *p_event) {
               case STM_SEND_BAT_DISCHARGE_CUR:
                 bat_msg_flag = SEND_BAT_DISCHARGE_CUR;
                 break;
+              case STM_SEND_BAT_INNER_TEMP:
+                bat_msg_flag = SEND_BAT_INNER_TEMP;
+                break;
               default:
                 bat_msg_flag = BAT_DEF;
                 break;
@@ -2419,12 +2424,26 @@ static void led_ctl_process(void *p_event_data, uint16_t event_size) {
 }
 
 static void bat_msg_report_process(void *p_event_data, uint16_t event_size) {
-  if (bat_msg_flag == SEND_BAT_VOL || bat_msg_flag == SEND_BAT_CHARGE_CUR || bat_msg_flag == SEND_BAT_DISCHARGE_CUR) {
-    uint8_t bat_values[2] = {0};
-    // 根据 bat_msg_flag 选择相应的寄存器地址
-    uint8_t axp_reg = (bat_msg_flag == SEND_BAT_VOL) ? AXP_VBATH_RES : (bat_msg_flag == SEND_BAT_CHARGE_CUR) ? AXP_CCBATH_RES : AXP_DCBATH_RES;
-    //获取电池对应信息
-    get_battery_cv_msg(axp_reg, bat_values);
+  uint8_t axp_reg = 0;
+  switch (bat_msg_flag) {
+    case SEND_BAT_VOL:
+      axp_reg = AXP_VBATH_RES;
+      break;
+    case SEND_BAT_CHARGE_CUR:
+      axp_reg = AXP_CCBATH_RES;
+      break;
+    case SEND_BAT_DISCHARGE_CUR:
+      axp_reg = AXP_DCBATH_RES;
+      break;
+    case SEND_BAT_INNER_TEMP:
+      axp_reg = AXP_INTTEMP;
+      break;
+    default:
+      return;
+  }
+  uint8_t bat_values[2] = {0};
+  //获取电池对应信息
+  get_battery_cv_msg(axp_reg, bat_values);
 
 #ifdef UART_TRANS
     bak_buff[0] = BLE_CMD_BAT_CV_MSG;
@@ -2434,7 +2453,6 @@ static void bat_msg_report_process(void *p_event_data, uint16_t event_size) {
     send_stm_data(bak_buff, 4);
 #endif
     bat_msg_flag = BAT_DEF;
-  }
 }
 
 static void scheduler_init(void) { APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE); }
