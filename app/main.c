@@ -2446,11 +2446,11 @@ static void bat_msg_report_process(void *p_event_data, uint16_t event_size) {
   get_battery_cv_msg(axp_reg, bat_values);
 
 #ifdef UART_TRANS
-    bak_buff[0] = BLE_CMD_BAT_CV_MSG;
-    bak_buff[1] = bat_msg_flag;
-    bak_buff[2] = bat_values[0];
-    bak_buff[3] = bat_values[1];
-    send_stm_data(bak_buff, 4);
+  bak_buff[0] = BLE_CMD_BAT_CV_MSG;
+  bak_buff[1] = bat_msg_flag;
+  bak_buff[2] = (bat_values[0]&0xF0) >> 4;
+  bak_buff[3] = (bat_values[0]&0x0F) << 4 | (bat_values[1]&0x0F);
+  send_stm_data(bak_buff, 4);
 #endif
     bat_msg_flag = BAT_DEF;
 }
