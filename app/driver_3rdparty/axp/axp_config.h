@@ -22,8 +22,7 @@
 
 /*电池容量，mAh：根据实际电池容量来定义，对库仑计方法来说
 这个参数很重要，必须配置*/
-#define BATCAP 900
-
+#define BATCAP 530
 /*初始化电池内阻，mΩ：一般在100~200之间，不过最好根据实际
 测试出来的确定，方法是打开打印信息，不接电池烧好固件后，
 上电池，不接充电器，开机，开机1分钟后，接上充电器，充
@@ -61,7 +60,7 @@
         系统设计的关机过后的电池端电压，需要与关机百分比、
         开路电压对应百分比表及低电警告电压相互配合才会有作用
 */
-#define SHUTDOWNVOL 3200
+#define SHUTDOWNVOL 3400
 
 /*adc采样率设置，Hz*/
 /*
@@ -127,12 +126,12 @@
 /*
         AXP:0-关闭，1-打开
 */
-#define USBVOLLIMEN 0
-/*  充电限压，mV，0为不限制*/
+#define USBVOLLIMEN 1    
+/*  充电限压，mV，0为不限制*/   
 /*
         AXP:4000~4700，100/step
 */
-#define USBVOLLIM 4200
+#define USBVOLLIM  4400
 /*  USB充电限压，mV，0为不限制*/
 /*
         AXP:4000~4700，100/step
@@ -153,7 +152,7 @@
 /*
         AXP:500/900
 */
-#define USBCURLIMPC 900
+// #define USBCURLIMPC 900
 /* PMU 中断触发唤醒使能*/
 /*
         AXP:0-不唤醒，1-唤醒
