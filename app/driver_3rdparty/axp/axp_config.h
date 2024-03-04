@@ -131,7 +131,7 @@
 /*
         AXP:4000~4700，100/step
 */
-#define USBVOLLIM  4400
+#define USBVOLLIM 4400
 /*  USB充电限压，mV，0为不限制*/
 /*
         AXP:4000~4700，100/step
