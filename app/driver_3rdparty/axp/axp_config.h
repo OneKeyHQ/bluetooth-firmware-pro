@@ -126,8 +126,8 @@
 /*
         AXP:0-关闭，1-打开
 */
-#define USBVOLLIMEN 1    
-/*  充电限压，mV，0为不限制*/   
+#define USBVOLLIMEN 1
+/*  充电限压，mV，0为不限制*/
 /*
         AXP:4000~4700，100/step
 */
