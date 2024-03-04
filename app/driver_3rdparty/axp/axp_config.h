@@ -136,7 +136,7 @@
 /*
         AXP:4000~4700，100/step
 */
-//#define USBVOLLIMPC			4200
+//#define USBVOLLIMPC		
 
 /* 充电电流限制使能*/
 /*
