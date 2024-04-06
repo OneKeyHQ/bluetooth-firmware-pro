@@ -29,13 +29,13 @@
 1~2分钟，看打印信息中的rdc值，填入这里*/
 #define BATRDC 150
 
-/*开路电压方法中的电池电压的缓存*/
+/*开路电压方法中的电池电压的缓存*/ 
 //#define AXP_VOL_MAX			1
 /*
         充电功能使能：
         AXP:0-关闭，1-打开
 */
-#define EN_CHARGE 1
+#define EN_CHARGE 0
 
 /*
         充电电流设置，uA，0为关闭：
