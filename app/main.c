@@ -376,6 +376,8 @@
 #define BLE_GAP_DATA_LENGTH_DEFAULT 27   //!< The stack's default data length.
 #define BLE_GAP_DATA_LENGTH_MAX     251  //!< Maximum data length.
 
+#define ST_WAKE_IO 22
+
 BLE_NUS_DEF(m_nus, NRF_SDH_BLE_TOTAL_LINK_COUNT); /**< BLE NUS service instance. */
 BLE_BAS_DEF(m_bas);
 NRF_BLE_GATT_DEF(m_gatt);           /**< GATT module instance. */
@@ -669,33 +671,16 @@ NRF_SDH_STATE_OBSERVER(m_buttonless_dfu_state_obs, 0) = {
  */
 void assert_nrf_callback(uint16_t line_num, const uint8_t *p_file_name) { app_error_handler(DEAD_BEEF, line_num, p_file_name); } /**< Structure used to identify the battery service. */
 
-// static void gpio_uninit(void)
-// {
-//     nrf_drv_gpiote_uninit();
-// }
+static void gpio_uninit(void){
+    nrf_drv_gpiote_uninit();
+}
 
 static void enter_low_power_mode(void) {
-  //    nrf_delay_ms(3000);
-
-  //    advertising_stop();
-
-  //    nfc_disable();
-
-  //    app_timer_stop(m_battery_timer_id);
-  //    app_timer_stop(m_100ms_timer_id);
-  //    app_timer_stop(m_1s_timer_id);
-
-  //    app_uart_close();
-  //    axp_disable();
-  //    usr_spi_disable();
-  //    usr_rtc_tick_disable();
-  //    gpio_uninit();
-
-  //    for(;;){
-  //
-  //        // sd_power_system_off(); //stop mode rtc stoped
-  //        nrf_pwr_mgmt_run();
-  //    }
+  axp_disable();
+  gpio_uninit();
+  nrf_gpio_cfg_input(AXP216_TWI_SDA_M, NRF_GPIO_PIN_NOPULL);
+  nrf_gpio_cfg_input(AXP216_TWI_SCL_M, NRF_GPIO_PIN_NOPULL);
+  nrf_gpio_cfg_input(ST_WAKE_IO, NRF_GPIO_PIN_NOPULL);
   app_uart_close();
   nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
 }
