@@ -128,6 +128,6 @@ void axp216_init(void);
 
 void axp_charging_monitor(void);
 
-void axp_set_charge(void);
+void axp_set_charge(uint32_t);
 
 #endif

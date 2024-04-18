@@ -51,12 +51,16 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/strerror
   ${NRF_SDK_ROOT}/components/libraries/svc
   ${NRF_SDK_ROOT}/components/libraries/util
+  # ${NRF_SDK_ROOT}/components/libraries/twi_mngr
+  # ${NRF_SDK_ROOT}/components/libraries/twi_sensor
+  # ${NRF_SDK_ROOT}/components/libraries/gpiote
   ${NRF_SDK_ROOT}/components/softdevice/common
   ${NRF_SDK_ROOT}/components/softdevice/mbr/headers
   ${NRF_SDK_ROOT}/components/softdevice/s132/headers
   ${NRF_SDK_ROOT}/components/softdevice/s132/headers/nrf52
   ${NRF_SDK_ROOT}/components/toolchain/cmsis/include
   ${NRF_SDK_ROOT}/external/fprintf
+  ${NRF_SDK_ROOT}/external/segger_rtt
   # ${NRF_SDK_ROOT}/external/micro-ecc/micro-ecc
   ${NRF_SDK_ROOT}/external/nano-pb
   ${NRF_SDK_ROOT}/external/nrf_oberon
@@ -123,8 +127,6 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/fstorage/nrf_fstorage.c
   ${NRF_SDK_ROOT}/components/libraries/fstorage/nrf_fstorage_nvmc.c
   ${NRF_SDK_ROOT}/components/libraries/fstorage/nrf_fstorage_sd.c
-  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_frontend.c
-  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_str_formatter.c
   ${NRF_SDK_ROOT}/components/libraries/mem_manager/mem_manager.c
   ${NRF_SDK_ROOT}/components/libraries/memobj/nrf_memobj.c
   ${NRF_SDK_ROOT}/components/libraries/queue/nrf_queue.c
@@ -140,13 +142,26 @@ set(
   ${NRF_SDK_ROOT}/components/softdevice/common/nrf_sdh.c
   ${NRF_SDK_ROOT}/components/softdevice/common/nrf_sdh_ble.c
   ${NRF_SDK_ROOT}/components/softdevice/common/nrf_sdh_soc.c
+  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_rtt.c
+  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_serial.c
+  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_uart.c
+  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_default_backends.c
+  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_frontend.c
+  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_str_formatter.c
+  # ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT.c
+  # ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c
+  # ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT_printf.c
   ${NRF_SDK_ROOT}/external/fprintf/nrf_fprintf.c
   ${NRF_SDK_ROOT}/external/fprintf/nrf_fprintf_format.c
   ${NRF_SDK_ROOT}/external/nano-pb/pb_common.c
   ${NRF_SDK_ROOT}/external/nano-pb/pb_decode.c
   ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_uart.c
+  # ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_twi.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uart.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uarte.c
+  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twi.c
+  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twim.c
+  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_gpiote.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/prs/nrfx_prs.c
   ${NRF_SDK_ROOT}/modules/nrfx/hal/nrf_nvmc.c
   ${NRF_SDK_ROOT}/modules/nrfx/mdk/gcc_startup_nrf52.S
@@ -212,7 +227,7 @@ target_link_options(
   # let linker dump unused sections
   -Wl,--gc-sections
   # use newlib in nano version
-  -lc -lnosys -lm
+  --specs=nano.specs -lc -lnosys -lm
 )
 
 ###############################

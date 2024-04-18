@@ -14,6 +14,7 @@
 #define POWER_IC_CHAG_IO 8
 
 #define AXP_DEVICES_ADDR 0x34
+// #define AXP_DEVICES_ADDR 0x35
 #define AXP_ADDRESS_LEN  1
 
 #define TWI_INSTANCE_ID 1
@@ -42,7 +43,9 @@
                 AXP:300~2550,100/step
 */
 /*充电电流，uA*/
-#define STACHGCUR 450 * 1000
+#define STACHGCUR_WIRED 900 * 1000
+#define STACHGCUR_WIRELESS 750 * 1000
+
 
 /*目标充电电压，mV*/
 /*
@@ -260,6 +263,8 @@ static const uint64_t AXP_NOTIFIER_ON = (AXP_IRQ_USBIN | AXP_IRQ_USBRE | AXP_IRQ
 
 /* 需要做插入火牛、usb关机重启进boot时power_start设置为1，否则为0*/
 //#define POWER_START 0
+
+void axp216_set_i2c_addr(uint8_t addr);
 
 ret_code_t axp216_twi_master_init(void);
 

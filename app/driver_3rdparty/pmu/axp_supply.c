@@ -64,7 +64,7 @@ void axp216_init(void) {
   uint8_t ocv_cap[32], i;
   int Cur_CoulombCounter, rdc;
 
-  axp_set_charge();  // Charging parameter setting
+  axp_set_charge(STACHGCUR_WIRED);  // Charging parameter setting
   set_voff_vol();    // Voff voltage setting
   axp_enable_irqs(AXP_NOTIFIER_ON);
 
@@ -459,16 +459,15 @@ void axp_charging_monitor(void) {
   }
 }
 
-void axp_set_charge(void) {
+void axp_set_charge(uint32_t chgcur) {
   uint8_t val = 0x00;
   uint8_t tmp = 0x00;
   uint8_t charge_en;
-  int chgpretime, chgcsttime, chgcur;
+  int chgpretime, chgcsttime;
 
   charge_en = EN_CHARGE;
   chgpretime = CHGPRETIME;
   chgcsttime = CHGCSTTIME;
-  chgcur = STACHGCUR;
 
   if (CHGVOL < 4200000) {
     val &= ~(3 << 5);
@@ -481,7 +480,7 @@ void axp_set_charge(void) {
   } else
     val |= 3 << 5;
 
-  if (STACHGCUR == 0) charge_en = 0;
+  if (chgcur == 0) charge_en = 0;
 
   if (chgcur < 300000)
     chgcur = 300000;

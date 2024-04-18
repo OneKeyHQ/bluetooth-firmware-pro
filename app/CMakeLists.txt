@@ -280,6 +280,7 @@ set(
   ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_spi.c
   ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_twi.c
   ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_uart.c
+  ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_power.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_clock.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_gpiote.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_rng.c
@@ -371,23 +372,27 @@ add_executable(
 
 target_sources(
   ${CMAKE_PROJECT_NAME} PRIVATE 
+  ${NRF_SDK_SRC}
   data_transmission.c
-  driver_3rdparty/axp/axp_config.c
-  driver_3rdparty/axp/axp_supply.c
+  driver_3rdparty/pmu/pmu.c
+  driver_3rdparty/pmu/axp216.c
+  driver_3rdparty/pmu/axp2101.c
   driver_3rdparty/lm/lm_config.c
   power_manage.c
   flashled_manage.c
   rtc_calendar.c
   ecdsa.c
+  # driver_3rdparty/pmu/axp_config.c
+  # driver_3rdparty/pmu/axp_supply.c
   # nfc.c
-  ${NRF_SDK_SRC}
 )
 
 target_include_directories(
   ${CMAKE_PROJECT_NAME} PRIVATE
-  driver_3rdparty/axp
-  driver_3rdparty/lm
+  ${PROJECT_SOURCE_DIR}
   ${NRF_SDK_INC}
+  driver_3rdparty/pmu
+  driver_3rdparty/lm
 )
 
 execute_process(

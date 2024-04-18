@@ -1921,6 +1921,9 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
       g_charge_status = get_charge_status();
 
       if (last_charge_status != g_charge_status) {
+
+        axp_set_charge(((g_charge_status == AXP_CHARGE_TYPE_USB) ? STACHGCUR_WIRED : STACHGCUR_WIRELESS));
+
         last_charge_status = g_charge_status;
         bak_buff[0] = BLE_CMD_POWER_STA;
         bak_buff[1] = g_charge_status;
