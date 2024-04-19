@@ -89,6 +89,26 @@ static bool axp216_config_voltage(void)
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_DC1OUT_VOL, 0x11));
 }
 
+static bool axp216_config_control_parameter(void)
+{
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_CHARGE1, 0x71));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_CHARGE2, 0x25));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_INTEN1, 0xFC));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_INTEN2, 0xCC));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_INTEN3, 0x00));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_INTEN4, 0x10));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_INTEN5, 0x78));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_ADC_CONTROL3, 0x36));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_CHARGE_VBUS, 0x60));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_WARNING_LEVEL, 0x55));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_POWOK_SET, 0x68));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_PDBC, 0x4B));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_BATCAP0, 0x81));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_BATCAP1, 0x6C));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP_VOFF_SET, 0x13));
+}
+
+
 static bool axp216_config_battery(void)
 {
     // cap
@@ -193,8 +213,10 @@ Power_Error_t axp216_irq(void)
 
 Power_Error_t axp216_config(void)
 {
+    EC_E_BOOL_R_PWR_ERR(axp216_config_control_parameter());
     EC_E_BOOL_R_PWR_ERR(axp216_config_voltage());
     EC_E_BOOL_R_PWR_ERR(axp216_config_battery());
+    
 
     return PWR_ERROR_NONE;
 }

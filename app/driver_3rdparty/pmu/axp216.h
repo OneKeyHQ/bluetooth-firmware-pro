@@ -2,6 +2,7 @@
 #define __AXP216_H_
 
 #include "pmu_common.h"
+#include "axp_supply.h"
 
 // defines
 #define AXP_I2C_ADDR       (0x34)
@@ -22,6 +23,7 @@
 #define AXP_CHARGE1        (0x33)
 #define AXP_CHARGE2        (0x34)
 #define AXP_CHARGE3        (0x35)
+#define AXP_POWOK_SET      (0x36)
 
 #define AXP_INTEN1         (0x40)
 #define AXP_INTEN2         (0x41)

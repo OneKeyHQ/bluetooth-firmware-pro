@@ -238,24 +238,12 @@
 #define BLE_FIRMWARE_VER   0x05
 #define BLE_SOFTDEVICE_VER 0x06
 #define BLE_BOOTLOADER_VER 0x07
-//
-#define BLE_CMD_POWER_STA 0x08
-#define BLE_INSERT_POWER  0x01
-#define BLE_REMOVE_POWER  0x02
-#define BLE_CHARGING_PWR  0x03
-#define BLE_CHAGE_OVER    0x04
+
 //
 #define BLE_SYSTEM_POWER_PERCENT 0x09
-//
-#define BLE_CMD_KEY_STA     0x0A
-#define BLE_KEY_LONG_PRESS  0x01
-#define BLE_KEY_SHORT_PRESS 0x02
 
-#define BLE_CMD_PWR_STA  0x0B
-#define BLE_CLOSE_SYSTEM 0x01
-#define BLE_CLOSE_EMMC   0x02
-#define BLE_OPEN_EMMC    0x03
-#define BLE_PWR_PERCENT  0X04
+
+
 
 #define BLE_CMD_FLASH_LED_STA 0x0C
 #define BLE_CMD_BAT_CV_MSG    0x0D
@@ -1911,52 +1899,12 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
     case POWER_IC_OK_IO:
       if (action == NRF_GPIOTE_POLARITY_LOTOHI) {
         // open_all_power();
+        // pmu_p->SetState(PWR_STATE_ON);
       } else if (action == NRF_GPIOTE_POLARITY_HITOLO) {
         NRF_LOG_INFO("SET OFF LEVEL");
         enter_low_power_mode();
       }
       break;
-    case POWER_IC_IRQ_IO:
-
-      g_charge_status = get_charge_status();
-
-      if (last_charge_status != g_charge_status) {
-
-        axp_set_charge(((g_charge_status == AXP_CHARGE_TYPE_USB) ? STACHGCUR_WIRED : STACHGCUR_WIRELESS));
-
-        last_charge_status = g_charge_status;
-        bak_buff[0] = BLE_CMD_POWER_STA;
-        bak_buff[1] = g_charge_status;
-        bak_buff[2] = get_charge_type();
-        send_stm_data(bak_buff, 3);
-        // NRF_LOG_INFO("charge_status  = %d", g_charge_status);
-        // NRF_LOG_INFO("charge_type  = %d", get_charge_type());
-      }
-      // AXP interrupt processing logic
-      uint8_t irq_req_value = get_irq_status();
-      if ((irq_req_value & IRQ_SHORT_PRESS) == IRQ_SHORT_PRESS) {  // SHORT (Short press trigger)
-        bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x01;
-        send_stm_data(bak_buff, 2);
-      }
-      if ((irq_req_value & IRQ_LONG_PRESS) == IRQ_LONG_PRESS) {  // LONG (Long  press trigger)
-        bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x02;
-        send_stm_data(bak_buff, 2);
-      }
-      if ((irq_req_value & IRQ_FALLING_EDGE) == IRQ_FALLING_EDGE) {  // FALLING (Press trigger)
-        bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x20;
-        send_stm_data(bak_buff, 2);
-      }
-      if ((irq_req_value & IRQ_RISING_EDGE) == IRQ_RISING_EDGE) {  // RISING (Release trigger)
-        bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x40;
-        send_stm_data(bak_buff, 2);
-      }
-      clear_irq_reg();  // clear irq
-      break;
-
     default:
       break;
   }
@@ -1981,7 +1929,7 @@ static void gpiote_init(void) {
   APP_ERROR_CHECK(err_code);
   nrf_drv_gpiote_in_event_enable(POWER_IC_OK_IO, true);
 
-  err_code = nrf_drv_gpiote_in_init(POWER_IC_IRQ_IO, &in_config1, in_gpiote_handler);
+  err_code = nrf_drv_gpiote_in_init(POWER_IC_IRQ_IO, &in_config1, pmu_p->Irq);
   APP_ERROR_CHECK(err_code);
   nrf_drv_gpiote_in_event_enable(POWER_IC_IRQ_IO, true);
 }
@@ -2028,8 +1976,16 @@ static void system_init() {
 #endif
   usr_rtc_init();
   usr_spim_init();
-  ret_code_t err_code = usr_power_init();
-  APP_ERROR_CHECK(err_code);
+  // ret_code_t err_code = usr_power_init();
+  // APP_ERROR_CHECK(err_code);
+  // 初始化电源管理模块
+    if (!power_manage_init()) {
+        ("PMU initialization failed!\n");
+    }
+    if (pmu_p->Config()) {
+        NRF_LOG_INFO("Current PMU Config successfully.\n");
+    }
+
 #ifdef UART_TRANS
   usr_uart_init();
   NRF_LOG_INFO("uart init ok ......");
@@ -2349,26 +2305,30 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
       if (ble_status_flag != BLE_OFF_ALWAYS) {
         check_advertising_stop();
       }
-      close_all_power();
+      pmu_p->SetState(PWR_STATE_OFF);
       break;
     case PWR_CLOSE_EMMC:
       respons_flag = BLE_CLOSE_EMMC;
-      ctl_emmc_power(AXP_CLOSE_EMMC);
+      // ctl_emmc_power(AXP_CLOSE_EMMC);
       break;
     case PWR_OPEN_EMMC:
       respons_flag = BLE_OPEN_EMMC;
-      ctl_emmc_power(AXP_OPEN_EMMC);
+      // ctl_emmc_power(AXP_OPEN_EMMC);
       break;
     case PWR_BAT_PERCENT:
       pwr_status_flag = PWR_DEF;
       bak_buff[0] = BLE_SYSTEM_POWER_PERCENT;
-      bak_buff[1] = get_battery_percent();
+      bak_buff[1] = pmu_p->GetState(batteryPercent);
       send_stm_data(bak_buff, 2);
       break;
     case PWR_USB_STATUS:
       bak_buff[0] = BLE_CMD_POWER_STA;
-      bak_buff[1] = get_charge_status();
-      bak_buff[2] = get_charge_type();
+      bak_buff[1] = pmu_p->GetState(chargerAvailable);
+      if(pmu_p->GetState(wiredCharge)){
+        bak_buff[2] = AXP_CHARGE_TYPE_USB;
+      }else{
+        bak_buff[2] = AXP_CHARGE_TYPE_WIRELESS;
+      }
       send_stm_data(bak_buff, 3);
       pwr_status_flag = PWR_DEF;
       break;
@@ -2413,25 +2373,25 @@ static void led_ctl_process(void *p_event_data, uint16_t event_size) {
 
 static void bat_msg_report_process(void *p_event_data, uint16_t event_size) {
   uint8_t axp_reg = 0;
+  uint8_t bat_values[2] = {0};
+
   switch (bat_msg_flag) {
     case SEND_BAT_VOL:
-      axp_reg = AXP_VBATH_RES;
+      bat_values =  pmu_p->GetState(batteryVoltage);
       break;
-    case SEND_BAT_CHARGE_CUR:
-      axp_reg = AXP_CCBATH_RES;
+    case SEND_BAT_CHARGE_CUR:   
+      bat_values  = pmu_p->GetState(chargeCurrent);
       break;
     case SEND_BAT_DISCHARGE_CUR:
-      axp_reg = AXP_DCBATH_RES;
+      bat_values = pmu_p->GetState(dischargeCurrent);
       break;
     case SEND_BAT_INNER_TEMP:
-      axp_reg = AXP_INTTEMP;
+      axp_reg = pmu_p->GetState(pmuTemp);
       break;
     default:
       return;
   }
-  uint8_t bat_values[2] = {0};
-  //获取电池对应信息
-  get_battery_cv_msg(axp_reg, bat_values);
+
 
 #ifdef UART_TRANS
   bak_buff[0] = BLE_CMD_BAT_CV_MSG;

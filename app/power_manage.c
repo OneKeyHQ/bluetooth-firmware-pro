@@ -117,20 +117,42 @@ static bool pmu_if_receive(const uint8_t device_addr, const uint32_t len, uint8_
 static void pmu_if_irq(const Power_Irq_t irq)
 {
     PRINT_CURRENT_LOCATION();
-
+    static uint8_t  last_charge_status;
     switch ( irq )
     {
     case PWR_IRQ_PB_SHORT:
-        PRINT_CURRENT_LOCATION();
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x01;
+        send_stm_data(bak_buff, 2);
         break;
     case PWR_IRQ_PB_LONG:
-        PRINT_CURRENT_LOCATION();
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x02;
+        send_stm_data(bak_buff, 2);
         break;
     case PWR_IRQ_PB_RELEASE:
-        PRINT_CURRENT_LOCATION();
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x40;
+        send_stm_data(bak_buff, 2);
+        break;
+    case PWR_IRQ_PB_PRESS:
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x20;
+        send_stm_data(bak_buff, 2);
         break;
     case PWR_IRQ_CHARGING:
-        PRINT_CURRENT_LOCATION();
+        g_charge_status = pmu_p->GetState(chargerAvailable);
+        if (last_charge_status != g_charge_status) {
+        last_charge_status = g_charge_status;
+        bak_buff[0] = BLE_CMD_POWER_STA;
+        bak_buff[1] = pmu_p->GetState(chargerAvailable);
+        if(pmu_p->GetState(wiredCharge)){
+            bak_buff[2] = AXP_CHARGE_TYPE_USB;
+        }else{
+            bak_buff[2] = AXP_CHARGE_TYPE_WIRELESS;
+        }
+        send_stm_data(bak_buff, 3);
+        }
         break;
     case PWR_IRQ_DISCHARGING:
         PRINT_CURRENT_LOCATION();
