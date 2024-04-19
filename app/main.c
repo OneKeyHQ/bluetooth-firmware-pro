@@ -1978,13 +1978,11 @@ static void system_init() {
   usr_spim_init();
   // ret_code_t err_code = usr_power_init();
   // APP_ERROR_CHECK(err_code);
-  // 初始化电源管理模块
     if (!power_manage_init()) {
         ("PMU initialization failed!\n");
     }
-    if (pmu_p->Config()) {
-        NRF_LOG_INFO("Current PMU Config successfully.\n");
-    }
+    pmu_p->Config();
+    pmu_p->SetState(PWR_STATE_ON);
 
 #ifdef UART_TRANS
   usr_uart_init();

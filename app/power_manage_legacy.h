@@ -14,9 +14,7 @@
 #define AXP_DCDC4 0x10
 #define AXP_DCDC5 0x20
 
-// Charge type
-#define AXP_CHARGE_TYPE_USB      0x01
-#define AXP_CHARGE_TYPE_WIRELESS 0x02
+
 
 // IRQ status
 #define IRQ_VBUS_INSERT 0x48
