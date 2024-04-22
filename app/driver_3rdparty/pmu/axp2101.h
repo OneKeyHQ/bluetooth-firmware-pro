@@ -1,9 +1,9 @@
-#ifndef __AXP2101_H_
-#define __AXP2101_H_
+#ifndef _AXP2101_H_
+#define _AXP2101_H_
 
 #include "pmu_common.h"
 
-#define AXP_I2C_ADDR            (0x35)
+#define AXP2101_I2C_ADDR (0x35)
 
 // #define AXP2101_RSB_RTSADDR     (0x2d)
 
@@ -145,4 +145,4 @@ Power_Error_t axp2101_get_status(Power_Status_t* status);
 
 void axp2101_setup_interface(PMU_Interface_t* pmu_if_p, PMU_t* pmu_p);
 
-#endif //__AXP2101_H_
+#endif //_AXP2101_H_

@@ -2,13 +2,21 @@
 
 #include "power_manage.h"
 
-// #include "nrf_twi.h"
-#include "nrf_drv_twi.h"
+#include "nrf_delay.h"
+#include "nrf_twi.h"
 #include "nrf_gpio.h"
+#include "nrf_drv_twi.h"
 #include "nrf_drv_gpiote.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
+
+// workarounds to keep this file clean
+static void (*send_stm_data_p)(uint8_t* pdata, uint8_t lenth);
+void set_send_stm_data_p(void (*send_stm_data_p_)(uint8_t* pdata, uint8_t lenth))
+{
+    send_stm_data_p = send_stm_data_p_;
+}
 
 // ================================
 // helpers
@@ -72,17 +80,12 @@ static bool pmu_if_reset()
 {
     PRINT_CURRENT_LOCATION();
 
-    // nrf_gpio_cfg_output(POWER_IC_OK_IO);
-    // nrf_gpio_pin_write(POWER_IC_OK_IO, 0);
-    // nrf_delay_ms(100);
-    // nrf_gpio_pin_write(POWER_IC_OK_IO, 0);
-
-    // nrf_gpio_cfg_input(POWER_IC_OK_IO, NRF_GPIO_PIN_NOPULL);
+    // no impl.
 
     return true;
 }
 
-static bool pmu_if_send(const uint8_t device_addr, const uint32_t len, uint8_t* data)
+static bool pmu_if_send(const uint8_t device_addr, const uint32_t len, const uint8_t* const data)
 {
     PRINT_CURRENT_LOCATION();
 
@@ -98,7 +101,7 @@ static bool pmu_if_send(const uint8_t device_addr, const uint32_t len, uint8_t* 
     return (NRF_SUCCESS == nrf_drv_twi_tx(&pwr_i2c_handler, device_addr, data, len, false));
 }
 
-static bool pmu_if_receive(const uint8_t device_addr, const uint32_t len, uint8_t* data)
+static bool pmu_if_receive(const uint8_t device_addr, const uint32_t len, uint8_t* const data)
 {
     PRINT_CURRENT_LOCATION();
 
@@ -114,67 +117,171 @@ static bool pmu_if_receive(const uint8_t device_addr, const uint32_t len, uint8_
     return (NRF_SUCCESS == nrf_drv_twi_rx(&pwr_i2c_handler, device_addr, data, len));
 }
 
-static void pmu_if_irq(const Power_Irq_t irq)
+static void pmu_if_irq(const uint64_t irq)
 {
     PRINT_CURRENT_LOCATION();
-    static uint8_t  last_charge_status;
-    switch ( irq )
+
+    if ( irq == 0 )
+        return;
+
+    // TODO: fix me! DECODE irq
+
+    Power_Status_t status;
+    pmu_p->GetStatus(&status);
+
+    if ( 0 != (irq && (1 << PWR_IRQ_PWR_CONNECTED)) )
     {
-    case PWR_IRQ_PB_SHORT:
-        bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x01;
-        send_stm_data(bak_buff, 2);
-        break;
-    case PWR_IRQ_PB_LONG:
-        bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x02;
-        send_stm_data(bak_buff, 2);
-        break;
-    case PWR_IRQ_PB_RELEASE:
-        bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x40;
-        send_stm_data(bak_buff, 2);
-        break;
-    case PWR_IRQ_PB_PRESS:
-        bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x20;
-        send_stm_data(bak_buff, 2);
-        break;
-    case PWR_IRQ_CHARGING:
-        g_charge_status = pmu_p->GetState(chargerAvailable);
-        if (last_charge_status != g_charge_status) {
-        last_charge_status = g_charge_status;
+        PRINT_CURRENT_LOCATION();
+    }
+    if ( 0 != (irq && (1 << PWR_IRQ_PWR_DISCONNECTED)) )
+    {
+        PRINT_CURRENT_LOCATION();
+    }
+    if ( 0 != (irq && (1 << PWR_IRQ_CHARGING)) )
+    {
+        PRINT_CURRENT_LOCATION();
         bak_buff[0] = BLE_CMD_POWER_STA;
-        bak_buff[1] = pmu_p->GetState(chargerAvailable);
-        if(pmu_p->GetState(wiredCharge)){
+        bak_buff[1] = status.chargerAvailable;
+        if ( status.wiredCharge )
+        {
             bak_buff[2] = AXP_CHARGE_TYPE_USB;
-        }else{
+        }
+        else
+        {
             bak_buff[2] = AXP_CHARGE_TYPE_WIRELESS;
         }
-        send_stm_data(bak_buff, 3);
-        }
-        break;
-    case PWR_IRQ_DISCHARGING:
-        PRINT_CURRENT_LOCATION();
-        break;
-    case PWR_IRQ_BATT_LOW:
-        PRINT_CURRENT_LOCATION();
-        break;
-    case PWR_IRQ_BATT_CRITICAL:
-        PRINT_CURRENT_LOCATION();
-        break;
-
-    case PWR_IRQ_INVALID:
-    default:
-        PRINT_CURRENT_LOCATION();
-        break;
+        send_stm_data_p(bak_buff, 3);
     }
+    if ( 0 != (irq && (1 << PWR_IRQ_CHARGED)) )
+    {
+        PRINT_CURRENT_LOCATION();
+    }
+    if ( 0 != (irq && (1 << PWR_IRQ_BATT_LOW)) )
+    {
+        PRINT_CURRENT_LOCATION();
+    }
+    if ( 0 != (irq && (1 << PWR_IRQ_BATT_CRITICAL)) )
+    {
+        PRINT_CURRENT_LOCATION();
+    }
+    if ( 0 != (irq && (1 << PWR_IRQ_PB_PRESS)) )
+    {
+        PRINT_CURRENT_LOCATION();
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x20;
+        send_stm_data_p(bak_buff, 2);
+    }
+    if ( 0 != (irq && (1 << PWR_IRQ_PB_RELEASE)) )
+    {
+        PRINT_CURRENT_LOCATION();
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x40;
+        send_stm_data_p(bak_buff, 2);
+    }
+    if ( 0 != (irq && (1 << PWR_IRQ_PB_SHORT)) )
+    {
+        PRINT_CURRENT_LOCATION();
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x01;
+        send_stm_data_p(bak_buff, 2);
+    }
+    if ( 0 != (irq && (1 << PWR_IRQ_PB_LONG)) )
+    {
+        PRINT_CURRENT_LOCATION();
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x02;
+        send_stm_data_p(bak_buff, 2);
+    }
+    if ( 0 != (irq && (1 << PWR_IRQ_PB_FORCEOFF)) )
+    {
+        PRINT_CURRENT_LOCATION();
+    }
+}
+
+// reg
+static bool pmu_if_reg_write(const uint8_t device_addr, const uint8_t reg_addr, const uint8_t val)
+{
+    PRINT_CURRENT_LOCATION();
+
+    uint8_t tx_buff[sizeof(reg_addr) + sizeof(val)];
+
+    tx_buff[0] = reg_addr;
+    tx_buff[1] = val;
+
+    if ( !pmu_if_send(device_addr, sizeof(tx_buff), tx_buff) )
+        return false;
+
+    return true;
+}
+
+static bool pmu_if_reg_read(const uint8_t device_addr, const uint8_t reg_addr, uint8_t* const val)
+{
+    PRINT_CURRENT_LOCATION();
+
+    uint8_t tmp = reg_addr;
+    if ( !pmu_if_send(device_addr, sizeof(tmp), &tmp) )
+        return false;
+    if ( !pmu_if_receive(device_addr, sizeof(*val), val) )
+        return false;
+
+    return true;
+}
+
+static bool pmu_if_reg_set_bits(const uint8_t device_addr, const uint8_t reg_addr, const uint8_t bit_mask)
+{
+    PRINT_CURRENT_LOCATION();
+
+    uint8_t reg_val;
+
+    do
+    {
+        if ( !pmu_if_reg_read(device_addr, reg_addr, &reg_val) )
+            break;
+
+        if ( (reg_val & bit_mask) != bit_mask )
+        {
+            reg_val |= bit_mask;
+            if ( !pmu_if_reg_write(device_addr, reg_addr, reg_val) )
+                break;
+            ;
+        }
+
+        return true;
+    }
+    while ( false );
+    return false;
+}
+
+static bool pmu_if_reg_clr_bits(const uint8_t device_addr, const uint8_t reg_addr, const uint8_t bit_mask)
+{
+    PRINT_CURRENT_LOCATION();
+
+    uint8_t reg_val;
+    do
+    {
+        if ( !pmu_if_reg_read(device_addr, reg_addr, &reg_val) )
+            break;
+
+        if ( reg_val & bit_mask )
+        {
+            reg_val &= ~bit_mask;
+            if ( !pmu_if_reg_write(device_addr, reg_addr, reg_val) )
+                break;
+            ;
+        }
+
+        return true;
+    }
+    while ( false );
+    return false;
 }
 
 // ================================
 // functions public
 bool power_manage_init()
 {
+    PRINT_CURRENT_LOCATION();
+
     // interface
     pmu_if.isInitialized = &pwr_i2c_configured;
     pmu_if.Init = pmu_if_init;
@@ -183,6 +290,10 @@ bool power_manage_init()
     pmu_if.Send = pmu_if_send;
     pmu_if.Receive = pmu_if_receive;
     pmu_if.Irq = pmu_if_irq;
+    pmu_if.Reg.Write = pmu_if_reg_write;
+    pmu_if.Reg.Read = pmu_if_reg_read;
+    pmu_if.Reg.SetBits = pmu_if_reg_set_bits;
+    pmu_if.Reg.ClrBits = pmu_if_reg_clr_bits;
 
     // pmu handle
     pmu_p = pmu_probe(&pmu_if);
@@ -198,6 +309,8 @@ bool power_manage_init()
 
 bool power_manage_deinit()
 {
+    PRINT_CURRENT_LOCATION();
+
     // deinit
     if ( pmu_p->isInitialized )
         pmu_p->Deinit();

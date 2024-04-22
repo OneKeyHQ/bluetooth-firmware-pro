@@ -36,14 +36,13 @@
 #define BLE_CHARGING_PWR  0x03
 #define BLE_CHAGE_OVER    0x04
 
-// AXP216 global status
-static uint8_t g_charge_status = 0;
-static uint8_t g_bas_update_flag = 0;
 
 // pmu handle
-extern PMU_t* pmu;
+extern PMU_t* pmu_p;
 
 static uint8_t bak_buff[128];
+
+void set_send_stm_data_p(void (*send_stm_data_p_)(uint8_t *pdata, uint8_t lenth));
 
 bool power_manage_init();
 bool power_manage_deinit();

@@ -425,7 +425,6 @@ target_compile_options(
   # project flags
   # -DBOARD_PCA10040
   -DBUTTONLESS_ENABLED
-  -DUART_TRANS
   -DBOND_ENABLE
   -DNRF_DFU_TRANSPORT_BLE
   -DMBEDTLS_CONFIG_FILE="nrf_crypto_mbedtls_config.h"

@@ -44,8 +44,6 @@
 extern "C" {
 #endif
 
-#include "nrf_gpio.h"
-
 // LEDs definitions for PCA10040
 #define LEDS_NUMBER 4
 
@@ -108,10 +106,10 @@ extern "C" {
 #define TWI_SDA_M       26  //!< Master SDA pin.
 #define SLAVE_ADDR      0x48
 
-#define bt_power_on()     nrf_gpio_pin_set(BT_POWER_CTL_PIN)
-#define bt_power_off()    nrf_gpio_pin_clear(BT_POWER_CTL_PIN)
-#define stm32_power_on()  nrf_gpio_pin_set(STM_POWER_CTL_PIN)
-#define stm32_power_off() nrf_gpio_pin_clear(STM_POWER_CTL_PIN)
+// #define bt_power_on()     nrf_gpio_pin_set(BT_POWER_CTL_PIN)
+// #define bt_power_off()    nrf_gpio_pin_clear(BT_POWER_CTL_PIN)
+// #define stm32_power_on()  nrf_gpio_pin_set(STM_POWER_CTL_PIN)
+// #define stm32_power_off() nrf_gpio_pin_clear(STM_POWER_CTL_PIN)
 
 // end HaoBTC
 

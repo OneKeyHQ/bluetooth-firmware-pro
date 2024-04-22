@@ -1,81 +1,17 @@
 #include "axp2101.h"
 
+// macros
+#define axp2101_reg_read(reg, val)  pmu_interface_p->Reg.Read(AXP2101_I2C_ADDR, reg, val)
+#define axp2101_reg_write(reg, val) pmu_interface_p->Reg.Write(AXP2101_I2C_ADDR, reg, val)
+#define axp2101_set_bits(reg, mask) pmu_interface_p->Reg.SetBits(AXP2101_I2C_ADDR, reg, mask)
+#define axp2101_clr_bits(reg, mask) pmu_interface_p->Reg.ClrBits(AXP2101_I2C_ADDR, reg, mask)
+
 // vars private
 static bool initialized = false;
 static PMU_Interface_t* pmu_interface_p = NULL;
 static Power_State_t state_current = PWR_STATE_INVALID;
 
 // functions private
-
-static bool axp2101_reg_read(const uint8_t reg, uint8_t* val)
-{
-    uint8_t tmp = reg;
-    if ( !pmu_interface_p->Send(AXP_I2C_ADDR, sizeof(tmp), &tmp) )
-        return false;
-    if ( !pmu_interface_p->Receive(AXP_I2C_ADDR, sizeof(*val), val) )
-        return false;
-
-    return true;
-}
-
-static bool axp2101_reg_write(const uint8_t reg, const uint8_t val)
-{
-    uint8_t tx_buff[sizeof(reg) + sizeof(val)];
-
-    tx_buff[0] = reg;
-    tx_buff[1] = val;
-
-    if ( !pmu_interface_p->Send(AXP_I2C_ADDR, sizeof(tx_buff), tx_buff) )
-        return false;
-
-    return true;
-}
-
-static bool axp2101_set_bits(int reg, uint8_t bit_mask)
-{
-    uint8_t reg_val;
-
-    do
-    {
-        if ( !axp2101_reg_read(reg, &reg_val) )
-            break;
-
-        if ( (reg_val & bit_mask) != bit_mask )
-        {
-            reg_val |= bit_mask;
-            if ( !axp2101_reg_write(reg, reg_val) )
-                break;
-            ;
-        }
-
-        return true;
-    }
-    while ( false );
-    return false;
-}
-
-static bool axp2101_clr_bits(int reg, uint8_t bit_mask)
-{
-    uint8_t reg_val;
-    do
-    {
-        if ( !axp2101_reg_read(reg, &reg_val) )
-            break;
-
-        if ( reg_val & bit_mask )
-        {
-            reg_val &= ~bit_mask;
-            if ( !axp2101_reg_write(reg, reg_val) )
-                break;
-            ;
-        }
-
-        return true;
-    }
-    while ( false );
-    return false;
-}
-
 static bool axp2101_config_voltage(void)
 {
     //  voltages
@@ -83,6 +19,8 @@ static bool axp2101_config_voltage(void)
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_ALDO1_CFG, 0x0D));
     // DCDC1 -> RAIL_3V3 3.3V
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC1_CFG, 0x14));
+    
+    return true;
 }
 
 static bool axp2101_config_battery(void)
@@ -91,8 +29,10 @@ static bool axp2101_config_battery(void)
     uint16_t value = (float)(530 / 1.456);
     // cap set flag
     value |= 0x80;
-    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP_BATCAP0, (uint8_t)(value >> 8)));
-    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP_BATCAP1, (uint8_t)value));
+    // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP216_BAT_CAP0, (uint8_t)(value >> 8)));
+    // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP216_BAT_CAP1, (uint8_t)value));
+
+    return true;
 }
 
 static bool axp2101_output_ctl(bool on_off)
@@ -161,7 +101,7 @@ Power_Error_t axp2101_deinit(void)
 
 Power_Error_t axp2101_reset(void)
 {
-    EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP_VOFF_SET, (1 << 6)));
+    EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_COMM_CFG, (1 << 1)));
     return PWR_ERROR_NONE;
 }
 
@@ -170,22 +110,18 @@ Power_Error_t axp2101_irq(void)
     uint8_t irqs[5];
 
     // read irq
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_INTSTS1, &irqs[0]));
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_INTSTS2, &irqs[1]));
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_INTSTS3, &irqs[2]));
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_INTSTS4, &irqs[3]));
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_INTSTS5, &irqs[4]));
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_INTSTS1, &irqs[0]));
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_INTSTS2, &irqs[1]));
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_INTSTS3, &irqs[2]));
 
     // process irq
     // pmu_interface_p->Irq();
     // TODO: impl.
 
     // clear irq
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP_INTSTS1, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP_INTSTS2, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP_INTSTS3, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP_INTSTS4, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP_INTSTS5, 0xFF));
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_INTSTS1, 0xFF));
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_INTSTS2, 0xFF));
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_INTSTS3, 0xFF));
 
     return PWR_ERROR_NONE;
 }
@@ -244,73 +180,79 @@ Power_Error_t axp2101_get_state(Power_State_t* state)
 
 Power_Error_t axp2101_get_status(Power_Status_t* status)
 {
-    HL_Buff buffer;
+    // H8L4_Buff buffer;
 
-    memset(status, 0x00, sizeof(Power_Status_t));
-    status->isValid = false;
+    // memset(status, 0x00, sizeof(Power_Status_t));
+    // status->isValid = false;
 
-    // battery
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_SOC, &buffer.u8.low));
-    status->batteryPercent = buffer.u8.low;
+    // // battery
+    // EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_SOC, &buffer.u8.low));
+    // status->batteryPercent = buffer.u8.low;
 
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_H, &buffer.u8.high));
-    buffer.u8.high &= 0b00111111; // drop bit 7:6
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_L, &buffer.u8.low));
-    status->batteryVoltage = buffer.u16;
+    // EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_H, &buffer.u8.high));
+    // buffer.u8.high &= 0b00111111; // drop bit 7:6
+    // EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_L, &buffer.u8.low));
+    // status->batteryVoltage = buffer.u16;
 
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_H, &buffer.u8.high));
-    buffer.u8.high &= 0b00111111; // drop bit 7:6
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_L, &buffer.u8.low));
-    status->batteryTemp = buffer.u16;
+    // EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_H, &buffer.u8.high));
+    // buffer.u8.high &= 0b00111111; // drop bit 7:6
+    // EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_L, &buffer.u8.low));
+    // status->batteryTemp = buffer.u16;
 
-    // pmu
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_H, &buffer.u8.high));
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_L, &buffer.u8.low));
-    status->pmuTemp = buffer.u16;
+    // // pmu
+    // EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_H, &buffer.u8.high));
+    // EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_L, &buffer.u8.low));
+    // status->pmuTemp = buffer.u16;
 
-    // charging
+    // // charging
 
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_MODULE_EN, &buffer.u8.low));
-    status->chargeAllowed = ((buffer.u8.low & (1 << 1)) == (1 << 1));
+    // EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_MODULE_EN, &buffer.u8.low));
+    // status->chargeAllowed = ((buffer.u8.low & (1 << 1)) == (1 << 1));
 
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_STATUS, &buffer.u8.low));
-    status->chargerAvailable =
-        (((buffer.u8.low & (1 << 7) & (1 << 6)) == ((1 << 7) & (1 << 6))) || // acin
-         ((buffer.u8.low & (1 << 5) & (1 << 4)) == ((1 << 5) & (1 << 4)))    // vbus
-        );
-    status->wiredCharge = ((buffer.u8.low & (1 << 2)) == (1 << 2));
+    // EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT0, &buffer.u8.low));
+    // status->chargerAvailable = ((buffer.u8.low & (1 << 5)) == (1 << 5)); // vbus
 
-    if ( !status->wiredCharge )
-    {
-        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP_GPIO1_CTL, 0b00000010));        // gpio1 input
-        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_GPIO01_SIGNAL, &buffer.u8.low)); // gpio1 read
-        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP_GPIO1_CTL, 0b00000111));        // gpio1 float
-        status->wirelessCharge = ((buffer.u8.low & (1 << 1)) == (1 << 1));
-    }
-    else
-    {
-        status->wirelessCharge = false;
-    }
+    // // check if charging
+    // EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT1, &buffer.u8.low));
+    // if ( (buffer.u8.low & 0b01100000) == 0b00100000 ) // bit 6:5 = 01
+    // {
+    //     // read gpio
+    //     // TODO: impl.
+    //     status->wirelessCharge = ((buffer.u8.low & (1 << 1)) == (1 << 1));
 
-    if ( status->wiredCharge || status->wirelessCharge )
-    {
-        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_CCBATH_RES, &buffer.u8.high));
-        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_CCBATL_RES, &buffer.u8.low));
-        status->chargeCurrent = buffer.u16;
-        status->dischargeCurrent = 0;
-    }
-    else
-    {
-        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_DCBATH_RES, &buffer.u8.high));
-        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_DCBATL_RES, &buffer.u8.low));
-        status->dischargeCurrent = buffer.u16;
-        status->chargeCurrent = 0;
-    }
+    //     // if not wireless charging then it's wired
+    //     status->wiredCharge = !status->wirelessCharge;
+    // }
+    // else
+    // {
+    //     status->wiredCharge = false;
+    //     status->wirelessCharge = false;
+    // }
 
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP_MODE_CHGSTATUS, &buffer.u8.low));
-    status->chargeFinished = ((buffer.u8.low & (1 << 6)) == (1 << 6));
+    // if ( status->wiredCharge || status->wirelessCharge )
+    // {
+    //     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_CCBATH_RES, &buffer.u8.high));
+    //     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_CCBATL_RES, &buffer.u8.low));
+    //     status->chargeCurrent = buffer.u16;
+    //     status->dischargeCurrent = 0;
+    // }
+    // else
+    // {
+    //     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_DCBATH_RES, &buffer.u8.high));
+    //     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_DCBATL_RES, &buffer.u8.low));
+    //     status->dischargeCurrent = buffer.u16;
+    //     status->chargeCurrent = 0;
+    // }
 
-    status->isValid = false;
+    // // not supported
+    // status->chargeCurrent = 0;
+    // status->dischargeCurrent = 0;
+
+    // // check if battery standby
+    // EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT1, &buffer.u8.low));
+    // status->chargeFinished = ((buffer.u8.low & 0b01100000) == 0b00000000); // bit 6:5 = 00
+
+    // status->isValid = false;
     return PWR_ERROR_NONE;
 }
 

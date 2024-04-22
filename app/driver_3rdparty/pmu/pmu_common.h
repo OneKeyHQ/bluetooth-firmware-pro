@@ -29,15 +29,22 @@
 // regex ->(PWR_ENUM_ITEM\((.*), (.*)\).*,)
 // replace -> $1 // PWR_$2_$3
 
+// all type to uint16_t as gcc complains if mixed with uint8_t
 typedef union
 {
-    uint16_t u16;
     struct
     {
-        uint8_t high;
-        uint8_t low;
-    } u8;
-} HL_Buff;
+        uint16_t u16_padding : 4;
+        uint16_t u16         : 12;
+    } __attribute__((packed, aligned(1)));
+
+    struct
+    {
+        uint16_t u8_padding : 4;
+        uint16_t u8_high    : 8;
+        uint16_t u8_low     : 4;
+    } __attribute__((packed, aligned(1)));
+} H8L4_Buff; // convertor
 
 typedef enum
 {
@@ -56,15 +63,18 @@ typedef enum
 
 typedef enum
 {
-    PWR_ENUM_ITEM(IRQ, INVALID) = -1,  // PWR_IRQ_INVALID
-    PWR_ENUM_ITEM(IRQ, PB_SHORT),      // PWR_IRQ_PB_SHORT
-    PWR_ENUM_ITEM(IRQ, PB_LONG),       // PWR_IRQ_PB_LONG
-    PWR_ENUM_ITEM(IRQ, PB_RELEASE),    // PWR_IRQ_PB_RELEASE
-    PWR_ENUM_ITEM(IRQ, PB_PRESS),      // PWR_IRQ_PB_PRESS
-    PWR_ENUM_ITEM(IRQ, CHARGING),      // PWR_IRQ_CHARGING
-    PWR_ENUM_ITEM(IRQ, DISCHARGING),   // PWR_IRQ_DISCHARGING
-    PWR_ENUM_ITEM(IRQ, BATT_LOW),      // PWR_IRQ_BATT_LOW
-    PWR_ENUM_ITEM(IRQ, BATT_CRITICAL), // PWR_IRQ_BATT_CRITICAL
+    PWR_ENUM_ITEM(IRQ, INVALID) = -1,     // PWR_IRQ_INVALID
+    PWR_ENUM_ITEM(IRQ, PWR_CONNECTED),    // PWR_IRQ_PWR_CONNECTED
+    PWR_ENUM_ITEM(IRQ, PWR_DISCONNECTED), // PWR_IRQ_PWR_DISCONNECTED
+    PWR_ENUM_ITEM(IRQ, CHARGING),         // PWR_IRQ_CHARGING
+    PWR_ENUM_ITEM(IRQ, CHARGED),          // PWR_IRQ_CHARGED
+    PWR_ENUM_ITEM(IRQ, BATT_LOW),         // PWR_IRQ_BATT_LOW
+    PWR_ENUM_ITEM(IRQ, BATT_CRITICAL),    // PWR_IRQ_BATT_CRITICAL
+    PWR_ENUM_ITEM(IRQ, PB_PRESS),         // PWR_IRQ_PB_PRESS
+    PWR_ENUM_ITEM(IRQ, PB_RELEASE),       // PWR_IRQ_PB_RELEASE
+    PWR_ENUM_ITEM(IRQ, PB_SHORT),         // PWR_IRQ_PB_SHORT
+    PWR_ENUM_ITEM(IRQ, PB_LONG),          // PWR_IRQ_PB_LONG
+    PWR_ENUM_ITEM(IRQ, PB_FORCEOFF),      // PWR_IRQ_PB_FORCEOFF
 } Power_Irq_t;
 
 typedef struct
@@ -93,9 +103,19 @@ typedef struct
     bool (*Init)(void);
     bool (*Deinit)(void);
     bool (*Reset)(void);
-    bool (*Send)(const uint8_t device_addr, const uint32_t len, uint8_t* data);
-    bool (*Receive)(const uint8_t device_addr, const uint32_t len, uint8_t* data);
-    void (*Irq)(const Power_Irq_t irq); // passed irq out
+    bool (*Send)(const uint8_t device_addr, const uint32_t len, const uint8_t* const data); // iic host send
+    bool (*Receive)(const uint8_t device_addr, const uint32_t len, uint8_t* const data); // iic host receive
+    void (*Irq)(const uint64_t irq);                                                     // passed irq out
+
+    struct
+    {
+        bool (*Write)(const uint8_t device_addr, const uint8_t reg_addr, const uint8_t data);
+        bool (*Read)(const uint8_t device_addr, const uint8_t reg_addr, uint8_t* const data);
+        bool (*SetBits)(const uint8_t device_addr, const uint8_t reg_addr, const uint8_t bit_mask);
+        bool (*ClrBits)(const uint8_t device_addr, const uint8_t reg_addr, const uint8_t bit_mask);
+
+    } Reg;
+
 } PMU_Interface_t;
 
 typedef struct
