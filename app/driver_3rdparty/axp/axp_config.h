@@ -35,7 +35,7 @@
         充电功能使能：
         AXP:0-关闭，1-打开
 */
-#define EN_CHARGE 0
+#define EN_CHARGE 1
 
 /*
         充电电流设置，uA，0为关闭：
