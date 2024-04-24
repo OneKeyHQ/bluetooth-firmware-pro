@@ -1,5 +1,5 @@
-#ifndef __LINUX_LM_CFG_H_
-#define __LINUX_LM_CFG_H_
+#ifndef _LM36011_H_
+#define _LM36011_H_
 
 #include <stdint.h>
 #include "nrf_delay.h"
@@ -21,4 +21,4 @@
 ret_code_t lm36011_write(const uint8_t writeAddr, const uint8_t writeData);
 ret_code_t lm36011_read(uint8_t readAddr, uint8_t byteNum, uint8_t* readData);
 
-#endif
+#endif // _LM36011_H_

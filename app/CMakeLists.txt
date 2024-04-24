@@ -377,7 +377,7 @@ target_sources(
   drivers/pmu/pmu.c
   drivers/pmu/axp216.c
   drivers/pmu/axp2101.c
-  drivers/lm/lm_config.c
+  drivers/light/lm36011.c
   data_transmission.c
   rtc_calendar.c
   ecdsa.c
@@ -391,7 +391,7 @@ target_include_directories(
   ${NRF_SDK_INC}
   drivers
   drivers/pmu
-  drivers/lm
+  drivers/light
 )
 
 execute_process(

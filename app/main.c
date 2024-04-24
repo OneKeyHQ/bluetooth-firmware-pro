@@ -82,7 +82,6 @@
 // #include "nfc.h"
 #include "app_scheduler.h"
 #include "ble_dfu.h"
-#include "custom_board.h"
 #include "data_transmission.h"
 #include "ecdsa.h"
 #include "fds_internal_defs.h"
@@ -1967,10 +1966,9 @@ static void system_init() {
 
   set_send_stm_data_p(send_stm_data);
 
-  // ret_code_t err_code = usr_power_init();
-  // APP_ERROR_CHECK(err_code);
   if (!power_manage_init()) {
-    NRF_LOG_INFO("PMU initialization failed!\n");
+    NRF_LOG_INFO("PMU initialization failed!");
+    while(1) {NRF_LOG_FLUSH();}
   }
   pmu_p->Config();
   pmu_p->SetState(PWR_STATE_ON);

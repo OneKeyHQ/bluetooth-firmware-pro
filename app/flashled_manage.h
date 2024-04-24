@@ -1,7 +1,7 @@
 #ifndef __FLSHLED_MANAGE_H_
 #define __FLSHLED_MANAGE_H_
 
-#include "lm_config.h"
+#include "lm36011.h"
 
 extern ret_code_t set_led_brightness(uint8_t brightness);
 extern uint8_t get_led_brightness(void);
