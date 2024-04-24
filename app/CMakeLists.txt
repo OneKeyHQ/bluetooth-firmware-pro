@@ -373,26 +373,25 @@ add_executable(
 target_sources(
   ${CMAKE_PROJECT_NAME} PRIVATE 
   ${NRF_SDK_SRC}
+  drivers/nrf_i2c.c
+  drivers/pmu/pmu.c
+  drivers/pmu/axp216.c
+  drivers/pmu/axp2101.c
+  drivers/lm/lm_config.c
   data_transmission.c
-  driver_3rdparty/pmu/pmu.c
-  driver_3rdparty/pmu/axp216.c
-  driver_3rdparty/pmu/axp2101.c
-  driver_3rdparty/lm/lm_config.c
-  power_manage.c
-  flashled_manage.c
   rtc_calendar.c
   ecdsa.c
-  # driver_3rdparty/pmu/axp_config.c
-  # driver_3rdparty/pmu/axp_supply.c
-  # nfc.c
+  power_manage.c
+  flashled_manage.c
 )
 
 target_include_directories(
   ${CMAKE_PROJECT_NAME} PRIVATE
   ${PROJECT_SOURCE_DIR}
   ${NRF_SDK_INC}
-  driver_3rdparty/pmu
-  driver_3rdparty/lm
+  drivers
+  drivers/pmu
+  drivers/lm
 )
 
 execute_process(

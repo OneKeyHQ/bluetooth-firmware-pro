@@ -6,29 +6,26 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "util_micros.h"
+
+// ================================
+// defines
 #define PMU_INSTANCE_NAME_MAX_LEN 16
 
-#define ExecuteCheck_ADV(expr, expected_result, on_false) \
-  {                                                       \
-    typeof(expected_result) ret = (expr);                 \
-    if (ret != (expected_result)) {                       \
-      on_false                                            \
-    }                                                     \
-  }
+// ================================
+// macros
 #define EC_PWR_ERR_ADV(expr, on_false) ExecuteCheck_ADV(expr, PWR_ERROR_NONE, on_false)
 #define EC_BOOL_ADV(expr, on_false)    ExecuteCheck_ADV(expr, true, on_false)
 
 #define EC_E_BOOL_R_PWR_ERR(expr) ExecuteCheck_ADV(expr, true, { return PWR_ERROR_FAIL; })
 #define EC_E_BOOL_R_BOOL(expr)    ExecuteCheck_ADV(expr, true, { return false; })
 
-#define JOIN_EXPR(a, b, c) a##_##b##_##c
-// regex ->(JOIN_EXPR\((.*), (.*), (.*)\).*,)
-// replace -> $1 // $2_$3_$4
 #define PWR_ENUM_ITEM(b, c) JOIN_EXPR(PWR, b, c)
 // regex ->(PWR_ENUM_ITEM\((.*), (.*)\).*,)
 // replace -> $1 // PWR_$2_$3
 
-// all type to uint16_t as gcc complains if mixed with uint8_t
+// ================================
+// types
 typedef union {
   struct {
     uint16_t u16_padding : 4;
@@ -40,7 +37,7 @@ typedef union {
     uint16_t u8_high : 8;
     uint16_t u8_low : 4;
   } __attribute__((packed, aligned(1)));
-} H8L4_Buff;  // convertor
+} H8L4_Buff;  // convertor, all type to uint16_t as gcc complains if mixed with uint8_t
 
 typedef enum {
   PWR_ENUM_ITEM(ERROR, NONE) = 0,  // PWR_ERROR_NONE
