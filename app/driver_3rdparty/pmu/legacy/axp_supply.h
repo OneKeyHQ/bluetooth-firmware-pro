@@ -46,17 +46,17 @@
 #define AXP_ADC_GPIO2_ENABLE    (1 << 1)
 #define AXP_ADC_GPIO3_ENABLE    (1 << 0)
 #define AXP_ADC_CONTROL3        (0x84)
-#define AXP_VBATH_RES           (0x78)  //电池电压高位寄存器
+#define AXP_VBATH_RES           (0x78)  // 电池电压高位寄存器
 #define AXP_VTS_RES             (0x58)
-#define AXP_VBATL_RES           (0x79)  //电池电压低位寄存器
+#define AXP_VBATL_RES           (0x79)  // 电池电压低位寄存器
 #define AXP_OCVBATH_RES         (0xBC)
 #define AXP_OCVBATL_RES         (0xBD)
 #define AXP_INTTEMP             (0x56)
 
-#define AXP_CCBATH_RES (0X7A)  //电池充电电流高位寄存器
-#define AXP_CCBATL_RES (0X7B)  //电池充电电流低位寄存器
-#define AXP_DCBATH_RES (0X7C)  //电池放电电流高位寄存器
-#define AXP_DCBATL_RES (0X7D)  //电池放电电流低位寄存器
+#define AXP_CCBATH_RES (0X7A)  // 电池充电电流高位寄存器
+#define AXP_CCBATL_RES (0X7B)  // 电池充电电流低位寄存器
+#define AXP_DCBATH_RES (0X7C)  // 电池放电电流高位寄存器
+#define AXP_DCBATL_RES (0X7D)  // 电池放电电流低位寄存器
 
 #define AXP_DATA_BUFFER0 AXP_BUFFER1
 #define AXP_DATA_BUFFER1 AXP_BUFFER2
@@ -89,39 +89,39 @@ struct axp_charger {
   struct axp_adc_res *adc;  // ADC数据
 
   /* charger status */
-  uint8_t bat_det;                //电池存在
-  uint8_t is_on;                  //充电指示
+  uint8_t bat_det;                // 电池存在
+  uint8_t is_on;                  // 充电指示
   uint8_t ac_det;                 // AC存在
   uint8_t usb_det;                // USB存在
   uint8_t ac_valid;               // AC可用
   uint8_t usb_valid;              // usb可用
-  uint8_t ext_valid;              //外部电源存在
-  uint8_t bat_current_direction;  //电池电流方向
+  uint8_t ext_valid;              // 外部电源存在
+  uint8_t bat_current_direction;  // 电池电流方向
   uint8_t in_short;               // AC&USB是否短接
   uint8_t batery_active;
-  uint8_t int_over_temp;  //芯片是否过温
+  uint8_t int_over_temp;  // 芯片是否过温
   uint8_t fault;
   int charge_on;
 
-  int vbat;  //电池电压
-  int ibat;  //电池电流
+  int vbat;  // 电池电压
+  int ibat;  // 电池电流
   int vac;
   int iac;
   int vusb;
   int iusb;
-  int ocv;  //电池开路电压
+  int ocv;  // 电池开路电压
 
   int disvbat;
   int disibat;
 
   /*rest time*/
-  int rest_vol;      //电池电量
+  int rest_vol;      // 电池电量
   int ocv_rest_vol;  // OCV电量
   int base_restvol;
   int rest_time;
 
   /*ic temperature*/
-  int ic_temp;  //电池温度
+  int ic_temp;  // 电池温度
 };
 
 void axp216_init(void);

@@ -65,7 +65,7 @@ void axp216_init(void) {
   int Cur_CoulombCounter, rdc;
 
   axp_set_charge(STACHGCUR_WIRED);  // Charging parameter setting
-  set_voff_vol();    // Voff voltage setting
+  set_voff_vol();                   // Voff voltage setting
   axp_enable_irqs(AXP_NOTIFIER_ON);
 
   /*ADC Set*/

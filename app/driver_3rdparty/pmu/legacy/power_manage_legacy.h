@@ -14,8 +14,6 @@
 #define AXP_DCDC4 0x10
 #define AXP_DCDC5 0x20
 
-
-
 // IRQ status
 #define IRQ_VBUS_INSERT 0x48
 #define IRQ_VBUS_REMOVE 0x24

@@ -15,7 +15,7 @@
 
 #define AXP_DEVICES_ADDR 0x34
 // #define AXP_DEVICES_ADDR 0x35
-#define AXP_ADDRESS_LEN  1
+#define AXP_ADDRESS_LEN 1
 
 #define TWI_INSTANCE_ID 1
 
@@ -31,7 +31,7 @@
 #define BATRDC 150
 
 /*开路电压方法中的电池电压的缓存*/
-//#define AXP_VOL_MAX			1
+// #define AXP_VOL_MAX			1
 /*
         充电功能使能：
         AXP:0-关闭，1-打开
@@ -43,9 +43,8 @@
                 AXP:300~2550,100/step
 */
 /*充电电流，uA*/
-#define STACHGCUR_WIRED 900 * 1000
+#define STACHGCUR_WIRED    900 * 1000
 #define STACHGCUR_WIRELESS 750 * 1000
-
 
 /*目标充电电压，mV*/
 /*
@@ -139,7 +138,7 @@
 /*
         AXP:4000~4700，100/step
 */
-//#define USBVOLLIMPC		
+// #define USBVOLLIMPC
 
 /* 充电电流限制使能*/
 /*
@@ -262,7 +261,7 @@ static const uint64_t AXP_NOTIFIER_ON = (AXP_IRQ_USBIN | AXP_IRQ_USBRE | AXP_IRQ
                                                                                                           // (uint64_t)AXP_IRQ_PEKFE |(uint64_t)AXP_IRQ_PEKRE);
 
 /* 需要做插入火牛、usb关机重启进boot时power_start设置为1，否则为0*/
-//#define POWER_START 0
+// #define POWER_START 0
 
 void axp216_set_i2c_addr(uint8_t addr);
 

@@ -88,6 +88,7 @@
 #include "fds_internal_defs.h"
 #include "flashled_manage.h"
 #include "nrf_bootloader_info.h"
+#include "nrf_crypto.h"
 #include "nrf_crypto_init.h"
 #include "nrf_delay.h"
 #include "nrf_drv_gpiote.h"
@@ -97,7 +98,6 @@
 #include "nrf_power.h"
 #include "power_manage.h"
 #include "rtc_calendar.h"
-#include "nrf_crypto.h"
 
 #if defined(UART_PRESENT)
 #include "nrf_uart.h"
@@ -215,7 +215,6 @@
   6  //!< The ADC is configured to use VDD with 1/3 prescaling as input. And hence the result of conversion is to be multiplied by 3 to get the actual value of the battery voltage.
 #define ADC_RESULT_IN_MILLI_VOLTS(ADC_VALUE) ((((ADC_VALUE)*ADC_REF_VOLTAGE_IN_MILLIVOLTS) / ADC_RES_10BIT) * ADC_PRE_SCALING_COMPENSATION)
 
-
 // UART define
 #define MAX_TEST_DATA_BYTES (15U) /**< max number of test bytes to be used for tx and rx. */
 #define UART_TX_BUF_SIZE    256   /**< UART TX buffer size. */
@@ -251,8 +250,8 @@
 #define BLE_KEY_RESP_PUBKEY  0x02
 #define BLE_KEY_RESP_SIGN    0x03
 
-#define BLE_CMD_BUILD_ID     0x10
-#define BLE_CMD_HASH         0x11
+#define BLE_CMD_BUILD_ID 0x10
+#define BLE_CMD_HASH     0x11
 
 // end BLE send CMD
 //
@@ -389,10 +388,7 @@ static char ble_adv_name[ADV_NAME_LENGTH];
 
 extern rtc_date_t rtc_date;
 static Power_Status_t pmu_status;
-static void pmu_status_refresh()
-{
-  pmu_p->GetStatus(&pmu_status);
-}
+static void pmu_status_refresh() { pmu_p->GetStatus(&pmu_status); }
 
 // add  tmp
 unsigned char cfg;
@@ -423,7 +419,6 @@ static uint8_t uart_data_array[64];
 static void uart_put_data(uint8_t *pdata, uint8_t lenth);
 static void send_stm_data(uint8_t *pdata, uint8_t lenth);
 static uint8_t calcXor(uint8_t *buf, uint8_t len);
-
 
 static void advertising_start(void);
 static void advertising_stop(void);
@@ -802,7 +797,6 @@ static void pm_evt_handler(pm_evt_t const *p_evt) {
       APP_ERROR_CHECK(err_code);
 
       if (conn_sec_status.mitm_protected) {
-
         if (ble_conn_nopair_flag == BLE_PAIR) {
           ble_conn_nopair_flag = BLE_DEF;
           bak_buff[0] = BLE_CMD_PAIR_STA;
@@ -969,7 +963,6 @@ static void advertising_config_get(ble_adv_modes_config_t *p_config) {
  * @param[in]   event   Event from the Buttonless Secure DFU service.
  */
 static void ble_dfu_evt_handler(ble_dfu_buttonless_evt_type_t event) {
-
   bak_buff[0] = UART_CMD_DFU_STA;
   bak_buff[1] = 0x01;
 
@@ -1293,7 +1286,7 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt) {
 #endif
       break;  // BLE_ADV_EVT_FAST
 
-    case BLE_ADV_EVT_IDLE:  //协议栈上抛这个事件就回进入睡眠模式
+    case BLE_ADV_EVT_IDLE:  // 协议栈上抛这个事件就回进入睡眠模式
       break;                // BLE_ADV_EVT_IDLE
 
     default:
@@ -1522,7 +1515,6 @@ static void peer_manager_init(void) {
   APP_ERROR_CHECK(err_code);
 }
 #endif
-
 
 /**@brief   Function for handling app_uart events.
  *
@@ -1905,10 +1897,7 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
   }
 }
 
-static void gpio_int_handler_pmu(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
-{
-  pmu_p->Irq();
-}
+static void gpio_int_handler_pmu(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) { pmu_p->Irq(); }
 
 static void gpiote_init(void) {
   ret_code_t err_code;
@@ -1969,7 +1958,6 @@ static void send_stm_data(uint8_t *pdata, uint8_t lenth) {
   uart_put_data(uart_trans_buff, uart_trans_buff[3] + 4);
 }
 
-
 static void system_init() {
 #ifdef SCHED_ENABLE
   create_ringBuffer(&m_ble_fifo, data_recived_buf, sizeof(data_recived_buf));
@@ -1981,11 +1969,11 @@ static void system_init() {
 
   // ret_code_t err_code = usr_power_init();
   // APP_ERROR_CHECK(err_code);
-    if (!power_manage_init()) {
-        NRF_LOG_INFO("PMU initialization failed!\n");
-    }
-    pmu_p->Config();
-    pmu_p->SetState(PWR_STATE_ON);
+  if (!power_manage_init()) {
+    NRF_LOG_INFO("PMU initialization failed!\n");
+  }
+  pmu_p->Config();
+  pmu_p->SetState(PWR_STATE_ON);
 
   usr_uart_init();
   NRF_LOG_INFO("uart init ok ......");
@@ -2176,28 +2164,28 @@ static void rsp_st_uart_cmd(void *p_event_data, uint16_t event_size) {
   } else if (trans_info_flag == RESPONESE_BUILD_ID) {
     bak_buff[0] = BLE_CMD_BUILD_ID;
     memcpy(&bak_buff[1], (uint8_t *)BUILD_ID, 7);
-    send_stm_data(bak_buff,8);
+    send_stm_data(bak_buff, 8);
     trans_info_flag = DEF_RESP;
   } else if (trans_info_flag == RESPONESE_HASH) {
-    ret_code_t  err_code = NRF_SUCCESS;
+    ret_code_t err_code = NRF_SUCCESS;
     nrf_crypto_backend_hash_context_t hash_context = {0};
-    uint8_t hash[32]={0};
+    uint8_t hash[32] = {0};
     size_t hash_len = 32;
     int chunks = 0;
     int app_size = 0;
     uint8_t *code_addr = (uint8_t *)0x26000;
     uint8_t *code_len = (uint8_t *)0x7F018;
-    app_size = code_len[0] + code_len[1]*256 + code_len[2]*256*256;
-    chunks = app_size/512;
+    app_size = code_len[0] + code_len[1] * 256 + code_len[2] * 256 * 256;
+    chunks = app_size / 512;
 
     err_code = nrf_crypto_hash_init(&hash_context, &g_nrf_crypto_hash_sha256_info);
     APP_ERROR_CHECK(err_code);
-    for(int i = 0; i<chunks; i++) {
-      err_code = nrf_crypto_hash_update(&hash_context, code_addr + i*512, 512);
+    for (int i = 0; i < chunks; i++) {
+      err_code = nrf_crypto_hash_update(&hash_context, code_addr + i * 512, 512);
       APP_ERROR_CHECK(err_code);
     }
-    if(app_size%512) {
-      err_code = nrf_crypto_hash_update(&hash_context, code_addr + chunks*512, app_size%512);
+    if (app_size % 512) {
+      err_code = nrf_crypto_hash_update(&hash_context, code_addr + chunks * 512, app_size % 512);
       APP_ERROR_CHECK(err_code);
     }
     err_code = nrf_crypto_hash_finalize(&hash_context, hash, &hash_len);
@@ -2205,7 +2193,7 @@ static void rsp_st_uart_cmd(void *p_event_data, uint16_t event_size) {
 
     bak_buff[0] = BLE_CMD_HASH;
     memcpy(&bak_buff[1], hash, 32);
-    send_stm_data(bak_buff,33);
+    send_stm_data(bak_buff, 33);
     trans_info_flag = DEF_RESP;
   }
 }
@@ -2235,7 +2223,6 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
   if (BLE_OFF_ALWAYS == ble_adv_switch_flag) {
     ble_adv_switch_flag = BLE_DEF;
     if (BLE_ON_ALWAYS == ble_status_flag) {
-
       bak_buff[0] = BLE_CMD_CON_STA;
       bak_buff[1] = BLE_ADV_OFF_STATUS;
       send_stm_data(bak_buff, 2);
@@ -2247,16 +2234,13 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
 
       check_advertising_stop();
     } else {
-
       bak_buff[0] = BLE_CMD_CON_STA;
       bak_buff[1] = BLE_ADV_OFF_STATUS;
       send_stm_data(bak_buff, 2);
-
     }
   } else if (BLE_ON_ALWAYS == ble_adv_switch_flag) {
     ble_adv_switch_flag = BLE_DEF;
     if (BLE_OFF_ALWAYS == ble_status_flag) {
-
       bak_buff[0] = BLE_CMD_CON_STA;
       bak_buff[1] = BLE_ADV_ON_STATUS;
       send_stm_data(bak_buff, 2);
@@ -2266,11 +2250,9 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
       ble_status_flag = BLE_ON_ALWAYS;
       NRF_LOG_INFO("2-Start advertisement.\n");
     } else {
-
       bak_buff[0] = BLE_CMD_CON_STA;
       bak_buff[1] = BLE_ADV_ON_STATUS;
       send_stm_data(bak_buff, 2);
-
     }
   }
   if (BLE_DISCON == ble_conn_flag) {
@@ -2285,7 +2267,6 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
     bak_buff[0] = BLE_CMD_CON_STA;
     bak_buff[1] = BLE_DISCON_STATUS;
     send_stm_data(bak_buff, 2);
-
   }
   if (BLE_CON == ble_conn_flag) {
     ble_conn_flag = BLE_DEF;
@@ -2328,9 +2309,9 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
     case PWR_USB_STATUS:
       bak_buff[0] = BLE_CMD_POWER_STA;
       bak_buff[1] = status.chargerAvailable;
-      if(status.wiredCharge){
+      if (status.wiredCharge) {
         bak_buff[2] = AXP_CHARGE_TYPE_USB;
-      }else{
+      } else {
         bak_buff[2] = AXP_CHARGE_TYPE_WIRELESS;
       }
       send_stm_data(bak_buff, 3);
@@ -2340,7 +2321,6 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
       break;
   }
   if ((PWR_DEF != pwr_status_flag) && (respons_flag != 0x00)) {
-
     bak_buff[0] = BLE_CMD_PWR_STA;
     bak_buff[1] = respons_flag;
     send_stm_data(bak_buff, 2);
@@ -2358,7 +2338,6 @@ static void led_ctl_process(void *p_event_data, uint16_t event_size) {
     bak_buff[2] = led_brightness_value;
     send_stm_data(bak_buff, 3);
 
-
     led_brightness_flag = LED_DEF;
 
   } else if (ST_SEND_GET_LED_BRIGHTNESS == led_brightness_flag) {
@@ -2370,24 +2349,22 @@ static void led_ctl_process(void *p_event_data, uint16_t event_size) {
     bak_buff[2] = current_led_brihtness;
     send_stm_data(bak_buff, 3);
 
-
     led_brightness_flag = LED_DEF;
   }
 }
 
 static void bat_msg_report_process(void *p_event_data, uint16_t event_size) {
-
   Power_Status_t status;
   pmu_p->GetStatus(&status);
 
   H8L4_Buff hlb = {0};
-  
+
   switch (bat_msg_flag) {
     case SEND_BAT_VOL:
       hlb.u16 = status.batteryVoltage;
       break;
-    case SEND_BAT_CHARGE_CUR:   
-      hlb.u16  = status.chargeCurrent;
+    case SEND_BAT_CHARGE_CUR:
+      hlb.u16 = status.chargeCurrent;
       break;
     case SEND_BAT_DISCHARGE_CUR:
       hlb.u16 = status.dischargeCurrent;

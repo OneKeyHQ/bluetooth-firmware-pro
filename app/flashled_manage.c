@@ -1,11 +1,11 @@
 #include "flashled_manage.h"
 #include "nrf_log.h"
 
-//开启灯及设置亮度值
+// 开启灯及设置亮度值
 ret_code_t set_led_brightness(uint8_t brightness) {
   uint8_t brightness_regist_value = 0;
   ret_code_t ret;
-  //关闭闪光灯
+  // 关闭闪光灯
   if (brightness == 0) {
     ret = lm36011_write(LM36011_LED_STATUS, LED_FLASHLIGHT_OFF);
     return ret;
@@ -20,19 +20,19 @@ ret_code_t set_led_brightness(uint8_t brightness) {
   if (brightness_regist_value >= LM36011_LED_MAX_SSC) {
     brightness_regist_value = LM36011_LED_MAX_SSC;
   }
-  //设置闪光灯亮度值
+  // 设置闪光灯亮度值
   ret = lm36011_write(LM36011_LED_BRIGHTNESS, brightness_regist_value);
   if (ret != LED_CONTROL_SUCCESS) {
     return ret;
   }
   nrf_delay_ms(100);
-  //开启闪光灯手电筒模式
+  // 开启闪光灯手电筒模式
   ret = lm36011_write(LM36011_LED_STATUS, LED_FLASHLIGHT_MODE);
   // NRF_LOG_INFO("setting status = %d", ret);
   return ret;
 }
 
-//获取灯亮度值
+// 获取灯亮度值
 uint8_t get_led_brightness(void) {
   uint8_t brightness = 0;
   ret_code_t ret;
@@ -56,7 +56,7 @@ uint8_t get_led_brightness(void) {
   return brightness;
 }
 
-//重置灯的状态
+// 重置灯的状态
 ret_code_t reset_led_statu(void) {
   ret_code_t ret = lm36011_write(LM36011_LED_RESET, 0x80);
   return ret;

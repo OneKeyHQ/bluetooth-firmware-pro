@@ -326,7 +326,7 @@ target_include_directories(
 target_compile_options(
   MicroECC PRIVATE
   # Optimization flags
-  -Os -g3
+  -Os -g0
   # Uncomment the line below to enable link time optimization
   # -flto
   # C flags common to all targets
@@ -405,7 +405,7 @@ add_definitions('-DBUILD_ID=\"${GIT_VERSION}\"')
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Optimization flags
-  -O3 -g3
+  -O0 -ggdb
   # Uncomment the line below to enable link time optimization
   -flto
   # C flags common to all targets
