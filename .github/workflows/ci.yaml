@@ -7,38 +7,30 @@ jobs:
     name: "build"
     runs-on: ubuntu-latest
     steps:
-      - name: Configure Fast APT Mirror
-        uses: vegardit/fast-apt-mirror.sh@v1
-        with: # the following parameters are listed with their action default values and are optional
-          healthchecks:  20 # Number of mirrors from the mirrors list to check for availability and up-to-dateness
-          speedtests:    10 # Maximum number of healthy mirrors to test for speed
-          parallel:       2 # Number of parallel speed tests
-          sample-size: 1024 # Number of kilobytes to download during the speed from each mirror
-          sample-time:    3 # Maximum number of seconds within the sample download from a mirror must finish
+
+      - name: Check out repository code
+        uses: actions/checkout@v3
 
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt -y install curl wget ninja-build
-          sudo apt -y install build-essential libtool
+          sudo apt -y install curl wget cmake ninja-build build-essential libtool
+          # sudo apt -y install gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi
           sudo apt -y install python3 python3-pip python-is-python3
-          sudo python -m pip install -U pip
+          # sudo python -m pip install -U pip
           sudo pip install wheel click
 
           ARCH=$(uname -m)
           if [ "$ARCH" = "x86_64" ]; then
-            wget -q https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz
+            wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz --progress=dot:giga
             mkdir gcc-arm-none-eabi-12.2.rel1
-            tar -xf arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz --strip-components=1 -C gcc-arm-none-eabi-12.2.rel1
+            tar -xf arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz --strip-components=1 -C gcc-arm-none-eabi-12.2.rel1 --totals
           else
-            wget -q https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz
+            wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz --progress=dot:giga
             mkdir gcc-arm-none-eabi-12.2.rel1
-            tar -xf arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz --strip-components=1 -C gcc-arm-none-eabi-12.2.rel1
+            tar -xf arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz --strip-components=1 -C gcc-arm-none-eabi-12.2.rel1 --totals
           fi
 
-      - name: Check out repository code
-        uses: actions/checkout@v3
-        
       - name: Populate vars
         id: vars
         run: |
@@ -50,8 +42,9 @@ jobs:
       - name: Build and Sign
         env:
           BT_SIG_PK: ${{ secrets.BT_SIG_PK }}
+          TOOL_CHAIN_PREFIX: "${{ github.workspace }}/gcc-arm-none-eabi-12.2.rel1/bin/arm-none-eabi"
+          # TOOL_CHAIN_PREFIX: "arm-none-eabi"
         run: |
-          export PATH=$PATH:$PWD/gcc-arm-none-eabi-12.2.rel1/bin
           ./build.sh
 
       - name: Upload artifacts

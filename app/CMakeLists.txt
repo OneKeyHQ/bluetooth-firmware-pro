@@ -1,23 +1,13 @@
-# cmake options
 cmake_minimum_required(VERSION 3.22.1)
 
 ###############################
 # Toolchain
-set(CMAKE_SYSTEM_NAME Generic)
-set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY") 
-set(TOOL_CHAIN_PREFIX "arm-none-eabi")
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-find_program(CMAKE_C_COMPILER NAMES ${TOOL_CHAIN_PREFIX}-gcc)
-find_program(CMAKE_ASM_COMPILER NAMES ${TOOL_CHAIN_PREFIX}-gcc)
-find_program(CMAKE_OBJCOPY NAMES ${TOOL_CHAIN_PREFIX}-objcopy)
-set(CMAKE_C_STANDARD 17)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+include("../toolchain.cmake")
 
 ###############################
 # Project
-project(OnekeyProBTFW_APP LANGUAGES C ASM)
+project(OnekeyProBTFW_APP LANGUAGES C CXX ASM)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
 ###############################
 # NRF SDK
 set(NRF_SDK_ROOT "${PROJECT_SOURCE_DIR}/../ble-firmware")

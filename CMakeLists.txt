@@ -1,22 +1,14 @@
-# cmake options
 cmake_minimum_required(VERSION 3.22.1)
 
 ###############################
 # Toolchain
-set(CMAKE_SYSTEM_NAME Generic)
-set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY") 
-set(TOOL_CHAIN_PREFIX "arm-none-eabi")
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-find_program(CMAKE_C_COMPILER NAMES ${TOOL_CHAIN_PREFIX}-gcc)
-find_program(CMAKE_ASM_COMPILER NAMES ${TOOL_CHAIN_PREFIX}-gcc)
-find_program(CMAKE_OBJCOPY NAMES ${TOOL_CHAIN_PREFIX}-objcopy)
-set(CMAKE_C_STANDARD 17)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+include("./toolchain.cmake")
+
 
 ###############################
 # Project
-project(OnekeyProBTFW LANGUAGES C ASM)
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
+project(OnekeyProBTFW LANGUAGES C)
+set(CMAKE_INCLUDE_CURRENT_DIR OFF)
 
 ###############################
 # Sub Projects
@@ -28,14 +20,16 @@ ExternalProject_Add(
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/dfu
   INSTALL_DIR ${PROJECT_BINARY_DIR}/artifacts
   CMAKE_GENERATOR "Ninja"
-  CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${PROJECT_SOURCE_DIR}/artifacts"
+  CMAKE_ARGS "-DTOOL_CHAIN_PREFIX=${TOOL_CHAIN_PREFIX} "
+  CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${PROJECT_SOURCE_DIR}/artifacts " 
 )
 ExternalProject_Add(
   app
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/app
   INSTALL_DIR ${PROJECT_BINARY_DIR}/artifacts
   CMAKE_GENERATOR "Ninja"
-  CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${PROJECT_SOURCE_DIR}/artifacts"
+  CMAKE_ARGS "-DTOOL_CHAIN_PREFIX=${TOOL_CHAIN_PREFIX} "
+  CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${PROJECT_SOURCE_DIR}/artifacts "
 )
 
 ###############################
@@ -81,7 +75,7 @@ add_custom_target(
           --app-boot-validation VALIDATE_ECDSA_P256_SHA256 --application ${FILE_INPUT_APP} --application-version 3 
           --sd-boot-validation VALIDATE_ECDSA_P256_SHA256 --softdevice ${FILE_INPUT_SD} 
           --key-file ${FILE_KEY}  ${FILE_INPUT_BL_CONFIG}
-  DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_KEY app
+  DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_KEY app
 )
 
 # megre factory hex
@@ -90,7 +84,7 @@ add_custom_target(
   COMMAND ${DIR_UTILS}/mergehex 
                       --merge ${FILE_INPUT_BOOTLOADER} ${FILE_INPUT_BL_CONFIG} ${FILE_INPUT_SD} ${FILE_INPUT_APP} 
                       --output ${FILE_OUTPUT_FACTORY_HEX}
-  DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_BL_CONF dfu app
+  DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_BL_CONF dfu app
 )
 
 # gen factory bin
@@ -110,7 +104,7 @@ add_custom_target(
           --application ${FILE_INPUT_APP} --application-version 3 --app-boot-validation VALIDATE_ECDSA_P256_SHA256
           --key-file ${FILE_KEY} ${FILE_OUTPUT_ZIP}
   COMMAND ${DIR_UTILS}/ota_to_onekey_bin.py ${FILE_OUTPUT_ZIP} ${FILE_OUTPUT_OTA_BIN}
-  DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_KEY dfu app
+  DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_KEY dfu app
 )
 
 ###############################
