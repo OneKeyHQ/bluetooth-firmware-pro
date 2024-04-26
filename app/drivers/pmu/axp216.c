@@ -1,4 +1,6 @@
 #include "axp216.h"
+#include "nrf_delay.h"
+
 
 // macros
 
@@ -67,6 +69,7 @@ static bool axp216_config_battery(void)
 
 static bool axp216_output_ctl(bool on_off)
 {
+        
     if ( on_off )
     {
         EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN2, 0x20));
@@ -78,6 +81,10 @@ static bool axp216_output_ctl(bool on_off)
         EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN2, 0x14));
         // bit 2:4 default 101, should not be changed
     }
+
+    NRF_LOG_INFO("axp216_set_state111"); 
+    NRF_LOG_FLUSH(); 
+
     return true;
 }
 
@@ -85,30 +92,64 @@ static bool axp216_output_ctl(bool on_off)
 
 Power_Error_t axp216_init(void)
 {
+    nrf_delay_ms(300);
+    // NRF_LOG_INFO("axp216_init 0"); 
+    // NRF_LOG_FLUSH();  
 
-    if ( initialized )
-        return PWR_ERROR_NONE;
+    if ( initialized ){
+            // NRF_LOG_INFO("axp216_init 1"); 
+            // NRF_LOG_FLUSH();  
+          return PWR_ERROR_NONE;
+    }
+
+    // NRF_LOG_INFO("axp216_init 3.0.1"); 
+    // NRF_LOG_INFO("axp216_init 3.1"); 
+    // NRF_LOG_FLUSH(); 
+        
 
     do
     {
-        // interface init()
-        if ( !pmu_interface_p->isInitialized )
-            if ( !pmu_interface_p->Init() )
-                break;
+        // NRF_LOG_INFO("axp216_init 000"); 
+        // NRF_LOG_FLUSH();  
 
-        // get id
-        uint8_t val = 0;
-        if ( !axp216_reg_read(AXP216_IC_TYPE, &val) )
+        // interface init()
+        if ( !*pmu_interface_p->isInitialized ){
+                // NRF_LOG_INFO("axp216_init 00"); 
+                // NRF_LOG_FLUSH();  
+            if ( !pmu_interface_p->Init() ){
+                NRF_LOG_INFO("pmu_interface_p 0"); 
+                NRF_LOG_FLUSH();  
             break;
+            }
+            }
+                
+            // NRF_LOG_INFO("pmu_interface_p 0.1"); 
+            // NRF_LOG_FLUSH();  
+        // get id
+           uint8_t val = 0;
+        if ( !axp216_reg_read(AXP216_IC_TYPE, &val) ){
+            NRF_LOG_INFO("pmu_interface_p 1"); 
+            NRF_LOG_FLUSH();  
+            break;
+         }
+
+            // NRF_LOG_INFO("pmu_interface_p 0.2"); 
+            // NRF_LOG_FLUSH();  
+            
 
         // compare id
         if ( val != 0x62 )
             break;
 
         initialized = true;
+        // NRF_LOG_INFO("axp216_init PWR_ERROR_NONE"); 
+        // NRF_LOG_FLUSH(); 
         return PWR_ERROR_NONE;
     }
     while ( false );
+
+    NRF_LOG_INFO("axp216_init end fail"); 
+    NRF_LOG_FLUSH();  
 
     return PWR_ERROR_FAIL;
 }
@@ -122,7 +163,7 @@ Power_Error_t axp216_deinit(void)
     do
     {
         // interface deinit()
-        if ( pmu_interface_p->isInitialized )
+        if ( *(pmu_interface_p->isInitialized) )
             if ( !pmu_interface_p->Deinit() )
                 break;
 
@@ -144,8 +185,10 @@ Power_Error_t axp216_reset(void)
 
 Power_Error_t axp216_irq(void)
 {
-    uint8_t irqs[5];
+    uint8_t irqs[5] = {0};
     uint64_t irq_bits = 0;
+
+    NRF_LOG_INFO("nrf irq....."); 
 
     // read irq
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTSTS1, &irqs[0]));
@@ -156,6 +199,7 @@ Power_Error_t axp216_irq(void)
 
     // translate irq
     irq_bits |= ((irqs[0] & (1 << 6)) << PWR_IRQ_PWR_CONNECTED);    // acin only, as vbus connected to acin
+    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits0 irq: %d",irq_bits); 
     irq_bits |= ((irqs[0] & (1 << 5)) << PWR_IRQ_PWR_DISCONNECTED); // acin only, as vbus connected to acin
 
     irq_bits |= ((irqs[1] & (1 << 3)) << PWR_IRQ_CHARGING);
@@ -164,11 +208,25 @@ Power_Error_t axp216_irq(void)
     irq_bits |= ((irqs[3] & (1 << 1)) << PWR_IRQ_BATT_LOW);
     irq_bits |= ((irqs[3] & (1 << 0)) << PWR_IRQ_BATT_CRITICAL);
 
-    irq_bits |= ((irqs[4] & (1 << 6)) << PWR_IRQ_PB_PRESS);
-    irq_bits |= ((irqs[4] & (1 << 5)) << PWR_IRQ_PB_RELEASE);
-    irq_bits |= ((irqs[4] & (1 << 4)) << PWR_IRQ_PB_SHORT);
-    irq_bits |= ((irqs[4] & (1 << 3)) << PWR_IRQ_PB_LONG);
-    irq_bits |= ((irqs[4] & (1 << 2)) << PWR_IRQ_PB_FORCEOFF);
+    irq_bits |= ((irqs[4] & (1 << 6)));
+    
+    irq_bits |= ((irqs[4] & (1 << 5)) );
+    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits3 irq: %d",irq_bits);
+    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits3 PWR_IRQ_PB_PRESS: %d",PWR_IRQ_PB_PRESS);
+    
+    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits4 irq: %d",irq_bits);
+    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits4 PWR_IRQ_PB_RELEASE: %d",PWR_IRQ_PB_RELEASE);
+    irq_bits |= ((irqs[4] & (1 << 4)) );
+    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits5 irq: %d",irq_bits);
+    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits5 PWR_IRQ_PB_SHORT: %d",PWR_IRQ_PB_SHORT);
+    irq_bits |= ((irqs[4] & (1 << 3)) );
+    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits6 irq: %d",irq_bits);
+    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits6 PWR_IRQ_PB_SHORT: %d",PWR_IRQ_PB_LONG);
+    irq_bits |= ((irqs[4] & (1 << 2)) );
+
+    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS 0001 irq: %d",irqs); 
+    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS 0002 irq: %d",irq_bits); 
+
 
     // process irq
     pmu_interface_p->Irq(irq_bits);
@@ -185,30 +243,55 @@ Power_Error_t axp216_irq(void)
 
 Power_Error_t axp216_config(void)
 {
+
+    // NRF_LOG_INFO("axp216_config 0"); 
+    // NRF_LOG_FLUSH();  
+    nrf_delay_ms(100);
     EC_E_BOOL_R_PWR_ERR(axp216_config_control_parameter());
     EC_E_BOOL_R_PWR_ERR(axp216_config_voltage());
     EC_E_BOOL_R_PWR_ERR(axp216_config_battery());
+    nrf_delay_ms(300);
+
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS1, 0xFF));
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS2, 0xFF));
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS3, 0xFF));
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS4, 0xFF));
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS5, 0xFF));
 
     return PWR_ERROR_NONE;
 }
 
 Power_Error_t axp216_set_state(const Power_State_t state)
 {
+
+   
+    
     switch ( state )
     {
     case PWR_STATE_OFF:
+        // NRF_LOG_INFO("axp216_set_state"); 
+        // NRF_LOG_FLUSH();  
         // close output
+
         EC_E_BOOL_R_PWR_ERR(axp216_output_ctl(false));
         // pmu off
         EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_OFF_CTL, (1 << 7)));
         break;
     case PWR_STATE_ON:
+        
+  
         // try wakeup anyways
         EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_VOFF_SET, (1 << 5)));
+
+        NRF_LOG_INFO("axp216_set_state000"); 
+        NRF_LOG_FLUSH(); 
         // config eveything
-        EC_E_BOOL_R_PWR_ERR(axp216_config());
+        // EC_E_BOOL_R_PWR_ERR();
+        axp216_config();
         // open output
         EC_E_BOOL_R_PWR_ERR(axp216_output_ctl(true));
+        NRF_LOG_INFO("axp216_set_state00005a"); 
+        NRF_LOG_FLUSH(); 
         break;
     case PWR_STATE_SLEEP:
         // allow irq wakeup
