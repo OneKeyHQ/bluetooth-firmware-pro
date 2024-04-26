@@ -387,7 +387,11 @@ static char ble_adv_name[ADV_NAME_LENGTH];
 
 extern rtc_date_t rtc_date;
 static Power_Status_t pmu_status;
-static void pmu_status_refresh() { pmu_p->GetStatus(&pmu_status); }
+static void pmu_status_refresh() {
+   pmu_p->GetStatus(&pmu_status); 
+   NRF_LOG_INFO("pmu_status_refresh %d: ",pmu_status.batteryPercent);
+   NRF_LOG_FLUSH(); 
+   }
 
 // add  tmp
 unsigned char cfg;
@@ -487,19 +491,40 @@ static void flash_data_write(uint32_t adress, uint32_t data) {
 static void device_key_info_init(void) {
   ret_code_t rc;
   ecdsa_key_info_t key_info = {0};
+
+  // NRF_LOG_INFO("device_key_info_init 0.");
+  // NRF_LOG_FLUSH(); 
+
   nrf_fstorage_read(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t));
+
+  NRF_LOG_INFO("device_key_info_init. %x ",key_info.key_flag);
+  NRF_LOG_FLUSH(); 
   if (key_info.key_flag != STORAGE_TRUE_FLAG) {
+    // NRF_LOG_INFO("device_key_info_init .");
+    // NRF_LOG_FLUSH(); 
     key_info.key_flag = STORAGE_TRUE_FLAG;
     generate_ecdsa_keypair(key_info.private_key, key_info.public_key);
 
+    NRF_LOG_INFO("device_key_info_init 3.");
+    NRF_LOG_FLUSH(); 
+
     rc = nrf_fstorage_erase(&fstorage, DEVICE_KEY_INFO_ADDR, FDS_PHY_PAGES_IN_VPAGE, NULL);
     APP_ERROR_CHECK(rc);
+    NRF_LOG_INFO("device_key_info_init 3.0");
+    NRF_LOG_FLUSH(); 
+
+
+    NRF_LOG_INFO("device_key_info_init 3.1");
+    NRF_LOG_FLUSH(); 
 
     rc = nrf_fstorage_write(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t), NULL);
     APP_ERROR_CHECK(rc);
 
     wait_for_flash_ready(&fstorage);
   }
+
+  NRF_LOG_INFO("device_key_info_init 4.");
+  NRF_LOG_FLUSH(); 
 }
 
 #ifdef SCHED_ENABLE
@@ -800,6 +825,7 @@ static void pm_evt_handler(pm_evt_t const *p_evt) {
           ble_conn_nopair_flag = BLE_DEF;
           bak_buff[0] = BLE_CMD_PAIR_STA;
           bak_buff[1] = BLE_PAIR_SUCCESS;
+          NRF_LOG_INFO("send_stm_data 01");
           send_stm_data(bak_buff, 2);
         }
 
@@ -822,7 +848,7 @@ static void pm_evt_handler(pm_evt_t const *p_evt) {
 
     case PM_EVT_CONN_SEC_FAILED:
       m_conn_handle = BLE_CONN_HANDLE_INVALID;
-
+NRF_LOG_INFO("send_stm_data 02");
       bak_buff[0] = BLE_CMD_PAIR_STA;
       bak_buff[1] = BLE_PAIR_FAIL;
       send_stm_data(bak_buff, 2);
@@ -1189,11 +1215,11 @@ static void services_init(void) {
  */
 static void timers_init(void) {
   ret_code_t err_code;
-
-  // Initialize timer module.
+  NRF_LOG_INFO("Debug logging for UART over RTT started13 start.");
   err_code = app_timer_init();
+  // NRF_LOG_INFO("Debug logging for UART over RTT started13.");
   APP_ERROR_CHECK(err_code);
-
+ 
   // Create timers.
   err_code = app_timer_create(&m_battery_timer_id, APP_TIMER_MODE_REPEATED, battery_level_meas_timeout_handler);
   APP_ERROR_CHECK(err_code);
@@ -1310,7 +1336,7 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context) {
       ble_evt_flag = BLE_DISCONNECT;
       bond_check_key_flag = INIT_VALUE;
       m_conn_handle = BLE_CONN_HANDLE_INVALID;
-
+NRF_LOG_INFO("send_stm_data 03");
       bak_buff[0] = BLE_CMD_CON_STA;
       bak_buff[1] = BLE_DISCON_STATUS;
       send_stm_data(bak_buff, 2);
@@ -1327,7 +1353,7 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context) {
     case BLE_GAP_EVT_CONNECTED: {
       NRF_LOG_INFO("Connected");
       ble_evt_flag = BLE_CONNECT;
-
+NRF_LOG_INFO("send_stm_data 04");
       bak_buff[0] = BLE_CMD_CON_STA;
       bak_buff[1] = BLE_CON_STATUS;
       send_stm_data(bak_buff, 2);
@@ -1372,7 +1398,7 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context) {
       char passkey[PASSKEY_LENGTH + 1];
       memcpy(passkey, p_ble_evt->evt.gap_evt.params.passkey_display.passkey, PASSKEY_LENGTH);
       passkey[PASSKEY_LENGTH] = 0;
-
+NRF_LOG_INFO("send_stm_data 05");
       ble_conn_nopair_flag = BLE_PAIR;
       bak_buff[0] = BLE_CMD_PAIR_CODE;
       memcpy(&bak_buff[1], passkey, PASSKEY_LENGTH);
@@ -1874,6 +1900,8 @@ static void idle_state_handle(void) {
 }
 
 void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
+     NRF_LOG_INFO("NRF IRQ  in_gpiote_handler  begin  ...");
+   NRF_LOG_FLUSH();
   switch (pin) {
     case SLAVE_SPI_RSP_IO:
       if (spi_dir_out) {
@@ -1896,7 +1924,11 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
   }
 }
 
-static void gpio_int_handler_pmu(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) { pmu_p->Irq(); }
+static void gpio_int_handler_pmu(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
+   NRF_LOG_INFO("NRF IRQ gpio_int_handler_pmu begin  ...");
+   NRF_LOG_FLUSH();
+   pmu_p->Irq();
+    }
 
 static void gpiote_init(void) {
   ret_code_t err_code;
@@ -1947,11 +1979,13 @@ static void uart_put_data(uint8_t *pdata, uint8_t lenth) {
 }
 
 static void send_stm_data(uint8_t *pdata, uint8_t lenth) {
+  NRF_LOG_INFO("send_stm_data called from line: %d", __LINE__);
   uart_trans_buff[0] = UART_TX_TAG2;
   uart_trans_buff[1] = UART_TX_TAG;
   uart_trans_buff[2] = 0x00;
   uart_trans_buff[3] = lenth + 1;
   memcpy(&uart_trans_buff[4], pdata, lenth);
+  NRF_LOG_INFO("send_stm_data called from DATE: %d , %d", pdata[0],pdata[1]);
   uart_trans_buff[uart_trans_buff[3] + 3] = calcXor(uart_trans_buff, (uart_trans_buff[3] + 3));
 
   uart_put_data(uart_trans_buff, uart_trans_buff[3] + 4);
@@ -1967,17 +2001,30 @@ static void system_init() {
   set_send_stm_data_p(send_stm_data);
 
   if (!power_manage_init()) {
-    NRF_LOG_INFO("PMU initialization failed!");
-    while(1) {NRF_LOG_FLUSH();}
+    // NRF_LOG_INFO("PMU initialization failed!");
+    // while(1) 
+    // {NRF_LOG_FLUSH();}
   }
-  pmu_p->Config();
+  // pmu_p->Config();
+  // NRF_LOG_INFO("axp216_config 1 end"); 
+  // NRF_LOG_FLUSH();  
   pmu_p->SetState(PWR_STATE_ON);
 
+  // pmu_p->Irq();
+  // NRF_LOG_INFO("axp216_config end ......");
+  // NRF_LOG_FLUSH();  
+
   usr_uart_init();
-  NRF_LOG_INFO("uart init ok ......");
 
   gpio_init();
+
+
   set_led_brightness(0);
+
+  // NRF_LOG_INFO("uart end ......");
+  // NRF_LOG_FLUSH();  
+  // NRF_LOG_INFO("uart init ok end ......");
+  // NRF_LOG_FLUSH(); 
 }
 
 /**@brief Function for starting advertising.
@@ -2091,21 +2138,25 @@ static void rsp_st_uart_cmd(void *p_event_data, uint16_t event_size) {
   if (RESPONESE_NAME_UART == trans_info_flag) {
     bak_buff[0] = BLE_CMD_ADV_NAME;
     memcpy(&bak_buff[1], (uint8_t *)ble_adv_name, ADV_NAME_LENGTH);
+    NRF_LOG_INFO("send_stm_data 06");
     send_stm_data(bak_buff, 1 + ADV_NAME_LENGTH);
     trans_info_flag = DEF_RESP;
   } else if (trans_info_flag == RESPONESE_VER_UART) {
     bak_buff[0] = BLE_FIRMWARE_VER;
     memcpy(&bak_buff[1], FW_REVISION, sizeof(FW_REVISION) - 1);
+    NRF_LOG_INFO("send_stm_data 07");
     send_stm_data(bak_buff, sizeof(FW_REVISION));
     trans_info_flag = DEF_RESP;
   } else if (trans_info_flag == RESPONESE_SD_VER_UART) {
     bak_buff[0] = BLE_SOFTDEVICE_VER;
     memcpy(&bak_buff[1], SW_REVISION, sizeof(SW_REVISION) - 1);
+    NRF_LOG_INFO("send_stm_data 08");
     send_stm_data(bak_buff, sizeof(SW_REVISION));
     trans_info_flag = DEF_RESP;
   } else if (trans_info_flag == RESPONESE_BOOT_VER_UART) {
     bak_buff[0] = BLE_BOOTLOADER_VER;
     memcpy(&bak_buff[1], BT_REVISION, sizeof(BT_REVISION) - 1);
+    NRF_LOG_INFO("send_stm_data 09");
     send_stm_data(bak_buff, sizeof(BT_REVISION));
     trans_info_flag = DEF_RESP;
   } else if (trans_info_flag == RESPONESE_BLE_PUBKEY) {
@@ -2115,13 +2166,16 @@ static void rsp_st_uart_cmd(void *p_event_data, uint16_t event_size) {
     nrf_fstorage_read(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t));
     if (key_info.key_lock_flag == STORAGE_TRUE_FLAG) {
       bak_buff[1] = BLE_KEY_RESP_FAILED;
+      NRF_LOG_INFO("send_stm_data 010");
       send_stm_data(bak_buff, 2);
     } else if (key_info.key_flag != STORAGE_TRUE_FLAG) {
       bak_buff[1] = BLE_KEY_RESP_FAILED;
+      NRF_LOG_INFO("send_stm_data 011");
       send_stm_data(bak_buff, 2);
     } else {
       bak_buff[1] = BLE_KEY_RESP_PUBKEY;
       memcpy(&bak_buff[2], key_info.public_key, sizeof(key_info.public_key));
+      NRF_LOG_INFO("send_stm_data 012");
       send_stm_data(bak_buff, sizeof(key_info.public_key) + 2);
     }
 
@@ -2142,6 +2196,7 @@ static void rsp_st_uart_cmd(void *p_event_data, uint16_t event_size) {
     }
     bak_buff[0] = BLE_CMD_KEY_RESP;
     bak_buff[1] = BLE_KEY_RESP_SUCCESS;
+    NRF_LOG_INFO("send_stm_data 013");
     send_stm_data(bak_buff, 2);
     trans_info_flag = DEF_RESP;
   } else if (trans_info_flag == RESPONESE_BLE_SIGN) {
@@ -2152,16 +2207,19 @@ static void rsp_st_uart_cmd(void *p_event_data, uint16_t event_size) {
     nrf_fstorage_read(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t));
     if (key_info.key_flag != STORAGE_TRUE_FLAG) {
       bak_buff[1] = BLE_KEY_RESP_FAILED;
+      NRF_LOG_INFO("send_stm_data 014");
       send_stm_data(bak_buff, 2);
     } else {
       bak_buff[1] = BLE_KEY_RESP_SIGN;
       sign_ecdsa_msg(key_info.private_key, uart_data_array + 6, msg_len, bak_buff + 2);
+      NRF_LOG_INFO("send_stm_data 015");
       send_stm_data(bak_buff, 64 + 2);
     }
     trans_info_flag = DEF_RESP;
   } else if (trans_info_flag == RESPONESE_BUILD_ID) {
     bak_buff[0] = BLE_CMD_BUILD_ID;
     memcpy(&bak_buff[1], (uint8_t *)BUILD_ID, 7);
+    NRF_LOG_INFO("send_stm_data 016");
     send_stm_data(bak_buff, 8);
     trans_info_flag = DEF_RESP;
   } else if (trans_info_flag == RESPONESE_HASH) {
@@ -2191,6 +2249,7 @@ static void rsp_st_uart_cmd(void *p_event_data, uint16_t event_size) {
 
     bak_buff[0] = BLE_CMD_HASH;
     memcpy(&bak_buff[1], hash, 32);
+    NRF_LOG_INFO("send_stm_data 017");
     send_stm_data(bak_buff, 33);
     trans_info_flag = DEF_RESP;
   }
@@ -2202,6 +2261,7 @@ static void manage_bat_level(void *p_event_data, uint16_t event_size) {
     bak_bat_persent = pmu_status.batteryPercent;
     bak_buff[0] = BLE_SYSTEM_POWER_PERCENT;
     bak_buff[1] = pmu_status.batteryPercent;
+    NRF_LOG_INFO("send_stm_data 018");
     send_stm_data(bak_buff, 2);
   }
 }
@@ -2223,6 +2283,7 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
     if (BLE_ON_ALWAYS == ble_status_flag) {
       bak_buff[0] = BLE_CMD_CON_STA;
       bak_buff[1] = BLE_ADV_OFF_STATUS;
+      NRF_LOG_INFO("send_stm_data 019");
       send_stm_data(bak_buff, 2);
 
       flash_data_write(BLE_CTL_ADDR, m_data);
@@ -2234,6 +2295,7 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
     } else {
       bak_buff[0] = BLE_CMD_CON_STA;
       bak_buff[1] = BLE_ADV_OFF_STATUS;
+      NRF_LOG_INFO("send_stm_data 020");
       send_stm_data(bak_buff, 2);
     }
   } else if (BLE_ON_ALWAYS == ble_adv_switch_flag) {
@@ -2241,6 +2303,7 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
     if (BLE_OFF_ALWAYS == ble_status_flag) {
       bak_buff[0] = BLE_CMD_CON_STA;
       bak_buff[1] = BLE_ADV_ON_STATUS;
+      NRF_LOG_INFO("send_stm_data 021");
       send_stm_data(bak_buff, 2);
 
       advertising_start();
@@ -2250,6 +2313,7 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
     } else {
       bak_buff[0] = BLE_CMD_CON_STA;
       bak_buff[1] = BLE_ADV_ON_STATUS;
+      NRF_LOG_INFO("send_stm_data 022");
       send_stm_data(bak_buff, 2);
     }
   }
@@ -2264,12 +2328,14 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
 
     bak_buff[0] = BLE_CMD_CON_STA;
     bak_buff[1] = BLE_DISCON_STATUS;
+    NRF_LOG_INFO("send_stm_data 23");
     send_stm_data(bak_buff, 2);
   }
   if (BLE_CON == ble_conn_flag) {
     ble_conn_flag = BLE_DEF;
     bak_buff[0] = BLE_CMD_CON_STA;
     bak_buff[1] = ble_status_flag + 2;
+    NRF_LOG_INFO("send_stm_data 24");
     send_stm_data(bak_buff, 2);
   }
   //
@@ -2417,16 +2483,23 @@ int main(void) {
   log_init();
   system_init();
   scheduler_init();
-
   fs_init();
   nrf_crypto_init();
+  NRF_LOG_INFO("Debug logging for UART over RTT started222.");
+  NRF_LOG_FLUSH(); 
   device_key_info_init();
 
+  NRF_LOG_INFO("Debug logging for UART over RTT started1111111.");
+  NRF_LOG_FLUSH(); 
+
   timers_init();
+  
 #ifdef DEV_BSP
   buttons_leds_init();
 #endif
+
   power_management_init();
+  
   ble_stack_init();
   mac_address_get();
 #ifdef BOND_ENABLE
@@ -2445,9 +2518,15 @@ int main(void) {
 
   // nfc_init();
   watch_dog_init();
+  NRF_LOG_INFO("Debug logging for UART over RTT started. end");
+  NRF_LOG_FLUSH();  
 
   // Enter main loop.
   for (;;) {
+
+    //   NRF_LOG_INFO("Debug logging for UART over RTT started. loop");
+    //  NRF_LOG_FLUSH();
+    nrf_delay_ms(50);
     main_loop();
     app_sched_execute();
     idle_state_handle();

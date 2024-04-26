@@ -404,7 +404,7 @@ add_definitions('-DBUILD_ID=\"${GIT_VERSION}\"')
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Optimization flags
-  -O0 -ggdb
+  -O3 -g3
   # Uncomment the line below to enable link time optimization
   -flto
   # C flags common to all targets

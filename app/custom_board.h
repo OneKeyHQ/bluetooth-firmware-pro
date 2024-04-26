@@ -106,6 +106,9 @@ extern "C" {
 #define TWI_SDA_M       26  //!< Master SDA pin.
 #define SLAVE_ADDR      0x48
 
+#define AXP216_TWI_SDA_M 14
+#define AXP216_TWI_SCL_M 15
+
 // #define bt_power_on()     nrf_gpio_pin_set(BT_POWER_CTL_PIN)
 // #define bt_power_off()    nrf_gpio_pin_clear(BT_POWER_CTL_PIN)
 // #define stm32_power_on()  nrf_gpio_pin_set(STM_POWER_CTL_PIN)
