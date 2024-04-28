@@ -48,6 +48,7 @@
 #include <string.h>
 #include "nrf.h"
 #include "app_error.h"
+#include "nrf_log_ctrl.h"
 
 /**
  * Note that this implementation is made only for enable SDK components which interacts with app_timer to work with FreeRTOS.

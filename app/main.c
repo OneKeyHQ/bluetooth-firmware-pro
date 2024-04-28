@@ -1992,6 +1992,7 @@ static void send_stm_data(uint8_t *pdata, uint8_t lenth) {
 }
 
 static void system_init() {
+  NRF_LOG_INFO("system start");
 #ifdef SCHED_ENABLE
   create_ringBuffer(&m_ble_fifo, data_recived_buf, sizeof(data_recived_buf));
 #endif
@@ -2518,16 +2519,14 @@ int main(void) {
 
   // nfc_init();
   watch_dog_init();
-  NRF_LOG_INFO("Debug logging for UART over RTT started. end");
-  NRF_LOG_FLUSH();  
+  NRF_LOG_INFO("NRF INIT END");
 
   // Enter main loop.
   for (;;) {
-
-    //   NRF_LOG_INFO("Debug logging for UART over RTT started. loop");
-    //  NRF_LOG_FLUSH();
-    nrf_delay_ms(50);
+    
     main_loop();
+    nrf_delay_ms(100);
+    NRF_LOG_INFO("loop...");
     app_sched_execute();
     idle_state_handle();
   }

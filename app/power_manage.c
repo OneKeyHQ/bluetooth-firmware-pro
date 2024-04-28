@@ -38,11 +38,9 @@ static void pmu_if_irq(const uint64_t irq)
 
     if ( irq == 0 )
         return;
-
     Power_Status_t status;
     pmu_p->GetStatus(&status);
-
-    if ( 0 != (irq && (1 << PWR_IRQ_PWR_CONNECTED)) )
+    if ( 0 != (irq & (1 << PWR_IRQ_PWR_CONNECTED)) )
     {
         PRINT_CURRENT_LOCATION();
     }
@@ -77,16 +75,14 @@ static void pmu_if_irq(const uint64_t irq)
     {
         PRINT_CURRENT_LOCATION();
     }
-    if ( 0 != (irq && (1 << PWR_IRQ_PB_PRESS)) )
+    if (0 != (irq & (1 << PWR_IRQ_PB_PRESS)))  
     {
-        PRINT_CURRENT_LOCATION();
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x20;
         send_stm_data_p(bak_buff, 2);
     }
     if ( 0 != (irq && (1 << PWR_IRQ_PB_RELEASE)) )
     {
-        PRINT_CURRENT_LOCATION();
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x40;
         send_stm_data_p(bak_buff, 2);

@@ -45,6 +45,8 @@ static bool axp216_config_control_parameter(void)
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_POK_SET, 0x68));
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_OFF_CTL, 0x4B));
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VOFF_SET, 0x13));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_HOTOVER_CTL, 0xF5));
+    
 
     return true;
 }
