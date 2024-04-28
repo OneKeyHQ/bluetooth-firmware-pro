@@ -61,7 +61,7 @@
 #include "ble_dis.h"
 #include "ble_hci.h"
 #include "ble_nus.h"
-#include "bsp_btn_ble.h"
+// #include "bsp_btn_ble.h"
 #include "fds.h"
 #include "nordic_common.h"
 #include "nrf.h"
@@ -79,13 +79,10 @@
 #include "peer_manager.h"
 #include "peer_manager_handler.h"
 #include "sdk_macros.h"
-// #include "nfc.h"
 #include "app_scheduler.h"
 #include "ble_dfu.h"
-#include "data_transmission.h"
 #include "ecdsa.h"
 #include "fds_internal_defs.h"
-#include "flashled_manage.h"
 #include "nrf_bootloader_info.h"
 #include "nrf_crypto.h"
 #include "nrf_crypto_init.h"
@@ -95,10 +92,16 @@
 #include "nrf_fstorage.h"
 #include "nrf_fstorage_sd.h"
 #include "nrf_power.h"
-#include "power_manage.h"
 #include "rtc_calendar.h"
+#include "power_manage.h"
+#include "flashled_manage.h"
+#include "data_transmission.h"
 
 #if defined(UART_PRESENT)
+#define RX_PIN_NUMBER  11
+#define TX_PIN_NUMBER  12
+#define CTS_PIN_NUMBER UART_PIN_DISCONNECTED
+#define RTS_PIN_NUMBER UART_PIN_DISCONNECTED
 #include "nrf_uart.h"
 #endif
 #if defined(UARTE_PRESENT)
@@ -680,13 +683,15 @@ static void gpio_uninit(void){
 }
 
 static void enter_low_power_mode(void) {
-  axp_disable();
+
+  pmu_p->Deinit();
   gpio_uninit();
-  nrf_gpio_cfg_input(AXP216_TWI_SDA_M, NRF_GPIO_PIN_NOPULL);
-  nrf_gpio_cfg_input(AXP216_TWI_SCL_M, NRF_GPIO_PIN_NOPULL);
-  nrf_gpio_cfg_input(ST_WAKE_IO, NRF_GPIO_PIN_NOPULL);
+
+  nrf_gpio_cfg_default(ST_WAKE_IO);
+
   app_uart_close();
   nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
+  
 }
 void battery_level_meas_timeout_handler(void *p_context) {
   ret_code_t err_code;
@@ -2002,9 +2007,9 @@ static void system_init() {
   set_send_stm_data_p(send_stm_data);
 
   if (!power_manage_init()) {
-    // NRF_LOG_INFO("PMU initialization failed!");
-    // while(1) 
-    // {NRF_LOG_FLUSH();}
+    NRF_LOG_INFO("PMU initialization failed!");
+    NRF_LOG_FLUSH();
+    while(1) {}
   }
   // pmu_p->Config();
   // NRF_LOG_INFO("axp216_config 1 end"); 

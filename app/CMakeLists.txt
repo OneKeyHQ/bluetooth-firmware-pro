@@ -199,15 +199,15 @@ set(
   ${NRF_SDK_ROOT}/components/ble/peer_manager/pm_buffer.c
   ${NRF_SDK_ROOT}/components/ble/peer_manager/security_dispatcher.c
   ${NRF_SDK_ROOT}/components/ble/peer_manager/security_manager.c
-  ${NRF_SDK_ROOT}/components/boards/boards.c
+  # ${NRF_SDK_ROOT}/components/boards/boards.c
   ${NRF_SDK_ROOT}/components/libraries/atomic/nrf_atomic.c
   ${NRF_SDK_ROOT}/components/libraries/atomic_fifo/nrf_atfifo.c
   ${NRF_SDK_ROOT}/components/libraries/atomic_flags/nrf_atflags.c
   ${NRF_SDK_ROOT}/components/libraries/balloc/nrf_balloc.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_svci.c
-  ${NRF_SDK_ROOT}/components/libraries/bsp/bsp.c
-  ${NRF_SDK_ROOT}/components/libraries/bsp/bsp_btn_ble.c
-  ${NRF_SDK_ROOT}/components/libraries/button/app_button.c
+  # ${NRF_SDK_ROOT}/components/libraries/bsp/bsp.c
+  # ${NRF_SDK_ROOT}/components/libraries/bsp/bsp_btn_ble.c
+  # ${NRF_SDK_ROOT}/components/libraries/button/app_button.c
   ${NRF_SDK_ROOT}/components/libraries/crc16/crc16.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecc.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecdh.c
@@ -244,7 +244,7 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/hardfault/hardfault_implementation.c
   ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_rtt.c
   ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_serial.c
-  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_uart.c
+  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_uart.c
   ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_default_backends.c
   ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_frontend.c
   ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_str_formatter.c
@@ -286,7 +286,7 @@ set(
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_rng.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_rtc.c
   # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_nfct.c
-  ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_saadc.c
+  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_saadc.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_spim.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_timer.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twi.c
@@ -410,7 +410,7 @@ target_compile_options(
   # C flags common to all targets
   -DAPP_TIMER_V2
   -DAPP_TIMER_V2_RTC1_ENABLED
-  -DBOARD_CUSTOM
+  # -DBOARD_CUSTOM
   -DCONFIG_GPIO_AS_PINRESET
   -DFLOAT_ABI_HARD
   -DNRF52
@@ -431,7 +431,7 @@ target_compile_options(
   -DNRF_APP_VERSION_ADDR=0x1D000
   -DNRF_CRYPTO_MAX_INSTANCE_COUNT=1
   #  -Wall -Werror
-  -Wall
+  -Wall -Wno-comment
   -mfloat-abi=hard -mfpu=fpv4-sp-d16
   # keep every function in a separate section, this allows linker to discard unused ones
   -ffunction-sections -fdata-sections -fno-strict-aliasing
