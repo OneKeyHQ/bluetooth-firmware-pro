@@ -34,7 +34,7 @@ static bool pmu_if_reset()
 
 static void pmu_if_irq(const uint64_t irq)
 {
-    PRINT_CURRENT_LOCATION();
+    
 
     if ( irq == 0 )
         return;
@@ -42,15 +42,13 @@ static void pmu_if_irq(const uint64_t irq)
     pmu_p->GetStatus(&status);
     if ( 0 != (irq & (1 << PWR_IRQ_PWR_CONNECTED)) )
     {
-        PRINT_CURRENT_LOCATION();
     }
-    if ( 0 != (irq && (1 << PWR_IRQ_PWR_DISCONNECTED)) )
+    if ( 0 != (irq & (1 << PWR_IRQ_PWR_DISCONNECTED)) )
     {
-        PRINT_CURRENT_LOCATION();
+
     }
-    if ( 0 != (irq && (1 << PWR_IRQ_CHARGING)) )
+    if ( 0 != (irq & (1 << PWR_IRQ_CHARGING)) )
     {
-        PRINT_CURRENT_LOCATION();
         bak_buff[0] = BLE_CMD_POWER_STA;
         bak_buff[1] = status.chargerAvailable;
         if ( status.wiredCharge )
@@ -61,49 +59,44 @@ static void pmu_if_irq(const uint64_t irq)
         {
             bak_buff[2] = AXP_CHARGE_TYPE_WIRELESS;
         }
-        send_stm_data_p(bak_buff, 3);
+        send_stm_data_p(bak_buff, 2);
     }
-    if ( 0 != (irq && (1 << PWR_IRQ_CHARGED)) )
-    {
-        PRINT_CURRENT_LOCATION();
+    if ( 0 != (irq & (1 << PWR_IRQ_CHARGED)) ){
     }
-    if ( 0 != (irq && (1 << PWR_IRQ_BATT_LOW)) )
-    {
-        PRINT_CURRENT_LOCATION();
+    if ( 0 != (irq & (1 << PWR_IRQ_BATT_LOW)) ){
     }
-    if ( 0 != (irq && (1 << PWR_IRQ_BATT_CRITICAL)) )
-    {
-        PRINT_CURRENT_LOCATION();
+    if ( 0 != (irq & (1 << PWR_IRQ_BATT_CRITICAL)) ){
     }
     if (0 != (irq & (1 << PWR_IRQ_PB_PRESS)))  
     {
+        NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS "); 
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x20;
         send_stm_data_p(bak_buff, 2);
     }
-    if ( 0 != (irq && (1 << PWR_IRQ_PB_RELEASE)) )
+    if (0 != (irq & (1 << PWR_IRQ_PB_RELEASE)))//PWR_IRQ_PB_RELEASE
     {
+        NRF_LOG_INFO("short  irq PWR_IRQ_PB_RELEASE "); 
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x40;
         send_stm_data_p(bak_buff, 2);
     }
-    if ( 0 != (irq && (1 << PWR_IRQ_PB_SHORT)) )
-    {
-        PRINT_CURRENT_LOCATION();
+    // NRF_LOG_INFO("short  irq PWR_IRQ_PB_SHORT %d",PWR_IRQ_PB_SHORT); 
+    if (0 != (irq & (1 << PWR_IRQ_PB_SHORT)))  {
+       
+        NRF_LOG_INFO("short  irq PWR_IRQ_PB_SHORT "); 
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x01;
         send_stm_data_p(bak_buff, 2);
     }
-    if ( 0 != (irq && (1 << PWR_IRQ_PB_LONG)) )
-    {
-        PRINT_CURRENT_LOCATION();
+    if (0 != (irq & (1 << PWR_IRQ_PB_LONG)))    {
+        
+        NRF_LOG_INFO("short  irq PWR_IRQ_PB_LONG "); 
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x02;
         send_stm_data_p(bak_buff, 2);
     }
-    if ( 0 != (irq && (1 << PWR_IRQ_PB_FORCEOFF)) )
-    {
-        PRINT_CURRENT_LOCATION();
+    if ( 0 != (irq & (1 << PWR_IRQ_PB_FORCEOFF)) ){
     }
 }
 

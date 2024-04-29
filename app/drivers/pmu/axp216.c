@@ -33,7 +33,7 @@ static bool axp216_config_voltage(void)
 
 static bool axp216_config_control_parameter(void)
 {
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE1, 0x71));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE1, 0xF1));
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE2, 0x25));
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN1, 0xFC));
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN2, 0xCC));
@@ -199,36 +199,17 @@ Power_Error_t axp216_irq(void)
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTSTS4, &irqs[3]));
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTSTS5, &irqs[4]));
 
-    // translate irq
-    irq_bits |= ((irqs[0] & (1 << 6)) << PWR_IRQ_PWR_CONNECTED);    // acin only, as vbus connected to acin
-    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits0 irq: %d",irq_bits); 
-    irq_bits |= ((irqs[0] & (1 << 5)) << PWR_IRQ_PWR_DISCONNECTED); // acin only, as vbus connected to acin
-
-    irq_bits |= ((irqs[1] & (1 << 3)) << PWR_IRQ_CHARGING);
-    irq_bits |= ((irqs[1] & (1 << 2)) << PWR_IRQ_CHARGED);
-
-    irq_bits |= ((irqs[3] & (1 << 1)) << PWR_IRQ_BATT_LOW);
-    irq_bits |= ((irqs[3] & (1 << 0)) << PWR_IRQ_BATT_CRITICAL);
-
-    irq_bits |= ((irqs[4] & (1 << 6)));
-    
-    irq_bits |= ((irqs[4] & (1 << 5)) );
-    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits3 irq: %d",irq_bits);
-    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits3 PWR_IRQ_PB_PRESS: %d",PWR_IRQ_PB_PRESS);
-    
-    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits4 irq: %d",irq_bits);
-    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits4 PWR_IRQ_PB_RELEASE: %d",PWR_IRQ_PB_RELEASE);
-    irq_bits |= ((irqs[4] & (1 << 4)) );
-    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits5 irq: %d",irq_bits);
-    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits5 PWR_IRQ_PB_SHORT: %d",PWR_IRQ_PB_SHORT);
-    irq_bits |= ((irqs[4] & (1 << 3)) );
-    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits6 irq: %d",irq_bits);
-    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS irq_bits6 PWR_IRQ_PB_SHORT: %d",PWR_IRQ_PB_LONG);
-    irq_bits |= ((irqs[4] & (1 << 2)) );
-
-    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS 0001 irq: %d",irqs); 
-    NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS 0002 irq: %d",irq_bits); 
-
+    irq_bits |= ((irqs[0] & (1 << 6)) >> 6 << PWR_IRQ_PWR_CONNECTED);    // acin only, as vbus connected to acin
+    irq_bits |= ((irqs[0] & (1 << 5)) >> 5 << PWR_IRQ_PWR_DISCONNECTED); // acin only, as vbus connected to acin
+    irq_bits |= ((irqs[1] & (1 << 3)) >> 3 << PWR_IRQ_CHARGING);
+    irq_bits |= ((irqs[1] & (1 << 2)) >> 2 << PWR_IRQ_CHARGED);
+    irq_bits |= ((irqs[3] & (1 << 1)) >> 1 << PWR_IRQ_BATT_LOW);
+    irq_bits |= ((irqs[3] & (1 << 0)) >> 0 << PWR_IRQ_BATT_CRITICAL);
+    irq_bits |= ((irqs[4] & (1 << 6)) >> 6 << PWR_IRQ_PB_PRESS);
+    irq_bits |= ((irqs[4] & (1 << 5)) >> 5 << PWR_IRQ_PB_RELEASE);
+    irq_bits |= ((irqs[4] & (1 << 4)) >> 4 << PWR_IRQ_PB_SHORT);
+    irq_bits |= ((irqs[4] & (1 << 3)) >> 3 << PWR_IRQ_PB_LONG);
+    irq_bits |= ((irqs[4] & (1 << 2)) >> 2 << PWR_IRQ_PB_FORCEOFF);
 
     // process irq
     pmu_interface_p->Irq(irq_bits);
@@ -252,7 +233,7 @@ Power_Error_t axp216_config(void)
     EC_E_BOOL_R_PWR_ERR(axp216_config_control_parameter());
     EC_E_BOOL_R_PWR_ERR(axp216_config_voltage());
     EC_E_BOOL_R_PWR_ERR(axp216_config_battery());
-    nrf_delay_ms(300);
+    nrf_delay_ms(200);
 
     EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS1, 0xFF));
     EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS2, 0xFF));
@@ -285,15 +266,15 @@ Power_Error_t axp216_set_state(const Power_State_t state)
         // try wakeup anyways
         EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_VOFF_SET, (1 << 5)));
 
-        NRF_LOG_INFO("axp216_set_state000"); 
-        NRF_LOG_FLUSH(); 
+        // NRF_LOG_INFO("axp216_set_state000"); 
+        // NRF_LOG_FLUSH(); 
         // config eveything
         // EC_E_BOOL_R_PWR_ERR();
         axp216_config();
         // open output
         EC_E_BOOL_R_PWR_ERR(axp216_output_ctl(true));
-        NRF_LOG_INFO("axp216_set_state00005a"); 
-        NRF_LOG_FLUSH(); 
+        // NRF_LOG_INFO("axp216_set_state00005a"); 
+        // NRF_LOG_FLUSH(); 
         break;
     case PWR_STATE_SLEEP:
         // allow irq wakeup

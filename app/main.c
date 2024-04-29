@@ -1905,7 +1905,7 @@ static void idle_state_handle(void) {
 }
 
 void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
-     NRF_LOG_INFO("NRF IRQ  in_gpiote_handler  begin  ...");
+   NRF_LOG_INFO("NRF IRQ  in_gpiote_handler  begin  ...");
    NRF_LOG_FLUSH();
   switch (pin) {
     case SLAVE_SPI_RSP_IO:
@@ -1917,11 +1917,14 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
       break;
     case POWER_IC_OK_IO:
       if (action == NRF_GPIOTE_POLARITY_LOTOHI) {
+        NRF_LOG_INFO("NRF_GPIOTE_POLARITY_LOTOHI");
+        NRF_LOG_FLUSH();
         // open_all_power();
         // pmu_p->SetState(PWR_STATE_ON);
       } else if (action == NRF_GPIOTE_POLARITY_HITOLO) {
-        NRF_LOG_INFO("SET OFF LEVEL");
-        enter_low_power_mode();
+        NRF_LOG_INFO("NRF_GPIOTE_POLARITY_HITOLO");
+        NRF_LOG_FLUSH();
+       //enter_low_power_mode();
       }
       break;
     default:
@@ -1984,7 +1987,7 @@ static void uart_put_data(uint8_t *pdata, uint8_t lenth) {
 }
 
 static void send_stm_data(uint8_t *pdata, uint8_t lenth) {
-  NRF_LOG_INFO("send_stm_data called from line: %d", __LINE__);
+  // NRF_LOG_INFO("send_stm_data called from line: %d", __LINE__);
   uart_trans_buff[0] = UART_TX_TAG2;
   uart_trans_buff[1] = UART_TX_TAG;
   uart_trans_buff[2] = 0x00;
@@ -2378,7 +2381,13 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
       break;
     case PWR_USB_STATUS:
       bak_buff[0] = BLE_CMD_POWER_STA;
-      bak_buff[1] = status.chargerAvailable;
+    
+      if( status.wiredCharge || status.wirelessCharge){
+         bak_buff[1] = 0x03;
+      }else{
+         bak_buff[1] = 0x02;
+      }
+
       if (status.wiredCharge) {
         bak_buff[2] = AXP_CHARGE_TYPE_USB;
       } else {
@@ -2491,13 +2500,8 @@ int main(void) {
   scheduler_init();
   fs_init();
   nrf_crypto_init();
-  NRF_LOG_INFO("Debug logging for UART over RTT started222.");
   NRF_LOG_FLUSH(); 
   device_key_info_init();
-
-  NRF_LOG_INFO("Debug logging for UART over RTT started1111111.");
-  NRF_LOG_FLUSH(); 
-
   timers_init();
   
 #ifdef DEV_BSP
@@ -2518,7 +2522,6 @@ int main(void) {
   conn_params_init();
   application_timers_start();
   // Start execution.
-  NRF_LOG_INFO("Debug logging for UART over RTT started.");
 
   ctl_advertising();
 
@@ -2530,8 +2533,6 @@ int main(void) {
   for (;;) {
     
     main_loop();
-    nrf_delay_ms(100);
-    NRF_LOG_INFO("loop...");
     app_sched_execute();
     idle_state_handle();
   }
