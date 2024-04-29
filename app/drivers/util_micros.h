@@ -1,7 +1,7 @@
 #ifndef _UTIL_MICROS_
 #define _UTIL_MICROS_
 
-#define UNUSED_VAR(X)  ((void)(X))
+#define UNUSED_VAR(X) ((void)(X))
 
 #define ExecuteCheck_ADV(expr, expected_result, on_false) \
     {                                                     \

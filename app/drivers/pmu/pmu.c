@@ -15,11 +15,11 @@ PMU_t* pmu_probe(PMU_Interface_t* pmu_if)
         ret = &pmu;
 
     // axp2101 probe
-    // axp2101_setup_interface(pmu_interface, &pmu);
-    // if ( pmu.Init() == PWR_ERROR_NONE )
-    // {
-    //     ret = &pmu;
-    // }
+    axp2101_setup_interface(pmu_if, &pmu);
+    if ( pmu.Init() == PWR_ERROR_NONE )
+    {
+        ret = &pmu;
+    }
 
     return ret;
 }

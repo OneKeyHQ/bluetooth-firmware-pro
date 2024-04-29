@@ -1,7 +1,6 @@
 #include "axp216.h"
 #include "nrf_delay.h"
 
-
 // macros
 
 #define axp216_reg_read(reg, val)  pmu_interface_p->Reg.Read(AXP216_I2C_ADDR, reg, val)
@@ -46,7 +45,6 @@ static bool axp216_config_control_parameter(void)
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_OFF_CTL, 0x4B));
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VOFF_SET, 0x13));
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_HOTOVER_CTL, 0xF5));
-    
 
     return true;
 }
@@ -71,7 +69,7 @@ static bool axp216_config_battery(void)
 
 static bool axp216_output_ctl(bool on_off)
 {
-        
+
     if ( on_off )
     {
         EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN2, 0x20));
@@ -84,8 +82,8 @@ static bool axp216_output_ctl(bool on_off)
         // bit 2:4 default 101, should not be changed
     }
 
-    NRF_LOG_INFO("axp216_set_state111"); 
-    NRF_LOG_FLUSH(); 
+    NRF_LOG_INFO("axp216_set_state111");
+    NRF_LOG_FLUSH();
 
     return true;
 }
@@ -94,64 +92,39 @@ static bool axp216_output_ctl(bool on_off)
 
 Power_Error_t axp216_init(void)
 {
-    nrf_delay_ms(300);
-    // NRF_LOG_INFO("axp216_init 0"); 
-    // NRF_LOG_FLUSH();  
+    // nrf_delay_ms(300);
 
-    if ( initialized ){
-            // NRF_LOG_INFO("axp216_init 1"); 
-            // NRF_LOG_FLUSH();  
-          return PWR_ERROR_NONE;
+    if ( initialized )
+    {
+        return PWR_ERROR_NONE;
     }
-
-    // NRF_LOG_INFO("axp216_init 3.0.1"); 
-    // NRF_LOG_INFO("axp216_init 3.1"); 
-    // NRF_LOG_FLUSH(); 
-        
 
     do
     {
-        // NRF_LOG_INFO("axp216_init 000"); 
-        // NRF_LOG_FLUSH();  
+        // interface init
+        if ( !*pmu_interface_p->isInitialized )
+        {
+            if ( !pmu_interface_p->Init() )
+            {
+                break;
+            }
+        }
 
-        // interface init()
-        if ( !*pmu_interface_p->isInitialized ){
-                // NRF_LOG_INFO("axp216_init 00"); 
-                // NRF_LOG_FLUSH();  
-            if ( !pmu_interface_p->Init() ){
-                NRF_LOG_INFO("pmu_interface_p 0"); 
-                NRF_LOG_FLUSH();  
-            break;
-            }
-            }
-                
-            // NRF_LOG_INFO("pmu_interface_p 0.1"); 
-            // NRF_LOG_FLUSH();  
         // get id
-           uint8_t val = 0;
-        if ( !axp216_reg_read(AXP216_IC_TYPE, &val) ){
-            NRF_LOG_INFO("pmu_interface_p 1"); 
-            NRF_LOG_FLUSH();  
+        uint8_t val = 0;
+        if ( !axp216_reg_read(AXP216_IC_TYPE, &val) )
+        {
             break;
-         }
-
-            // NRF_LOG_INFO("pmu_interface_p 0.2"); 
-            // NRF_LOG_FLUSH();  
-            
+        }
 
         // compare id
         if ( val != 0x62 )
             break;
 
         initialized = true;
-        // NRF_LOG_INFO("axp216_init PWR_ERROR_NONE"); 
-        // NRF_LOG_FLUSH(); 
         return PWR_ERROR_NONE;
     }
     while ( false );
-
-    NRF_LOG_INFO("axp216_init end fail"); 
-    NRF_LOG_FLUSH();  
 
     return PWR_ERROR_FAIL;
 }
@@ -190,7 +163,7 @@ Power_Error_t axp216_irq(void)
     uint8_t irqs[5] = {0};
     uint64_t irq_bits = 0;
 
-    NRF_LOG_INFO("nrf irq....."); 
+    NRF_LOG_INFO("nrf irq.....");
 
     // read irq
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTSTS1, &irqs[0]));
@@ -227,8 +200,8 @@ Power_Error_t axp216_irq(void)
 Power_Error_t axp216_config(void)
 {
 
-    // NRF_LOG_INFO("axp216_config 0"); 
-    // NRF_LOG_FLUSH();  
+    // NRF_LOG_INFO("axp216_config 0");
+    // NRF_LOG_FLUSH();
     nrf_delay_ms(100);
     EC_E_BOOL_R_PWR_ERR(axp216_config_control_parameter());
     EC_E_BOOL_R_PWR_ERR(axp216_config_voltage());
@@ -247,13 +220,11 @@ Power_Error_t axp216_config(void)
 Power_Error_t axp216_set_state(const Power_State_t state)
 {
 
-   
-    
     switch ( state )
     {
     case PWR_STATE_OFF:
-        // NRF_LOG_INFO("axp216_set_state"); 
-        // NRF_LOG_FLUSH();  
+        // NRF_LOG_INFO("axp216_set_state");
+        // NRF_LOG_FLUSH();
         // close output
 
         EC_E_BOOL_R_PWR_ERR(axp216_output_ctl(false));
@@ -261,20 +232,19 @@ Power_Error_t axp216_set_state(const Power_State_t state)
         EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_OFF_CTL, (1 << 7)));
         break;
     case PWR_STATE_ON:
-        
-  
+
         // try wakeup anyways
         EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_VOFF_SET, (1 << 5)));
 
-        // NRF_LOG_INFO("axp216_set_state000"); 
-        // NRF_LOG_FLUSH(); 
+        // NRF_LOG_INFO("axp216_set_state000");
+        // NRF_LOG_FLUSH();
         // config eveything
         // EC_E_BOOL_R_PWR_ERR();
         axp216_config();
         // open output
         EC_E_BOOL_R_PWR_ERR(axp216_output_ctl(true));
-        // NRF_LOG_INFO("axp216_set_state00005a"); 
-        // NRF_LOG_FLUSH(); 
+        // NRF_LOG_INFO("axp216_set_state00005a");
+        // NRF_LOG_FLUSH();
         break;
     case PWR_STATE_SLEEP:
         // allow irq wakeup
@@ -322,21 +292,21 @@ Power_Error_t axp216_get_status(Power_Status_t* status)
     h8l4_conv.u8_high = tmp;
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VBATL_RES, &tmp));
     h8l4_conv.u8_high = tmp & 0xf0;
-    status->batteryVoltage = h8l4_conv.u16;
+    status->batteryVoltage = h8l4_conv.u16; // TODO: CALCULATE ACTUAL VALUE
 
     // battery temp
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VTSH_RES, &tmp));
     h8l4_conv.u8_high = tmp;
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VTSL_RES, &tmp));
     h8l4_conv.u8_high = tmp & 0xf0;
-    status->batteryTemp = h8l4_conv.u16;
+    status->batteryTemp = h8l4_conv.u16; // TODO: CALCULATE ACTUAL VALUE
 
     // pmu temp
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTTEMPH, &tmp));
     h8l4_conv.u8_high = tmp;
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTTEMPL, &tmp));
     h8l4_conv.u8_high = tmp & 0xf0;
-    status->pmuTemp = h8l4_conv.u16;
+    status->pmuTemp = h8l4_conv.u16; // TODO: CALCULATE ACTUAL VALUE
 
     // charging
 
@@ -388,7 +358,7 @@ Power_Error_t axp216_get_status(Power_Status_t* status)
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_MODE_CHGSTATUS, &tmp));
     status->chargeFinished = ((tmp & (1 << 6)) == (1 << 6));
 
-    status->isValid = false;
+    status->isValid = true;
     return PWR_ERROR_NONE;
 }
 

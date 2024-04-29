@@ -10,8 +10,8 @@
 
 // defines
 #define TWI_INSTANCE_ID 1
-#define TWI_SDA_M 14
-#define TWI_SCL_M 15
+#define TWI_SDA_M       14
+#define TWI_SCL_M       15
 
 I2C_t* nrf_i2c_get_instance(void);
 

@@ -24,8 +24,7 @@ static bool nrf_i2c_init()
             .sda = TWI_SDA_M,
             .frequency = NRF_DRV_TWI_FREQ_400K,
             .interrupt_priority = APP_IRQ_PRIORITY_HIGH,
-            .clear_bus_init = true
-        };
+            .clear_bus_init = true};
         if ( NRF_SUCCESS != nrf_drv_twi_init(&nrf_i2c_handle, &twi_config, NULL, NULL) )
         {
             return false;
@@ -55,7 +54,7 @@ static bool nrf_i2c_deinit()
 
 static bool nrf_i2c_send(const uint8_t device_addr, const uint32_t len, const uint8_t* const data)
 {
-    PRINT_CURRENT_LOCATION();
+    // PRINT_CURRENT_LOCATION();
 
     // check i2c bus
     if ( !i2c_configured )
@@ -71,7 +70,7 @@ static bool nrf_i2c_send(const uint8_t device_addr, const uint32_t len, const ui
 
 static bool nrf_i2c_receive(const uint8_t device_addr, const uint32_t len, uint8_t* const data)
 {
-    PRINT_CURRENT_LOCATION();
+    // PRINT_CURRENT_LOCATION();
 
     // check i2c bus
     if ( !i2c_configured )
@@ -88,7 +87,7 @@ static bool nrf_i2c_receive(const uint8_t device_addr, const uint32_t len, uint8
 // reg
 static bool nrf_i2c_reg_write(const uint8_t device_addr, const uint8_t reg_addr, const uint8_t val)
 {
-    PRINT_CURRENT_LOCATION();
+    // PRINT_CURRENT_LOCATION();
 
     uint8_t tx_buff[sizeof(reg_addr) + sizeof(val)];
 
@@ -103,7 +102,7 @@ static bool nrf_i2c_reg_write(const uint8_t device_addr, const uint8_t reg_addr,
 
 static bool nrf_i2c_reg_read(const uint8_t device_addr, const uint8_t reg_addr, uint8_t* const val)
 {
-    PRINT_CURRENT_LOCATION();
+    // PRINT_CURRENT_LOCATION();
 
     uint8_t tmp = reg_addr;
     if ( !nrf_i2c_send(device_addr, sizeof(tmp), &tmp) )

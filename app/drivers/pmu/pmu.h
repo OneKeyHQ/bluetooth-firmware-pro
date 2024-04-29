@@ -7,4 +7,4 @@
 
 PMU_t* pmu_probe(PMU_Interface_t* pmu_if);
 
-#endif  //__PMU_H_
+#endif //__PMU_H_

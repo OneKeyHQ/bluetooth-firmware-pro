@@ -1,5 +1,79 @@
----
-BasedOnStyle: Google
-ColumnLimit: 200
-IncludeBlocks: Preserve
-AlignConsecutiveMacros: true
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: Auto
+DisableFormat: false
+UseCRLF: false
+UseTab: Never
+ColumnLimit: 120
+IndentWidth: 4
+PPIndentWidth: 2
+AccessModifierOffset: -4
+MaxEmptyLinesToKeep: 1
+FixNamespaceComments: true
+SortUsingDeclarations: true
+BreakInheritanceList: BeforeComma
+AlignAfterOpenBracket: BlockIndent
+SortIncludes: Never
+# AlignArrayOfStructures: Left
+# AlignConsecutiveAssignments:
+#   Enabled: true
+#   AcrossEmptyLines: true
+#   AcrossComments: false
+AlignConsecutiveBitFields:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+AlignEscapedNewlines: Left
+AlignOperands: AlignAfterOperator
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AlwaysBreakBeforeMultilineStrings : true
+BraceWrapping:
+  AfterCaseLabel : false
+  AfterClass : true
+  AfterControlStatement : Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: true
+  BeforeWhile: true
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: true
+BreakBeforeBraces: Custom
+IndentAccessModifiers: false
+IndentCaseBlocks: true
+IndentCaseLabels: false
+IndentExternBlock: AfterExternBlock
+IndentGotoLabels: true
+IndentPPDirectives: BeforeHash
+# InsertTrailingCommas: Wrapped
+LambdaBodyIndentation: Signature
+NamespaceIndentation: All
+PointerAlignment: Left
+QualifierAlignment: Left
+ReferenceAlignment: Right
+ReflowComments: true
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceBeforeSquareBrackets: false
+SpaceInEmptyBlock: false
+SpacesInConditionalStatement: true
+SpacesInContainerLiterals: true

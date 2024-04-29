@@ -42,6 +42,21 @@ typedef union
     } __attribute__((packed, aligned(1)));
 } H8L4_Buff; // convertor, all type to uint16_t as gcc complains if mixed with uint8_t
 
+typedef union
+{
+    struct
+    {
+        uint16_t u16_padding : 4;
+        uint16_t u16         : 14;
+    } __attribute__((packed, aligned(1)));
+
+    struct
+    {
+        uint8_t u8_high;
+        uint8_t u8_low;
+    } __attribute__((packed, aligned(1)));
+} H6L8_Buff;
+
 typedef enum
 {
     PWR_ENUM_ITEM(ERROR, NONE) = 0, // PWR_ERROR_NONE
@@ -100,8 +115,8 @@ typedef struct
     bool (*Deinit)(void);
     bool (*Reset)(void);
     bool (*Send)(const uint8_t device_addr, const uint32_t len, const uint8_t* const data); // iic host send
-    bool (*Receive)(const uint8_t device_addr, const uint32_t len, uint8_t* const data); // iic host receive
-    void (*Irq)(const uint64_t irq);                                                     // passed irq out
+    bool (*Receive)(const uint8_t device_addr, const uint32_t len, uint8_t* const data);    // iic host receive
+    void (*Irq)(const uint64_t irq);                                                        // passed irq out
 
     struct
     {

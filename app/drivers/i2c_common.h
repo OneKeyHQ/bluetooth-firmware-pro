@@ -10,8 +10,8 @@ typedef struct
     bool (*Init)(void);
     bool (*Deinit)(void);
     bool (*Send)(const uint8_t device_addr, const uint32_t len, const uint8_t* const data); // iic host send
-    bool (*Receive)(const uint8_t device_addr, const uint32_t len, uint8_t* const data); // iic host receive
-    
+    bool (*Receive)(const uint8_t device_addr, const uint32_t len, uint8_t* const data);    // iic host receive
+
     struct
     {
         bool (*Write)(const uint8_t device_addr, const uint8_t reg_addr, const uint8_t data);

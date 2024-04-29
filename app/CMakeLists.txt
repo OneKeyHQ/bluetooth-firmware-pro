@@ -328,7 +328,7 @@ target_compile_options(
   # Optimization flags
   -Os -g0
   # Uncomment the line below to enable link time optimization
-  # -flto
+  # -flto=auto
   # C flags common to all targets
   -DFLOAT_ABI_HARD
   -DuECC_ENABLE_VLI_API=0
@@ -404,9 +404,9 @@ add_definitions('-DBUILD_ID=\"${GIT_VERSION}\"')
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Optimization flags
-  -O3 -g3
+  -Os -ggdb
   # Uncomment the line below to enable link time optimization
-  -flto
+  # -flto=auto
   # C flags common to all targets
   -DAPP_TIMER_V2
   -DAPP_TIMER_V2_RTC1_ENABLED

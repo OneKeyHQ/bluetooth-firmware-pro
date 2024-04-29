@@ -34,19 +34,13 @@ static bool pmu_if_reset()
 
 static void pmu_if_irq(const uint64_t irq)
 {
-    
 
     if ( irq == 0 )
         return;
     Power_Status_t status;
     pmu_p->GetStatus(&status);
-    if ( 0 != (irq & (1 << PWR_IRQ_PWR_CONNECTED)) )
-    {
-    }
-    if ( 0 != (irq & (1 << PWR_IRQ_PWR_DISCONNECTED)) )
-    {
-
-    }
+    if ( 0 != (irq & (1 << PWR_IRQ_PWR_CONNECTED)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_PWR_DISCONNECTED)) ) {}
     if ( 0 != (irq & (1 << PWR_IRQ_CHARGING)) )
     {
         bak_buff[0] = BLE_CMD_POWER_STA;
@@ -61,43 +55,41 @@ static void pmu_if_irq(const uint64_t irq)
         }
         send_stm_data_p(bak_buff, 2);
     }
-    if ( 0 != (irq & (1 << PWR_IRQ_CHARGED)) ){
-    }
-    if ( 0 != (irq & (1 << PWR_IRQ_BATT_LOW)) ){
-    }
-    if ( 0 != (irq & (1 << PWR_IRQ_BATT_CRITICAL)) ){
-    }
-    if (0 != (irq & (1 << PWR_IRQ_PB_PRESS)))  
+    if ( 0 != (irq & (1 << PWR_IRQ_CHARGED)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_BATT_LOW)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_BATT_CRITICAL)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_PB_PRESS)) )
     {
-        NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS "); 
+        NRF_LOG_INFO("short  irq PWR_IRQ_PB_PRESS ");
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x20;
         send_stm_data_p(bak_buff, 2);
     }
-    if (0 != (irq & (1 << PWR_IRQ_PB_RELEASE)))//PWR_IRQ_PB_RELEASE
+    if ( 0 != (irq & (1 << PWR_IRQ_PB_RELEASE)) ) // PWR_IRQ_PB_RELEASE
     {
-        NRF_LOG_INFO("short  irq PWR_IRQ_PB_RELEASE "); 
+        NRF_LOG_INFO("short  irq PWR_IRQ_PB_RELEASE ");
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x40;
         send_stm_data_p(bak_buff, 2);
     }
-    // NRF_LOG_INFO("short  irq PWR_IRQ_PB_SHORT %d",PWR_IRQ_PB_SHORT); 
-    if (0 != (irq & (1 << PWR_IRQ_PB_SHORT)))  {
-       
-        NRF_LOG_INFO("short  irq PWR_IRQ_PB_SHORT "); 
+    // NRF_LOG_INFO("short  irq PWR_IRQ_PB_SHORT %d",PWR_IRQ_PB_SHORT);
+    if ( 0 != (irq & (1 << PWR_IRQ_PB_SHORT)) )
+    {
+
+        NRF_LOG_INFO("short  irq PWR_IRQ_PB_SHORT ");
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x01;
         send_stm_data_p(bak_buff, 2);
     }
-    if (0 != (irq & (1 << PWR_IRQ_PB_LONG)))    {
-        
-        NRF_LOG_INFO("short  irq PWR_IRQ_PB_LONG "); 
+    if ( 0 != (irq & (1 << PWR_IRQ_PB_LONG)) )
+    {
+
+        NRF_LOG_INFO("short  irq PWR_IRQ_PB_LONG ");
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x02;
         send_stm_data_p(bak_buff, 2);
     }
-    if ( 0 != (irq & (1 << PWR_IRQ_PB_FORCEOFF)) ){
-    }
+    if ( 0 != (irq & (1 << PWR_IRQ_PB_FORCEOFF)) ) {}
 }
 
 // ================================
