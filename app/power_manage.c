@@ -39,6 +39,7 @@ static void pmu_if_irq(const uint64_t irq)
         return;
     Power_Status_t status;
     pmu_p->GetStatus(&status);
+
     if ( 0 != (irq & (1 << PWR_IRQ_PWR_CONNECTED)) ) {}
     if ( 0 != (irq & (1 << PWR_IRQ_PWR_DISCONNECTED)) ) {}
     if ( 0 != (irq & (1 << PWR_IRQ_CHARGING)) )

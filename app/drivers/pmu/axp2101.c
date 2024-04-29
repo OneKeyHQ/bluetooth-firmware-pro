@@ -25,12 +25,40 @@ static bool axp2101_config_voltage(void)
 
 static bool axp2101_config_battery(void)
 {
-    // cap
-    uint16_t value = (float)(530 / 1.456);
-    // cap set flag
-    value |= 0x80;
-    // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP216_BAT_CAP0, (uint8_t)(value >> 8)));
-    // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP216_BAT_CAP1, (uint8_t)value));
+    // battery param
+    // TODO: DATA REQUIRED
+
+    // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_BROM, 0x00));
+
+    // warn level
+    // WARN -> 10%
+    // CRITICAL -> 5%
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_GAUGE_THLD, 0x55));
+
+    // voltage
+    // bit 7:3 zero
+    // bit 2:0 0b100 -> 4.35v
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_CHG_V_CFG, (uint8_t)0b00000100));
+
+    return true;
+}
+
+static bool axp2101_config_irq(void)
+{
+    // disable irq
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN1, 0x00));
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN2, 0x00));
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN3, 0x00));
+
+    // clear irq
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTSTS1, 0xFF));
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTSTS2, 0xFF));
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTSTS3, 0xFF));
+
+    // enable irq (only needed)
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN1, 0xC0));
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN2, 0xCF));
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN3, 0x18));
 
     return true;
 }
@@ -113,16 +141,28 @@ Power_Error_t axp2101_reset(void)
 
 Power_Error_t axp2101_irq(void)
 {
-    uint8_t irqs[5];
+    uint8_t irqs[3];
+    uint64_t irq_bits = 0;
 
     // read irq
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_INTSTS1, &irqs[0]));
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_INTSTS2, &irqs[1]));
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_INTSTS3, &irqs[2]));
 
+    irq_bits |= ((((irqs[1] & (1 << 7))) != 0) << PWR_IRQ_PWR_CONNECTED);    // vbus
+    irq_bits |= ((((irqs[1] & (1 << 6))) != 0) << PWR_IRQ_PWR_DISCONNECTED); // vbus
+    irq_bits |= ((((irqs[2] & (1 << 3))) != 0) << PWR_IRQ_CHARGING);
+    irq_bits |= ((((irqs[2] & (1 << 4))) != 0) << PWR_IRQ_CHARGED);
+    irq_bits |= ((((irqs[0] & (1 << 7))) != 0) << PWR_IRQ_BATT_LOW);
+    irq_bits |= ((((irqs[0] & (1 << 6))) != 0) << PWR_IRQ_BATT_CRITICAL);
+    irq_bits |= ((((irqs[1] & (1 << 1))) != 0) << PWR_IRQ_PB_PRESS);
+    irq_bits |= ((((irqs[1] & (1 << 0))) != 0) << PWR_IRQ_PB_RELEASE);
+    irq_bits |= ((((irqs[1] & (1 << 3))) != 0) << PWR_IRQ_PB_SHORT);
+    irq_bits |= ((((irqs[1] & (1 << 2))) != 0) << PWR_IRQ_PB_LONG);
+    // PWR_IRQ_PB_FORCEOFF not supported
+
     // process irq
-    // pmu_interface_p->Irq();
-    // TODO: impl.
+    pmu_interface_p->Irq(irq_bits);
 
     // clear irq
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_INTSTS1, 0xFF));
@@ -200,19 +240,19 @@ Power_Error_t axp2101_get_status(Power_Status_t* status)
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_H, &(h6l8_conv.u8_high)));
     h6l8_conv.u8_high &= 0b00111111; // drop bit 7:6
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_L, &(h6l8_conv.u8_low)));
-    status->batteryVoltage = h6l8_conv.u16; // TODO: CALCULATE ACTUAL VALUE
+    status->batteryVoltage = h6l8_conv.u16;
 
     // battery temp
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_H, &(h6l8_conv.u8_high)));
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_H, &(h6l8_conv.u8_high)));
     h6l8_conv.u8_high &= 0b00111111; // drop bit 7:6
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_L, &(h6l8_conv.u8_low)));
-    status->batteryVoltage = h6l8_conv.u16; // TODO: CALCULATE ACTUAL VALUE
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_L, &(h6l8_conv.u8_low)));
+    status->batteryTemp = h6l8_conv.u16;
 
     // pmu temp
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_H, &(h6l8_conv.u8_high)));
     h6l8_conv.u8_high &= 0b00111111; // drop bit 7:6
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_L, &(h6l8_conv.u8_low)));
-    status->pmuTemp = h6l8_conv.u16; // TODO: CALCULATE ACTUAL VALUE
+    status->pmuTemp = h6l8_conv.u16;
 
     // charging
 

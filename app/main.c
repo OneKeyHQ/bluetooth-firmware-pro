@@ -195,13 +195,14 @@
 #define NEXT_CONN_PARAMS_UPDATE_DELAY \
     APP_TIMER_TICKS(30000             \
     ) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */
-#define ONE_SECOND_INTERVAL         APP_TIMER_TICKS(1000)
+#define ONE_SECOND_INTERVAL      APP_TIMER_TICKS(1000)
 
-#define RST_ONE_SECNOD_COUNTER()    one_second_counter = 0;
-#define TWI_TIMEOUT_COUNTER         10
+#define RST_ONE_SECNOD_COUNTER() one_second_counter = 0;
+#define TWI_TIMEOUT_COUNTER      10
 
-#define MAX_CONN_PARAM_UPDATE_COUNT 3 /**< Number of attempts before giving up the connection parameter negotiation. \
-                                       */
+#define MAX_CONN_PARAM_UPDATE_COUNT                                                  \
+    3 /**< Number of attempts before giving up the connection parameter negotiation. \
+       */
 
 #define LESC_DEBUG_MODE           0 /**< Set to 1 to use LESC debug keys, allows you to  use a sniffer to inspect traffic. */
 
@@ -2674,7 +2675,6 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         NRF_LOG_INFO("send_stm_data 24");
         send_stm_data(bak_buff, 2);
     }
-    //
 
     Power_Status_t status;
     pmu_p->GetStatus(&status);
@@ -2776,21 +2776,21 @@ static void bat_msg_report_process(void* p_event_data, uint16_t event_size)
     Power_Status_t status;
     pmu_p->GetStatus(&status);
 
-    H8L4_Buff hlb = {0};
+    uint16_t val = 0;
 
     switch ( bat_msg_flag )
     {
     case SEND_BAT_VOL:
-        hlb.u16 = status.batteryVoltage;
+        val = status.batteryVoltage;
         break;
     case SEND_BAT_CHARGE_CUR:
-        hlb.u16 = status.chargeCurrent;
+        val = status.chargeCurrent;
         break;
     case SEND_BAT_DISCHARGE_CUR:
-        hlb.u16 = status.dischargeCurrent;
+        val = status.dischargeCurrent;
         break;
     case SEND_BAT_INNER_TEMP:
-        hlb.u16 = status.batteryTemp;
+        val = status.batteryTemp;
         break;
     default:
         return;
@@ -2798,10 +2798,10 @@ static void bat_msg_report_process(void* p_event_data, uint16_t event_size)
 
     bak_buff[0] = BLE_CMD_BAT_CV_MSG;
     bak_buff[1] = bat_msg_flag;
-    // bak_buff[2] = (bat_values[0]&0xF0) >> 4;
-    // bak_buff[3] = (bat_values[0]&0x0F) << 4 | (bat_values[1]&0x0F);
-    bak_buff[2] = hlb.u8_low;
-    bak_buff[3] = hlb.u8_high;
+
+    bak_buff[2] = (val & 0xFF00) >> 8;
+    bak_buff[3] = (val & 0x00FF);
+
     send_stm_data(bak_buff, 4);
 
     bat_msg_flag = BAT_DEF;

@@ -30,25 +30,6 @@ static bool axp216_config_voltage(void)
     return true;
 }
 
-static bool axp216_config_control_parameter(void)
-{
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE1, 0xF1));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE2, 0x25));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN1, 0xFC));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN2, 0xCC));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN3, 0x00));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN4, 0x10));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN5, 0x78));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_ADC_CONTROL3, 0x36));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_IPS_SET, 0x60));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_POK_SET, 0x68));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_OFF_CTL, 0x4B));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VOFF_SET, 0x13));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_HOTOVER_CTL, 0xF5));
-
-    return true;
-}
-
 static bool axp216_config_battery(void)
 {
     // cap
@@ -59,14 +40,52 @@ static bool axp216_config_battery(void)
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_BAT_CAP1, (uint8_t)value));
 
     // warn level
+    // WARN -> 10%
+    // CRITICAL -> 5%
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_BAT_WARN, 0x55));
-
-    // EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_BAT_CAP0, 0x81));
-    // EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_BAT_CAP1, 0x6C));
 
     return true;
 }
 
+static bool axp216_config_irq(void)
+{
+    // disable irq
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN1, 0x00));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN2, 0x00));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN3, 0x00));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN4, 0x00));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN5, 0x00));
+
+    // clear irq
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS1, 0xFF));
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS2, 0xFF));
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS3, 0xFF));
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS4, 0xFF));
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS5, 0xFF));
+
+    // enable irq (only needed)
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN1, 0xFC));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN2, 0xCC));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN3, 0x00));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN4, 0x10));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN5, 0x78));
+
+    return true;
+}
+
+static bool axp216_config_control_parameter(void)
+{
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE1, 0xF1));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE2, 0x25));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_ADC_CONTROL3, 0x36));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_IPS_SET, 0x60));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_POK_SET, 0x68));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_OFF_CTL, 0x4B));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VOFF_SET, 0x13));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_HOTOVER_CTL, 0xF5));
+
+    return true;
+}
 static bool axp216_output_ctl(bool on_off)
 {
 
@@ -163,8 +182,6 @@ Power_Error_t axp216_irq(void)
     uint8_t irqs[5] = {0};
     uint64_t irq_bits = 0;
 
-    NRF_LOG_INFO("nrf irq.....");
-
     // read irq
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTSTS1, &irqs[0]));
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTSTS2, &irqs[1]));
@@ -172,17 +189,29 @@ Power_Error_t axp216_irq(void)
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTSTS4, &irqs[3]));
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTSTS5, &irqs[4]));
 
-    irq_bits |= ((irqs[0] & (1 << 6)) >> 6 << PWR_IRQ_PWR_CONNECTED);    // acin only, as vbus connected to acin
-    irq_bits |= ((irqs[0] & (1 << 5)) >> 5 << PWR_IRQ_PWR_DISCONNECTED); // acin only, as vbus connected to acin
-    irq_bits |= ((irqs[1] & (1 << 3)) >> 3 << PWR_IRQ_CHARGING);
-    irq_bits |= ((irqs[1] & (1 << 2)) >> 2 << PWR_IRQ_CHARGED);
-    irq_bits |= ((irqs[3] & (1 << 1)) >> 1 << PWR_IRQ_BATT_LOW);
-    irq_bits |= ((irqs[3] & (1 << 0)) >> 0 << PWR_IRQ_BATT_CRITICAL);
-    irq_bits |= ((irqs[4] & (1 << 6)) >> 6 << PWR_IRQ_PB_PRESS);
-    irq_bits |= ((irqs[4] & (1 << 5)) >> 5 << PWR_IRQ_PB_RELEASE);
-    irq_bits |= ((irqs[4] & (1 << 4)) >> 4 << PWR_IRQ_PB_SHORT);
-    irq_bits |= ((irqs[4] & (1 << 3)) >> 3 << PWR_IRQ_PB_LONG);
-    irq_bits |= ((irqs[4] & (1 << 2)) >> 2 << PWR_IRQ_PB_FORCEOFF);
+    // irq_bits |= ((irqs[0] & (1 << 6)) >> 6 << PWR_IRQ_PWR_CONNECTED);    // acin only, as vbus connected to acin
+    // irq_bits |= ((irqs[0] & (1 << 5)) >> 5 << PWR_IRQ_PWR_DISCONNECTED); // acin only, as vbus connected to acin
+    // irq_bits |= ((irqs[1] & (1 << 3)) >> 3 << PWR_IRQ_CHARGING);
+    // irq_bits |= ((irqs[1] & (1 << 2)) >> 2 << PWR_IRQ_CHARGED);
+    // irq_bits |= ((irqs[3] & (1 << 1)) >> 1 << PWR_IRQ_BATT_LOW);
+    // irq_bits |= ((irqs[3] & (1 << 0)) >> 0 << PWR_IRQ_BATT_CRITICAL);
+    // irq_bits |= ((irqs[4] & (1 << 6)) >> 6 << PWR_IRQ_PB_PRESS);
+    // irq_bits |= ((irqs[4] & (1 << 5)) >> 5 << PWR_IRQ_PB_RELEASE);
+    // irq_bits |= ((irqs[4] & (1 << 4)) >> 4 << PWR_IRQ_PB_SHORT);
+    // irq_bits |= ((irqs[4] & (1 << 3)) >> 3 << PWR_IRQ_PB_LONG);
+    // irq_bits |= ((irqs[4] & (1 << 2)) >> 2 << PWR_IRQ_PB_FORCEOFF);
+
+    irq_bits |= ((((irqs[0] & (1 << 6))) != 0) << PWR_IRQ_PWR_CONNECTED);    // acin only, as vbus connected to acin
+    irq_bits |= ((((irqs[0] & (1 << 5))) != 0) << PWR_IRQ_PWR_DISCONNECTED); // acin only, as vbus connected to acin
+    irq_bits |= ((((irqs[1] & (1 << 3))) != 0) << PWR_IRQ_CHARGING);
+    irq_bits |= ((((irqs[1] & (1 << 2))) != 0) << PWR_IRQ_CHARGED);
+    irq_bits |= ((((irqs[3] & (1 << 1))) != 0) << PWR_IRQ_BATT_LOW);
+    irq_bits |= ((((irqs[3] & (1 << 0))) != 0) << PWR_IRQ_BATT_CRITICAL);
+    irq_bits |= ((((irqs[4] & (1 << 6))) != 0) << PWR_IRQ_PB_PRESS);
+    irq_bits |= ((((irqs[4] & (1 << 5))) != 0) << PWR_IRQ_PB_RELEASE);
+    irq_bits |= ((((irqs[4] & (1 << 4))) != 0) << PWR_IRQ_PB_SHORT);
+    irq_bits |= ((((irqs[4] & (1 << 3))) != 0) << PWR_IRQ_PB_LONG);
+    irq_bits |= ((((irqs[4] & (1 << 2))) != 0) << PWR_IRQ_PB_FORCEOFF);
 
     // process irq
     pmu_interface_p->Irq(irq_bits);
@@ -199,20 +228,11 @@ Power_Error_t axp216_irq(void)
 
 Power_Error_t axp216_config(void)
 {
-
-    // NRF_LOG_INFO("axp216_config 0");
-    // NRF_LOG_FLUSH();
-    nrf_delay_ms(100);
     EC_E_BOOL_R_PWR_ERR(axp216_config_control_parameter());
     EC_E_BOOL_R_PWR_ERR(axp216_config_voltage());
     EC_E_BOOL_R_PWR_ERR(axp216_config_battery());
+    EC_E_BOOL_R_PWR_ERR(axp216_config_irq());
     nrf_delay_ms(200);
-
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS1, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS2, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS3, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS4, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS5, 0xFF));
 
     return PWR_ERROR_NONE;
 }

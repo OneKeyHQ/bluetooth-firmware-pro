@@ -46,8 +46,7 @@ typedef union
 {
     struct
     {
-        uint16_t u16_padding : 4;
-        uint16_t u16         : 14;
+        uint16_t u16;
     } __attribute__((packed, aligned(1)));
 
     struct
