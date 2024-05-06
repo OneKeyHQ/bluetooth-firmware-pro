@@ -209,6 +209,7 @@ set(
   # ${NRF_SDK_ROOT}/components/libraries/bsp/bsp_btn_ble.c
   # ${NRF_SDK_ROOT}/components/libraries/button/app_button.c
   ${NRF_SDK_ROOT}/components/libraries/crc16/crc16.c
+  ${NRF_SDK_ROOT}/components/libraries/crc32/crc32.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecc.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecdh.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecdsa.c
@@ -241,6 +242,7 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/fifo/app_fifo.c
   ${NRF_SDK_ROOT}/components/libraries/fstorage/nrf_fstorage.c
   ${NRF_SDK_ROOT}/components/libraries/fstorage/nrf_fstorage_sd.c
+  ${NRF_SDK_ROOT}/components/libraries/hardfault/nrf52/handler/hardfault_handler_gcc.c
   ${NRF_SDK_ROOT}/components/libraries/hardfault/hardfault_implementation.c
   ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_rtt.c
   ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_serial.c
@@ -294,6 +296,8 @@ set(
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uart.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uarte.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_wdt.c
+  ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_nvmc.c
+  # ${NRF_SDK_ROOT}/modules/nrfx/hal/nrf_nvmc.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/prs/nrfx_prs.c
   ${NRF_SDK_ROOT}/modules/nrfx/mdk/gcc_startup_nrf52.S
   ${NRF_SDK_ROOT}/modules/nrfx/mdk/system_nrf52.c
@@ -326,9 +330,9 @@ target_include_directories(
 target_compile_options(
   MicroECC PRIVATE
   # Optimization flags
-  -Os -g0
+  -Os -g0 -s
   # Uncomment the line below to enable link time optimization
-  # -flto=auto
+  -flto=auto
   # C flags common to all targets
   -DFLOAT_ABI_HARD
   -DuECC_ENABLE_VLI_API=0
@@ -344,15 +348,15 @@ target_compile_options(
   # keep every function in a separate section, this allows linker to discard unused ones
   -ffunction-sections -fdata-sections -fno-strict-aliasing
   -fno-builtin -fshort-enums -Wno-unused-function
-  # heap and stack
-  -D__HEAP_SIZE=4096
-  -D__STACK_SIZE=4096
+  # heap and stack (why set them for a library?)
+  # -D__HEAP_SIZE=4096
+  # -D__STACK_SIZE=4096
 )
 
 target_link_options(
   MicroECC PRIVATE
   # Linker flags
-  -Os -g3
+  -Os -g3 -s
   -mthumb -mabi=aapcs -L${NRF_SDK_ROOT}/modules/nrfx/mdk -T${MicroECC_DIR}/nrf52hf_armgcc/armgcc/ext_micro_ecc_gcc_nRF5x.ld
   -mcpu=cortex-m4
   -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -374,6 +378,8 @@ target_sources(
   ${CMAKE_PROJECT_NAME} PRIVATE 
   ${NRF_SDK_SRC}
   drivers/nrf_i2c.c
+  drivers/nrf_flash.c
+  drivers/nrf_uicr.c
   drivers/pmu/pmu.c
   drivers/pmu/axp216.c
   drivers/pmu/axp2101.c
@@ -383,6 +389,7 @@ target_sources(
   ecdsa.c
   power_manage.c
   flashled_manage.c
+  device_config.c
 )
 
 target_include_directories(
@@ -404,9 +411,10 @@ add_definitions('-DBUILD_ID=\"${GIT_VERSION}\"')
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Optimization flags
-  -Os -ggdb
+  -O1 -ggdb
   # Uncomment the line below to enable link time optimization
-  # -flto=auto
+  -flto=auto
+  # -DDEBUG
   # C flags common to all targets
   -DAPP_TIMER_V2
   -DAPP_TIMER_V2_RTC1_ENABLED
@@ -415,7 +423,7 @@ target_compile_options(
   -DFLOAT_ABI_HARD
   -DNRF52
   -DNRF52832_XXAA
-  -DNRF52_PAN_74
+  # -DNRF52_PAN_74
   -DNRF_SD_BLE_API_VERSION=7
   -DS132
   -DSOFTDEVICE_PRESENT
@@ -435,7 +443,8 @@ target_compile_options(
   -mfloat-abi=hard -mfpu=fpv4-sp-d16
   # keep every function in a separate section, this allows linker to discard unused ones
   -ffunction-sections -fdata-sections -fno-strict-aliasing
-  -fno-builtin -fshort-enums
+  -fshort-enums
+  # -fno-builtin
   # heap and stack
   -D__HEAP_SIZE=8192
   -D__STACK_SIZE=8192
@@ -444,7 +453,7 @@ target_compile_options(
 target_link_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Linker flags
-  -O3 -g3
+  -O1 -ggdb
   -mthumb -mabi=aapcs -L${NRF_SDK_ROOT}/modules/nrfx/mdk -T${PROJECT_SOURCE_DIR}/ble_app_gcc_nrf52.ld
   -mcpu=cortex-m4
   -mfloat-abi=hard -mfpu=fpv4-sp-d16

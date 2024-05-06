@@ -62,7 +62,8 @@
 #include "ble_hci.h"
 #include "ble_nus.h"
 // #include "bsp_btn_ble.h"
-#include "fds.h"
+// #include "fds.h"
+// #include "fds_internal_defs.h"
 #include "nordic_common.h"
 #include "nrf.h"
 #include "nrf_ble_gatt.h"
@@ -81,21 +82,22 @@
 #include "sdk_macros.h"
 #include "app_scheduler.h"
 #include "ble_dfu.h"
-#include "ecdsa.h"
-#include "fds_internal_defs.h"
 #include "nrf_bootloader_info.h"
 #include "nrf_crypto.h"
 #include "nrf_crypto_init.h"
 #include "nrf_delay.h"
 #include "nrf_drv_gpiote.h"
 #include "nrf_drv_wdt.h"
-#include "nrf_fstorage.h"
-#include "nrf_fstorage_sd.h"
+// #include "nrf_fstorage.h"
+// #include "nrf_fstorage_sd.h"
 #include "nrf_power.h"
 #include "rtc_calendar.h"
+
+#include "ecdsa.h"
 #include "power_manage.h"
 #include "flashled_manage.h"
 #include "data_transmission.h"
+#include "device_config.h"
 
 #if defined(UART_PRESENT)
   #define RX_PIN_NUMBER  11
@@ -234,7 +236,7 @@
     6 //!< The ADC is configured to use VDD with 1/3 prescaling as input. And hence the result of conversion
       //!< is to be multiplied by 3 to get the actual value of the battery voltage.
 #define ADC_RESULT_IN_MILLI_VOLTS(ADC_VALUE) \
-    ((((ADC_VALUE)*ADC_REF_VOLTAGE_IN_MILLIVOLTS) / ADC_RES_10BIT) * ADC_PRE_SCALING_COMPENSATION)
+    ((((ADC_VALUE) * ADC_REF_VOLTAGE_IN_MILLIVOLTS) / ADC_RES_10BIT) * ADC_PRE_SCALING_COMPENSATION)
 
 // UART define
 #define MAX_TEST_DATA_BYTES (15U) /**< max number of test bytes to be used for tx and rx. */
@@ -368,10 +370,6 @@
 #define RESPONESE_HASH              0x0C
 #define DEF_RESP                    0xFF
 
-#define BLE_CTL_ADDR                0x6f000
-#define BAT_LVL_ADDR                0x70000
-#define DEVICE_KEY_INFO_ADDR        0x71000
-
 #define TIMER_INIT_FLAG             0
 #define TIMER_RESET_FLAG            1
 #define TIMER_START_FLAG            2
@@ -432,7 +430,7 @@ static ble_uuid_t m_adv_uuids[] =                        /**< Universally unique
         {BLE_UUID_BATTERY_SERVICE, BLE_UUID_TYPE_BLE},
         {BLE_UUID_NUS_SERVICE, BLE_UUID_TYPE_BLE}};
 
-static void advertising_start(void);
+// static void advertising_start(void);
 #ifdef SCHED_ENABLE
 static void twi_write_data(void* p_event_data, uint16_t event_size);
 #endif
@@ -446,14 +444,12 @@ static void uart_put_data(uint8_t* pdata, uint8_t lenth);
 static void send_stm_data(uint8_t* pdata, uint8_t lenth);
 static uint8_t calcXor(uint8_t* buf, uint8_t len);
 
-static void advertising_start(void);
-static void advertising_stop(void);
+// static void advertising_start(void);
+// static void advertising_stop(void);
+static bool bt_advertising_ctrl(bool enable, bool commit);
 static void idle_state_handle(void);
 
-/* Dummy data to write to flash. */
-static uint32_t m_data2 = 0xBADC0FFE;
-static uint32_t m_data = 0xABABABAB;
-static void fstorage_evt_handler(nrf_fstorage_evt_t* p_evt);
+// static void fstorage_evt_handler(nrf_fstorage_evt_t* p_evt);
 static uint8_t bond_check_key_flag = INIT_VALUE;
 static uint8_t rcv_head_flag = 0;
 static uint8_t ble_status_flag = 0;
@@ -467,95 +463,7 @@ static uint8_t led_brightness_value = 0;
 
 #ifdef SCHED_ENABLE
 static ringbuffer_t m_ble_fifo;
-#endif
 
-#define STORAGE_TRUE_FLAG 0xa55aa55a
-
-NRF_FSTORAGE_DEF(nrf_fstorage_t fstorage) = {
-    /* Set a handler for fstorage events. */
-    .evt_handler = fstorage_evt_handler,
-
-    /* These below are the boundaries of the flash space assigned to this instance of fstorage.
-     * You must set these manually, even at runtime, before nrf_fstorage_init() is called.
-     * The function nrf5_flash_end_addr_get() can be used to retrieve the last address on the
-     * last page of flash available to write data. */
-    .start_addr = 0x6f000,
-    .end_addr = 0x72000,
-};
-
-/**@brief   Helper function to obtain the last address on the last page of the on-chip flash that
- *          can be used to write user data.
- */
-static uint32_t nrf5_flash_end_addr_get()
-{
-    const uint32_t bootloader_addr = BOOTLOADER_ADDRESS;
-    const uint32_t page_sz = NRF_FICR->CODEPAGESIZE;
-    const uint32_t code_sz = NRF_FICR->CODESIZE;
-
-    return (bootloader_addr != 0xFFFFFFFF ? bootloader_addr : (code_sz * page_sz));
-}
-void wait_for_flash_ready(const nrf_fstorage_t* p_fstorage)
-{
-    /* While fstorage is busy, sleep and wait for an event. */
-    while ( nrf_fstorage_is_busy(p_fstorage) )
-    {
-        idle_state_handle();
-    }
-}
-
-static void flash_data_write(uint32_t adress, uint32_t data)
-{
-    ret_code_t rc;
-
-    nrf_fstorage_erase(&fstorage, adress, FDS_PHY_PAGES_IN_VPAGE, NULL);
-
-    rc = nrf_fstorage_write(&fstorage, adress, &data, sizeof(m_data), NULL);
-    APP_ERROR_CHECK(rc);
-
-    wait_for_flash_ready(&fstorage);
-}
-
-static void device_key_info_init(void)
-{
-    ret_code_t rc;
-    ecdsa_key_info_t key_info = {0};
-
-    // NRF_LOG_INFO("device_key_info_init 0.");
-    // NRF_LOG_FLUSH();
-
-    nrf_fstorage_read(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t));
-
-    NRF_LOG_INFO("device_key_info_init. %x ", key_info.key_flag);
-    NRF_LOG_FLUSH();
-    if ( key_info.key_flag != STORAGE_TRUE_FLAG )
-    {
-        // NRF_LOG_INFO("device_key_info_init .");
-        // NRF_LOG_FLUSH();
-        key_info.key_flag = STORAGE_TRUE_FLAG;
-        generate_ecdsa_keypair(key_info.private_key, key_info.public_key);
-
-        NRF_LOG_INFO("device_key_info_init 3.");
-        NRF_LOG_FLUSH();
-
-        rc = nrf_fstorage_erase(&fstorage, DEVICE_KEY_INFO_ADDR, FDS_PHY_PAGES_IN_VPAGE, NULL);
-        APP_ERROR_CHECK(rc);
-        NRF_LOG_INFO("device_key_info_init 3.0");
-        NRF_LOG_FLUSH();
-
-        NRF_LOG_INFO("device_key_info_init 3.1");
-        NRF_LOG_FLUSH();
-
-        rc = nrf_fstorage_write(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t), NULL);
-        APP_ERROR_CHECK(rc);
-
-        wait_for_flash_ready(&fstorage);
-    }
-
-    NRF_LOG_INFO("device_key_info_init 4.");
-    NRF_LOG_FLUSH();
-}
-
-#ifdef SCHED_ENABLE
 static void create_ringBuffer(ringbuffer_t* ringBuf, uint8_t* buf, uint32_t buf_len)
 {
     ringBuf->br = 0;
@@ -733,15 +641,13 @@ static void gpio_uninit(void)
 
 static void enter_low_power_mode(void)
 {
-
     pmu_p->Deinit();
     gpio_uninit();
-
     nrf_gpio_cfg_default(ST_WAKE_IO);
-
     app_uart_close();
     nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
 }
+
 void battery_level_meas_timeout_handler(void* p_context)
 {
     ret_code_t err_code;
@@ -942,7 +848,7 @@ static void pm_evt_handler(const pm_evt_t* p_evt)
         break;
 
     case PM_EVT_PEERS_DELETE_SUCCEEDED:
-        advertising_start();
+        bt_advertising_ctrl(true, false);
         break;
 
     default:
@@ -2300,128 +2206,29 @@ static void system_init()
 
 /**@brief Function for starting advertising.
  */
-static void advertising_start(void)
+static bool bt_advertising_ctrl(bool enable, bool commit)
 {
-    ret_code_t err_code = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
 
-    APP_ERROR_CHECK(err_code);
-}
-static void advertising_stop(void)
-{
-    ret_code_t err_code = ble_advertising_stop(&m_advertising);
-
-    APP_ERROR_CHECK(err_code);
-}
-#ifdef DEV_BSP
-/**@brief Function for handling events from the BSP module.
- *
- * @param[in]   event   Event generated by button press.
- */
-void bsp_event_handler(bsp_event_t event)
-{
-    //    uint32_t err_code;
-    switch ( event )
-    {
-    case BSP_EVENT_SLEEP:
-        break;
-
-    case BSP_EVENT_DISCONNECT:
-
-        break;
-
-    case BSP_EVENT_WHITELIST_OFF:
-
-        break;
-
-    default:
-        break;
-    }
-}
-
-/**@brief Function for initializing buttons and leds.
- *
- * @param[out] p_erase_bonds  Will be true if the clear bonding button was pressed to wake the application up.
- */
-static void buttons_leds_init(void)
-{
-    bsp_event_t startup_event;
-
-    uint32_t err_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, bsp_event_handler);
-    APP_ERROR_CHECK(err_code);
-
-    err_code = bsp_btn_ble_init(NULL, &startup_event);
-    APP_ERROR_CHECK(err_code);
-}
-#endif
-static void fstorage_evt_handler(nrf_fstorage_evt_t* p_evt)
-{
-    if ( p_evt->result != NRF_SUCCESS )
-    {
-        NRF_LOG_INFO("--> Event received: ERROR while executing an fstorage operation.");
-        return;
-    }
-
-    switch ( p_evt->id )
-    {
-    case NRF_FSTORAGE_EVT_WRITE_RESULT:
-        {
-            NRF_LOG_INFO("--> Event received: wrote %d bytes at address 0x%x.", p_evt->len, p_evt->addr);
-        }
-        break;
-
-    case NRF_FSTORAGE_EVT_ERASE_RESULT:
-        {
-            NRF_LOG_INFO("--> Event received: erased %d page from address 0x%x.", p_evt->len, p_evt->addr);
-        }
-        break;
-
-    default:
-        break;
-    }
-}
-
-static void fs_init(void)
-{
-    ret_code_t rc;
-
-    nrf_fstorage_api_t* p_fs_api;
-
-    p_fs_api = &nrf_fstorage_sd;
-    rc = nrf_fstorage_init(&fstorage, p_fs_api, NULL);
-    APP_ERROR_CHECK(rc);
-
-    /* It is possible to set the start and end addresses of an fstorage instance at runtime.
-     * They can be set multiple times, should it be needed. The helper function below can
-     * be used to determine the last address on the last page of flash memory available to
-     * store data. */
-    (void)nrf5_flash_end_addr_get();
-
-    // flash_data_write(BLE_CTL_FLAG,m_data);
-}
-static void ctl_advertising(void)
-{
-    uint32_t len = 4;
-    uint8_t data[4];
-
-    nrf_fstorage_read(&fstorage, BLE_CTL_ADDR, data, len);
-    if ( ((0xFF == data[0]) && (0xFF == data[1]) && (0xFF == data[2]) && (0xFF == data[3])) ||
-         ((0xFE == data[0]) && (0x0F == data[1]) && (0xDC == data[2]) && (0xBA == data[3])) )
+    if ( enable )
     {
         ble_status_flag = BLE_ON_ALWAYS;
-        advertising_start();
-        NRF_LOG_INFO("1-Start adv.\n");
-    }
-    else if ( (0xAB == data[0]) && (0xAB == data[1]) && (0xAB == data[2]) && (0xAB == data[3]) )
-    {
-        ble_status_flag = BLE_OFF_ALWAYS;
-        NRF_LOG_INFO("2-No Adv.\n");
+        deviceSettings_p->bt_ctrl = 0; // turn on
+        if ( NRF_SUCCESS != ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST) )
+            return false;
     }
     else
     {
-        ble_status_flag = BLE_ON_ALWAYS;
-        advertising_start();
-        NRF_LOG_INFO("3-Start adv.\n");
+        ble_status_flag = BLE_OFF_ALWAYS;
+        deviceSettings_p->bt_ctrl = DEVICE_CONFIG_FLAG_MAGIC; // turn off
+        if ( NRF_SUCCESS != ble_advertising_stop(&m_advertising) )
+            return false;
     }
+
+    if ( commit )
+        if ( !device_settings_commit() )
+            return false;
+
+    return true;
 }
 
 static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
@@ -2463,15 +2270,13 @@ static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
     {
         bak_buff[0] = BLE_CMD_KEY_RESP;
 
-        ecdsa_key_info_t key_info = {0};
-        nrf_fstorage_read(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t));
-        if ( key_info.key_lock_flag == STORAGE_TRUE_FLAG )
+        if ( deviceKeyStore_p->flag_locked == DEVICE_CONFIG_FLAG_MAGIC )
         {
             bak_buff[1] = BLE_KEY_RESP_FAILED;
             NRF_LOG_INFO("send_stm_data 010");
             send_stm_data(bak_buff, 2);
         }
-        else if ( key_info.key_flag != STORAGE_TRUE_FLAG )
+        else if ( !device_keystore_validate() )
         {
             bak_buff[1] = BLE_KEY_RESP_FAILED;
             NRF_LOG_INFO("send_stm_data 011");
@@ -2480,31 +2285,18 @@ static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
         else
         {
             bak_buff[1] = BLE_KEY_RESP_PUBKEY;
-            memcpy(&bak_buff[2], key_info.public_key, sizeof(key_info.public_key));
+            memcpy(&bak_buff[2], deviceKeyStore_p->public_key, sizeof(deviceKeyStore_p->public_key));
             NRF_LOG_INFO("send_stm_data 012");
-            send_stm_data(bak_buff, sizeof(key_info.public_key) + 2);
+            send_stm_data(bak_buff, sizeof(deviceKeyStore_p->public_key) + 2);
         }
 
         trans_info_flag = DEF_RESP;
     }
     else if ( trans_info_flag == RESPONESE_BLE_PUBKEY_LOCK )
     {
-        ecdsa_key_info_t key_info = {0};
-        nrf_fstorage_read(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t));
-        if ( key_info.key_lock_flag != STORAGE_TRUE_FLAG )
-        {
-            ret_code_t rc;
-            key_info.key_lock_flag = STORAGE_TRUE_FLAG;
-            rc = nrf_fstorage_erase(&fstorage, DEVICE_KEY_INFO_ADDR, FDS_PHY_PAGES_IN_VPAGE, NULL);
-            APP_ERROR_CHECK(rc);
-
-            rc = nrf_fstorage_write(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t), NULL);
-            APP_ERROR_CHECK(rc);
-
-            wait_for_flash_ready(&fstorage);
-        }
+        // please note, device_keystore_lock will fail if already locked
         bak_buff[0] = BLE_CMD_KEY_RESP;
-        bak_buff[1] = BLE_KEY_RESP_SUCCESS;
+        bak_buff[1] = (device_keystore_lock() ? BLE_KEY_RESP_SUCCESS : BLE_KEY_RESP_FAILED);
         NRF_LOG_INFO("send_stm_data 013");
         send_stm_data(bak_buff, 2);
         trans_info_flag = DEF_RESP;
@@ -2514,9 +2306,7 @@ static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
         uint32_t msg_len = (uart_data_array[2] << 8 | uart_data_array[3]) - 3;
         bak_buff[0] = BLE_CMD_KEY_RESP;
 
-        ecdsa_key_info_t key_info = {0};
-        nrf_fstorage_read(&fstorage, DEVICE_KEY_INFO_ADDR, &key_info, sizeof(ecdsa_key_info_t));
-        if ( key_info.key_flag != STORAGE_TRUE_FLAG )
+        if ( !device_keystore_validate() )
         {
             bak_buff[1] = BLE_KEY_RESP_FAILED;
             NRF_LOG_INFO("send_stm_data 014");
@@ -2525,7 +2315,7 @@ static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
         else
         {
             bak_buff[1] = BLE_KEY_RESP_SIGN;
-            sign_ecdsa_msg(key_info.private_key, uart_data_array + 6, msg_len, bak_buff + 2);
+            sign_ecdsa_msg(deviceKeyStore_p->private_key, uart_data_array + 6, msg_len, bak_buff + 2);
             NRF_LOG_INFO("send_stm_data 015");
             send_stm_data(bak_buff, 64 + 2);
         }
@@ -2587,7 +2377,7 @@ static void manage_bat_level(void* p_event_data, uint16_t event_size)
         send_stm_data(bak_buff, 2);
     }
 }
-static void check_advertising_stop(void)
+static void bt_disconnect()
 {
     if ( ble_evt_flag != BLE_DISCONNECT || ble_evt_flag != BLE_DEFAULT )
     {
@@ -2597,7 +2387,6 @@ static void check_advertising_stop(void)
         NRF_LOG_INFO("Ctl disconnect.");
     }
     nrf_delay_ms(1000);
-    advertising_stop();
 }
 static void ble_ctl_process(void* p_event_data, uint16_t event_size)
 {
@@ -2613,12 +2402,8 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
             NRF_LOG_INFO("send_stm_data 019");
             send_stm_data(bak_buff, 2);
 
-            flash_data_write(BLE_CTL_ADDR, m_data);
-            ble_status_flag = BLE_OFF_ALWAYS;
-            NRF_LOG_INFO("1-Ble disconnect.\n");
-            NRF_LOG_INFO("BLE status is %d", ble_evt_flag);
-
-            check_advertising_stop();
+            bt_disconnect();
+            bt_advertising_ctrl(false, true);
         }
         else
         {
@@ -2638,9 +2423,7 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
             NRF_LOG_INFO("send_stm_data 021");
             send_stm_data(bak_buff, 2);
 
-            advertising_start();
-            flash_data_write(BLE_CTL_ADDR, m_data2);
-            ble_status_flag = BLE_ON_ALWAYS;
+            bt_advertising_ctrl(true, true);
             NRF_LOG_INFO("2-Start advertisement.\n");
         }
         else
@@ -2690,7 +2473,7 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
 
         if ( ble_status_flag != BLE_OFF_ALWAYS )
         {
-            check_advertising_stop();
+            bt_disconnect();
         }
         pmu_p->SetState(PWR_STATE_OFF);
         break;
@@ -2844,17 +2627,12 @@ int main(void)
     // Initialize.
     log_init();
     system_init();
+
     scheduler_init();
-    fs_init();
     nrf_crypto_init();
-    NRF_LOG_FLUSH();
-    device_key_info_init();
+    device_keystore_init(); // TODO: check return!
+    device_settings_init(); // TODO: check return!
     timers_init();
-
-#ifdef DEV_BSP
-    buttons_leds_init();
-#endif
-
     power_management_init();
 
     ble_stack_init();
@@ -2870,16 +2648,20 @@ int main(void)
     application_timers_start();
     // Start execution.
 
-    ctl_advertising();
+    // bt init
+    bt_advertising_ctrl(
+        ((deviceSettings_p->flag_initialized == DEVICE_CONFIG_FLAG_MAGIC) && // valid
+         (deviceSettings_p->bt_ctrl == DEVICE_CONFIG_FLAG_MAGIC))            // set to flag means turn off
+        ,
+        false
+    ); // TODO: check return!
 
-    // nfc_init();
-    watch_dog_init();
+    // watch_dog_init(); //???? why keep reboot, did we feed the dog?
     NRF_LOG_INFO("NRF INIT END");
 
     // Enter main loop.
     for ( ;; )
     {
-
         main_loop();
         app_sched_execute();
         idle_state_handle();

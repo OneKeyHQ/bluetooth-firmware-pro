@@ -49,7 +49,6 @@
 #include <stdint.h>
 #include "app_error.h"
 #include "app_error_weak.h"
-// #include "boards.h"
 #include "nrf_bootloader.h"
 #include "nrf_bootloader_app_start.h"
 #include "nrf_bootloader_dfu_timers.h"

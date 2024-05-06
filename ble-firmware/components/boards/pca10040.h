@@ -75,7 +75,7 @@ extern "C" {
 #define BUTTON_3       15
 #define BUTTON_4       16
 #define BUTTON_STOP    16
-#define BUTTON_PULL    NRF_GPIO_PIN_NOPULL
+#define BUTTON_PULL    NRF_GPIO_PIN_PULLUP
 
 #define BUTTONS_ACTIVE_STATE 0
 
@@ -86,11 +86,11 @@ extern "C" {
 #define BSP_BUTTON_2   BUTTON_3
 #define BSP_BUTTON_3   BUTTON_4
 
-#define RX_PIN_NUMBER  11
-#define TX_PIN_NUMBER  12
-#define CTS_PIN_NUMBER NRF_UART_PSEL_DISCONNECTED
-#define RTS_PIN_NUMBER NRF_UART_PSEL_DISCONNECTED
-#define HWFC           false
+#define RX_PIN_NUMBER  8
+#define TX_PIN_NUMBER  6
+#define CTS_PIN_NUMBER 7
+#define RTS_PIN_NUMBER 5
+#define HWFC           true
 
 #define SPIS_MISO_PIN   28  // SPI MISO signal.
 #define SPIS_CSN_PIN    12  // SPI CSN signal.

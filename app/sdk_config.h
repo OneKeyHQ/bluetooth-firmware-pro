@@ -295,7 +295,7 @@
 // <4=> Debug 
 
 #ifndef BLE_BAS_CONFIG_LOG_LEVEL
-#define BLE_BAS_CONFIG_LOG_LEVEL 4
+#define BLE_BAS_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> BLE_BAS_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -416,7 +416,7 @@
 // <4=> Debug 
 
 #ifndef BLE_IAS_CONFIG_LOG_LEVEL
-#define BLE_IAS_CONFIG_LOG_LEVEL 4
+#define BLE_IAS_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> BLE_IAS_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -502,7 +502,7 @@
 // <4=> Debug 
 
 #ifndef BLE_NUS_CONFIG_LOG_LEVEL
-#define BLE_NUS_CONFIG_LOG_LEVEL 4
+#define BLE_NUS_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> BLE_NUS_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -1651,7 +1651,7 @@
 // <4=> Debug 
 
 #ifndef I2S_CONFIG_LOG_LEVEL
-#define I2S_CONFIG_LOG_LEVEL 4
+#define I2S_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> I2S_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -1816,7 +1816,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_CLOCK_CONFIG_LOG_LEVEL
-#define NRFX_CLOCK_CONFIG_LOG_LEVEL 4
+#define NRFX_CLOCK_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_CLOCK_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -1955,7 +1955,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_COMP_CONFIG_LOG_LEVEL
-#define NRFX_COMP_CONFIG_LOG_LEVEL 4
+#define NRFX_COMP_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_COMP_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -2033,7 +2033,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_GPIOTE_CONFIG_LOG_LEVEL
-#define NRFX_GPIOTE_CONFIG_LOG_LEVEL 4
+#define NRFX_GPIOTE_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_GPIOTE_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -2228,7 +2228,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_I2S_CONFIG_LOG_LEVEL
-#define NRFX_I2S_CONFIG_LOG_LEVEL 4
+#define NRFX_I2S_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_I2S_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -2357,7 +2357,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_LPCOMP_CONFIG_LOG_LEVEL
-#define NRFX_LPCOMP_CONFIG_LOG_LEVEL 4
+#define NRFX_LPCOMP_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_LPCOMP_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -2430,7 +2430,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_NFCT_CONFIG_LOG_LEVEL
-#define NRFX_NFCT_CONFIG_LOG_LEVEL 4
+#define NRFX_NFCT_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_NFCT_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -2466,6 +2466,14 @@
 #endif
 
 // </e>
+
+// </e>
+
+// <e> NRFX_NVMC_ENABLED - nrfx_nvmc - NVMC peripheral driver
+//==========================================================
+#ifndef NRFX_NVMC_ENABLED
+#define NRFX_NVMC_ENABLED 1
+#endif
 
 // </e>
 
@@ -2531,7 +2539,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_PDM_CONFIG_LOG_LEVEL
-#define NRFX_PDM_CONFIG_LOG_LEVEL 4
+#define NRFX_PDM_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_PDM_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -2629,7 +2637,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_PPI_CONFIG_LOG_LEVEL
-#define NRFX_PPI_CONFIG_LOG_LEVEL 4
+#define NRFX_PPI_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_PPI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -2722,7 +2730,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_PRS_CONFIG_LOG_LEVEL
-#define NRFX_PRS_CONFIG_LOG_LEVEL 4
+#define NRFX_PRS_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_PRS_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -2893,7 +2901,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_PWM_CONFIG_LOG_LEVEL
-#define NRFX_PWM_CONFIG_LOG_LEVEL 4
+#define NRFX_PWM_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_PWM_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3073,7 +3081,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_QDEC_CONFIG_LOG_LEVEL
-#define NRFX_QDEC_CONFIG_LOG_LEVEL 4
+#define NRFX_QDEC_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_QDEC_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3153,7 +3161,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_RNG_CONFIG_LOG_LEVEL
-#define NRFX_RNG_CONFIG_LOG_LEVEL 4
+#define NRFX_RNG_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_RNG_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3266,7 +3274,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_RTC_CONFIG_LOG_LEVEL
-#define NRFX_RTC_CONFIG_LOG_LEVEL 4
+#define NRFX_RTC_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_RTC_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3373,7 +3381,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_SAADC_CONFIG_LOG_LEVEL
-#define NRFX_SAADC_CONFIG_LOG_LEVEL 4
+#define NRFX_SAADC_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_SAADC_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3477,7 +3485,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_SPIM_CONFIG_LOG_LEVEL
-#define NRFX_SPIM_CONFIG_LOG_LEVEL 4
+#define NRFX_SPIM_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_SPIM_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3599,7 +3607,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_SPIS_CONFIG_LOG_LEVEL
-#define NRFX_SPIS_CONFIG_LOG_LEVEL 4
+#define NRFX_SPIS_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_SPIS_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3717,7 +3725,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_SPI_CONFIG_LOG_LEVEL
-#define NRFX_SPI_CONFIG_LOG_LEVEL 4
+#define NRFX_SPI_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_SPI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3824,7 +3832,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_SWI_CONFIG_LOG_LEVEL
-#define NRFX_SWI_CONFIG_LOG_LEVEL 4
+#define NRFX_SWI_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_SWI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3969,7 +3977,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_TIMER_CONFIG_LOG_LEVEL
-#define NRFX_TIMER_CONFIG_LOG_LEVEL 4
+#define NRFX_TIMER_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_TIMER_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -4062,7 +4070,7 @@
 // <e> NRFX_TWIM_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
 #ifndef NRFX_TWIM_CONFIG_LOG_ENABLED
-#define NRFX_TWIM_CONFIG_LOG_ENABLED 1
+#define NRFX_TWIM_CONFIG_LOG_ENABLED 0
 #endif
 // <o> NRFX_TWIM_CONFIG_LOG_LEVEL  - Default Severity level
  
@@ -4073,7 +4081,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_TWIM_CONFIG_LOG_LEVEL
-#define NRFX_TWIM_CONFIG_LOG_LEVEL 4
+#define NRFX_TWIM_CONFIG_LOG_LEVEL 0
 #endif
 
 // <o> NRFX_TWIM_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -4221,7 +4229,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_TWIS_CONFIG_LOG_LEVEL
-#define NRFX_TWIS_CONFIG_LOG_LEVEL 4
+#define NRFX_TWIS_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_TWIS_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -4314,7 +4322,7 @@
 // <e> NRFX_TWI_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
 #ifndef NRFX_TWI_CONFIG_LOG_ENABLED
-#define NRFX_TWI_CONFIG_LOG_ENABLED 1
+#define NRFX_TWI_CONFIG_LOG_ENABLED 0
 #endif
 // <o> NRFX_TWI_CONFIG_LOG_LEVEL  - Default Severity level
  
@@ -4325,7 +4333,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_TWI_CONFIG_LOG_LEVEL
-#define NRFX_TWI_CONFIG_LOG_LEVEL 4
+#define NRFX_TWI_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_TWI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -4446,7 +4454,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_UARTE_CONFIG_LOG_LEVEL
-#define NRFX_UARTE_CONFIG_LOG_LEVEL 4
+#define NRFX_UARTE_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_UARTE_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -4567,7 +4575,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_UART_CONFIG_LOG_LEVEL
-#define NRFX_UART_CONFIG_LOG_LEVEL 4
+#define NRFX_UART_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_UART_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -4667,7 +4675,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_WDT_CONFIG_LOG_LEVEL
-#define NRFX_WDT_CONFIG_LOG_LEVEL 4
+#define NRFX_WDT_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_WDT_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -6610,7 +6618,7 @@
  
 
 #ifndef CRC32_ENABLED
-#define CRC32_ENABLED 0
+#define CRC32_ENABLED 1
 #endif
 
 // <q> ECC_ENABLED  - ecc - Elliptic Curve Cryptography Library
@@ -6741,7 +6749,7 @@
  
 
 #ifndef HARDFAULT_HANDLER_ENABLED
-#define HARDFAULT_HANDLER_ENABLED 0
+#define HARDFAULT_HANDLER_ENABLED 1
 #endif
 
 // <e> HCI_MEM_POOL_ENABLED - hci_mem_pool - memory pool implementation used by HCI
@@ -6968,7 +6976,7 @@
 // <4=> Debug 
 
 #ifndef MEM_MANAGER_CONFIG_LOG_LEVEL
-#define MEM_MANAGER_CONFIG_LOG_LEVEL 4
+#define MEM_MANAGER_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> MEM_MANAGER_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -7899,7 +7907,7 @@
 // <4=> Debug 
 
 #ifndef NRF_MPU_LIB_CONFIG_LOG_LEVEL
-#define NRF_MPU_LIB_CONFIG_LOG_LEVEL 4
+#define NRF_MPU_LIB_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_MPU_LIB_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -7950,7 +7958,7 @@
 // <4=> Debug 
 
 #ifndef NRF_STACK_GUARD_CONFIG_LOG_LEVEL
-#define NRF_STACK_GUARD_CONFIG_LOG_LEVEL 4
+#define NRF_STACK_GUARD_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_STACK_GUARD_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8001,7 +8009,7 @@
 // <4=> Debug 
 
 #ifndef TASK_MANAGER_CONFIG_LOG_LEVEL
-#define TASK_MANAGER_CONFIG_LOG_LEVEL 4
+#define TASK_MANAGER_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> TASK_MANAGER_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8058,7 +8066,7 @@
 // <4=> Debug 
 
 #ifndef CLOCK_CONFIG_LOG_LEVEL
-#define CLOCK_CONFIG_LOG_LEVEL 4
+#define CLOCK_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> CLOCK_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8109,7 +8117,7 @@
 // <4=> Debug 
 
 #ifndef COMP_CONFIG_LOG_LEVEL
-#define COMP_CONFIG_LOG_LEVEL 4
+#define COMP_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> COMP_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8160,7 +8168,7 @@
 // <4=> Debug 
 
 #ifndef GPIOTE_CONFIG_LOG_LEVEL
-#define GPIOTE_CONFIG_LOG_LEVEL 4
+#define GPIOTE_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> GPIOTE_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8211,7 +8219,7 @@
 // <4=> Debug 
 
 #ifndef LPCOMP_CONFIG_LOG_LEVEL
-#define LPCOMP_CONFIG_LOG_LEVEL 4
+#define LPCOMP_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> LPCOMP_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8262,7 +8270,7 @@
 // <4=> Debug 
 
 #ifndef MAX3421E_HOST_CONFIG_LOG_LEVEL
-#define MAX3421E_HOST_CONFIG_LOG_LEVEL 4
+#define MAX3421E_HOST_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> MAX3421E_HOST_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8313,7 +8321,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_USBD_CONFIG_LOG_LEVEL
-#define NRFX_USBD_CONFIG_LOG_LEVEL 4
+#define NRFX_USBD_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRFX_USBD_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8364,7 +8372,7 @@
 // <4=> Debug 
 
 #ifndef PDM_CONFIG_LOG_LEVEL
-#define PDM_CONFIG_LOG_LEVEL 4
+#define PDM_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> PDM_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8415,7 +8423,7 @@
 // <4=> Debug 
 
 #ifndef PPI_CONFIG_LOG_LEVEL
-#define PPI_CONFIG_LOG_LEVEL 4
+#define PPI_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> PPI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8466,7 +8474,7 @@
 // <4=> Debug 
 
 #ifndef PWM_CONFIG_LOG_LEVEL
-#define PWM_CONFIG_LOG_LEVEL 4
+#define PWM_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> PWM_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8517,7 +8525,7 @@
 // <4=> Debug 
 
 #ifndef QDEC_CONFIG_LOG_LEVEL
-#define QDEC_CONFIG_LOG_LEVEL 4
+#define QDEC_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> QDEC_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8568,7 +8576,7 @@
 // <4=> Debug 
 
 #ifndef RNG_CONFIG_LOG_LEVEL
-#define RNG_CONFIG_LOG_LEVEL 4
+#define RNG_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> RNG_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8626,7 +8634,7 @@
 // <4=> Debug 
 
 #ifndef RTC_CONFIG_LOG_LEVEL
-#define RTC_CONFIG_LOG_LEVEL 4
+#define RTC_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> RTC_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8677,7 +8685,7 @@
 // <4=> Debug 
 
 #ifndef SAADC_CONFIG_LOG_LEVEL
-#define SAADC_CONFIG_LOG_LEVEL 4
+#define SAADC_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> SAADC_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8728,7 +8736,7 @@
 // <4=> Debug 
 
 #ifndef SPIS_CONFIG_LOG_LEVEL
-#define SPIS_CONFIG_LOG_LEVEL 4
+#define SPIS_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> SPIS_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8779,7 +8787,7 @@
 // <4=> Debug 
 
 #ifndef SPI_CONFIG_LOG_LEVEL
-#define SPI_CONFIG_LOG_LEVEL 4
+#define SPI_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> SPI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8830,7 +8838,7 @@
 // <4=> Debug 
 
 #ifndef TIMER_CONFIG_LOG_LEVEL
-#define TIMER_CONFIG_LOG_LEVEL 4
+#define TIMER_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> TIMER_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8881,7 +8889,7 @@
 // <4=> Debug 
 
 #ifndef TWIS_CONFIG_LOG_LEVEL
-#define TWIS_CONFIG_LOG_LEVEL 4
+#define TWIS_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> TWIS_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8932,7 +8940,7 @@
 // <4=> Debug 
 
 #ifndef TWI_CONFIG_LOG_LEVEL
-#define TWI_CONFIG_LOG_LEVEL 4
+#define TWI_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> TWI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8983,7 +8991,7 @@
 // <4=> Debug 
 
 #ifndef UART_CONFIG_LOG_LEVEL
-#define UART_CONFIG_LOG_LEVEL 4
+#define UART_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> UART_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -9034,7 +9042,7 @@
 // <4=> Debug 
 
 #ifndef USBD_CONFIG_LOG_LEVEL
-#define USBD_CONFIG_LOG_LEVEL 4
+#define USBD_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> USBD_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -9085,7 +9093,7 @@
 // <4=> Debug 
 
 #ifndef WDT_CONFIG_LOG_LEVEL
-#define WDT_CONFIG_LOG_LEVEL 4
+#define WDT_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> WDT_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -9142,7 +9150,7 @@
 // <4=> Debug 
 
 #ifndef APP_BUTTON_CONFIG_LOG_LEVEL
-#define APP_BUTTON_CONFIG_LOG_LEVEL 4
+#define APP_BUTTON_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> APP_BUTTON_CONFIG_INITIAL_LOG_LEVEL  - Initial severity level if dynamic filtering is enabled.
@@ -9209,7 +9217,7 @@
 // <4=> Debug 
 
 #ifndef APP_TIMER_CONFIG_LOG_LEVEL
-#define APP_TIMER_CONFIG_LOG_LEVEL 4
+#define APP_TIMER_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> APP_TIMER_CONFIG_INITIAL_LOG_LEVEL  - Initial severity level if dynamic filtering is enabled.
@@ -9276,7 +9284,7 @@
 // <4=> Debug 
 
 #ifndef APP_USBD_CDC_ACM_CONFIG_LOG_LEVEL
-#define APP_USBD_CDC_ACM_CONFIG_LOG_LEVEL 4
+#define APP_USBD_CDC_ACM_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> APP_USBD_CDC_ACM_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -9327,7 +9335,7 @@
 // <4=> Debug 
 
 #ifndef APP_USBD_CONFIG_LOG_LEVEL
-#define APP_USBD_CONFIG_LOG_LEVEL 4
+#define APP_USBD_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> APP_USBD_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -9378,7 +9386,7 @@
 // <4=> Debug 
 
 #ifndef APP_USBD_DUMMY_CONFIG_LOG_LEVEL
-#define APP_USBD_DUMMY_CONFIG_LOG_LEVEL 4
+#define APP_USBD_DUMMY_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> APP_USBD_DUMMY_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -9429,7 +9437,7 @@
 // <4=> Debug 
 
 #ifndef APP_USBD_MSC_CONFIG_LOG_LEVEL
-#define APP_USBD_MSC_CONFIG_LOG_LEVEL 4
+#define APP_USBD_MSC_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> APP_USBD_MSC_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -9480,7 +9488,7 @@
 // <4=> Debug 
 
 #ifndef APP_USBD_NRF_DFU_TRIGGER_CONFIG_LOG_LEVEL
-#define APP_USBD_NRF_DFU_TRIGGER_CONFIG_LOG_LEVEL 4
+#define APP_USBD_NRF_DFU_TRIGGER_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> APP_USBD_NRF_DFU_TRIGGER_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -9531,7 +9539,7 @@
 // <4=> Debug 
 
 #ifndef NRF_ATFIFO_CONFIG_LOG_LEVEL
-#define NRF_ATFIFO_CONFIG_LOG_LEVEL 4
+#define NRF_ATFIFO_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_ATFIFO_CONFIG_LOG_INIT_FILTER_LEVEL  - Initial severity level if dynamic filtering is enabled
@@ -9594,7 +9602,7 @@
 // <4=> Debug 
 
 #ifndef NRF_BALLOC_CONFIG_LOG_LEVEL
-#define NRF_BALLOC_CONFIG_LOG_LEVEL 4
+#define NRF_BALLOC_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_BALLOC_CONFIG_INITIAL_LOG_LEVEL  - Initial severity level if dynamic filtering is enabled.
@@ -9661,7 +9669,7 @@
 // <4=> Debug 
 
 #ifndef NRF_BLOCK_DEV_EMPTY_CONFIG_LOG_LEVEL
-#define NRF_BLOCK_DEV_EMPTY_CONFIG_LOG_LEVEL 4
+#define NRF_BLOCK_DEV_EMPTY_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_BLOCK_DEV_EMPTY_CONFIG_LOG_INIT_FILTER_LEVEL  - Initial severity level if dynamic filtering is enabled
@@ -9724,7 +9732,7 @@
 // <4=> Debug 
 
 #ifndef NRF_BLOCK_DEV_QSPI_CONFIG_LOG_LEVEL
-#define NRF_BLOCK_DEV_QSPI_CONFIG_LOG_LEVEL 4
+#define NRF_BLOCK_DEV_QSPI_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_BLOCK_DEV_QSPI_CONFIG_LOG_INIT_FILTER_LEVEL  - Initial severity level if dynamic filtering is enabled
@@ -9787,7 +9795,7 @@
 // <4=> Debug 
 
 #ifndef NRF_BLOCK_DEV_RAM_CONFIG_LOG_LEVEL
-#define NRF_BLOCK_DEV_RAM_CONFIG_LOG_LEVEL 4
+#define NRF_BLOCK_DEV_RAM_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_BLOCK_DEV_RAM_CONFIG_LOG_INIT_FILTER_LEVEL  - Initial severity level if dynamic filtering is enabled
@@ -9850,7 +9858,7 @@
 // <4=> Debug 
 
 #ifndef NRF_CLI_BLE_UART_CONFIG_LOG_LEVEL
-#define NRF_CLI_BLE_UART_CONFIG_LOG_LEVEL 4
+#define NRF_CLI_BLE_UART_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_CLI_BLE_UART_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -9901,7 +9909,7 @@
 // <4=> Debug 
 
 #ifndef NRF_CLI_LIBUARTE_CONFIG_LOG_LEVEL
-#define NRF_CLI_LIBUARTE_CONFIG_LOG_LEVEL 4
+#define NRF_CLI_LIBUARTE_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_CLI_LIBUARTE_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -9952,7 +9960,7 @@
 // <4=> Debug 
 
 #ifndef NRF_CLI_UART_CONFIG_LOG_LEVEL
-#define NRF_CLI_UART_CONFIG_LOG_LEVEL 4
+#define NRF_CLI_UART_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_CLI_UART_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -10003,7 +10011,7 @@
 // <4=> Debug 
 
 #ifndef NRF_LIBUARTE_CONFIG_LOG_LEVEL
-#define NRF_LIBUARTE_CONFIG_LOG_LEVEL 4
+#define NRF_LIBUARTE_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_LIBUARTE_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -10054,7 +10062,7 @@
 // <4=> Debug 
 
 #ifndef NRF_MEMOBJ_CONFIG_LOG_LEVEL
-#define NRF_MEMOBJ_CONFIG_LOG_LEVEL 4
+#define NRF_MEMOBJ_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_MEMOBJ_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -10105,7 +10113,7 @@
 // <4=> Debug 
 
 #ifndef NRF_PWR_MGMT_CONFIG_LOG_LEVEL
-#define NRF_PWR_MGMT_CONFIG_LOG_LEVEL 4
+#define NRF_PWR_MGMT_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_PWR_MGMT_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -10156,7 +10164,7 @@
 // <4=> Debug 
 
 #ifndef NRF_QUEUE_CONFIG_LOG_LEVEL
-#define NRF_QUEUE_CONFIG_LOG_LEVEL 4
+#define NRF_QUEUE_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_QUEUE_CONFIG_LOG_INIT_FILTER_LEVEL  - Initial severity level if dynamic filtering is enabled
@@ -10423,7 +10431,7 @@
 // <4=> Debug 
 
 #ifndef NRF_SORTLIST_CONFIG_LOG_LEVEL
-#define NRF_SORTLIST_CONFIG_LOG_LEVEL 4
+#define NRF_SORTLIST_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_SORTLIST_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -10474,7 +10482,7 @@
 // <4=> Debug 
 
 #ifndef NRF_TWI_SENSOR_CONFIG_LOG_LEVEL
-#define NRF_TWI_SENSOR_CONFIG_LOG_LEVEL 4
+#define NRF_TWI_SENSOR_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> NRF_TWI_SENSOR_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -10582,7 +10590,7 @@
 // <4=> Debug 
 
 #ifndef SER_HAL_TRANSPORT_CONFIG_LOG_LEVEL
-#define SER_HAL_TRANSPORT_CONFIG_LOG_LEVEL 4
+#define SER_HAL_TRANSPORT_CONFIG_LOG_LEVEL 3
 #endif
 
 // <o> SER_HAL_TRANSPORT_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -11638,146 +11646,6 @@
 
 #ifndef BSP_BTN_BLE_OBSERVER_PRIO
 #define BSP_BTN_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
 #endif
 
 // <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  

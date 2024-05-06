@@ -176,7 +176,7 @@ Power_Error_t axp2101_config(void)
 {
     EC_E_BOOL_R_PWR_ERR(axp2101_config_voltage());
     EC_E_BOOL_R_PWR_ERR(axp2101_config_battery());
-
+    EC_E_BOOL_R_PWR_ERR(axp2101_config_irq());
     return PWR_ERROR_NONE;
 }
 

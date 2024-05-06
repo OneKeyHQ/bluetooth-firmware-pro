@@ -81,8 +81,6 @@
   #include "arduino_primo.h"
 #elif defined (CUSTOM_BOARD_INC)
   #include STRINGIFY(CUSTOM_BOARD_INC.h)
-#elif defined(MY_BOARD)
-  #include "my_board.h"
 #elif defined(BOARD_CUSTOM)
   #include "custom_board.h"
 #else

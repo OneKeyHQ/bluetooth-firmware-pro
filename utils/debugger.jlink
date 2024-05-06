@@ -1,0 +1,5 @@
+speed 25000
+RSetType 0
+Halt
+WaitHalt
+r
