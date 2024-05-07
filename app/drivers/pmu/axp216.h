@@ -63,6 +63,7 @@
 #define AXP216_OFFLEVEL_DELAY     (0x37)
 #define AXP216_DCDC_FREQSET       (0x3B)
 #define AXP216_DCDC_MODESET       (0x80)
+#define AXP216_ADC_EN             (0x82)
 #define AXP216_ADC_CONTROL3       (0x84)
 #define AXP216_INTTEMPH           (0x56)
 #define AXP216_INTTEMPL           (0x57)
@@ -76,7 +77,6 @@
 #define AXP216_CCBATL_RES         (0X7B) // 电池充电电流低位寄存器
 #define AXP216_DCBATH_RES         (0X7C) // 电池放电电流高位寄存器
 #define AXP216_DCBATL_RES         (0X7D) // 电池放电电流低位寄存器
-#define AXP216_ADC_EN             (0x82)
 #define AXP216_HOTOVER_CTL        (0x8F)
 #define AXP216_GPIO0_CTL          (0x90)
 #define AXP216_GPIO1_CTL          (0x92)

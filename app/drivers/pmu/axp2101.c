@@ -226,49 +226,52 @@ Power_Error_t axp2101_get_state(Power_State_t* state)
 
 Power_Error_t axp2101_get_status(Power_Status_t* status)
 {
-    H6L8_Buff h6l8_conv;
-    uint8_t tmp;
+    HL_Buff hlbuff;
 
     memset(status, 0x00, sizeof(Power_Status_t));
     status->isValid = false;
 
     // battery percent
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_SOC, &tmp));
-    status->batteryPercent = tmp & 0x7f; // drop bit 7
+    hlbuff.u8_high = 0;
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_SOC, &(hlbuff.u8_low)));
+    status->batteryPercent = hlbuff.u8_low & 0x7f; // drop bit 7
 
     // battery voltage
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_H, &(h6l8_conv.u8_high)));
-    h6l8_conv.u8_high &= 0b00111111; // drop bit 7:6
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_L, &(h6l8_conv.u8_low)));
-    status->batteryVoltage = h6l8_conv.u16;
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_H, &(hlbuff.u8_high)));
+    hlbuff.u8_high &= 0b00111111; // drop bit 7:6
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_L, &(hlbuff.u8_low)));
+    status->batteryVoltage = hlbuff.u16;
 
     // battery temp
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_H, &(h6l8_conv.u8_high)));
-    h6l8_conv.u8_high &= 0b00111111; // drop bit 7:6
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_L, &(h6l8_conv.u8_low)));
-    status->batteryTemp = h6l8_conv.u16;
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_H, &(hlbuff.u8_high)));
+    hlbuff.u8_high &= 0b00111111; // drop bit 7:6
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_L, &(hlbuff.u8_low)));
+    status->batteryTemp = hlbuff.u16;
 
     // pmu temp
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_H, &(h6l8_conv.u8_high)));
-    h6l8_conv.u8_high &= 0b00111111; // drop bit 7:6
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_L, &(h6l8_conv.u8_low)));
-    status->pmuTemp = h6l8_conv.u16;
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_H, &(hlbuff.u8_high)));
+    hlbuff.u8_high &= 0b00111111; // drop bit 7:6
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_L, &(hlbuff.u8_low)));
+    status->pmuTemp = hlbuff.u16;
 
     // charging
 
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_MODULE_EN, &(h6l8_conv.u8_low)));
-    status->chargeAllowed = ((h6l8_conv.u8_low & (1 << 1)) == (1 << 1));
+    hlbuff.u8_high = 0;
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_MODULE_EN, &(hlbuff.u8_low)));
+    status->chargeAllowed = ((hlbuff.u8_low & (1 << 1)) == (1 << 1));
 
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT0, &(h6l8_conv.u8_low)));
-    status->chargerAvailable = ((h6l8_conv.u8_low & (1 << 5)) == (1 << 5)); // vbus good
+    hlbuff.u8_high = 0;
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT0, &(hlbuff.u8_low)));
+    status->chargerAvailable = ((hlbuff.u8_low & (1 << 5)) == (1 << 5)); // vbus good
 
     // check if charging
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT1, &(h6l8_conv.u8_low)));
-    if ( (h6l8_conv.u8_low & 0b01100000) == 0b00100000 ) // bit 6:5 = 01
+    hlbuff.u8_high = 0;
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT1, &(hlbuff.u8_low)));
+    if ( (hlbuff.u8_low & 0b01100000) == 0b00100000 ) // bit 6:5 = 01
     {
         // read gpio
         // TODO: impl.
-        status->wirelessCharge = ((h6l8_conv.u8_low & (1 << 1)) == (1 << 1));
+        status->wirelessCharge = ((hlbuff.u8_low & (1 << 1)) == (1 << 1));
 
         // if not wireless charging then it's wired
         status->wiredCharge = !status->wirelessCharge;
@@ -284,8 +287,9 @@ Power_Error_t axp2101_get_status(Power_Status_t* status)
     status->dischargeCurrent = 0;
 
     // check if battery standby
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT1, &(h6l8_conv.u8_low)));
-    status->chargeFinished = ((h6l8_conv.u8_low & 0b01100000) == 0b00000000); // bit 6:5 = 00
+    hlbuff.u8_high = 0;
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT1, &(hlbuff.u8_low)));
+    status->chargeFinished = ((hlbuff.u8_low & 0b01100000) == 0b00000000); // bit 6:5 = 00
 
     status->isValid = true;
     return PWR_ERROR_NONE;

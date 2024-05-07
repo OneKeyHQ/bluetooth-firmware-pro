@@ -7,7 +7,6 @@
 
 PMU_t* pmu_probe(PMU_Interface_t* pmu_if);
 
-
 // static void pmu_print_status(Power_Status_t status)
 // {
 //     NRF_LOG_INFO("=== Power_Status_t ===\n");
@@ -26,5 +25,18 @@ PMU_t* pmu_probe(PMU_Interface_t* pmu_if);
 //     NRF_LOG_INFO("=== ============== ===\n");
 //     NRF_LOG_FLUSH();
 // }
+
+// static void print_buffers(uint32_t line, HL_Buff hlbuff)
+// {
+//     pmu_interface_p->Log(
+//         PWR_LOG_LEVEL_INFO,
+//         "line=%u\n"
+//         "hlbuff.high=%02x\n"
+//         "hlbuff.low=%02x\n"
+//         "hlbuff.u16=%lu\n",
+//         line, hlbuff.u8_high, hlbuff.u8_low, (hlbuff.u16 >> 4)
+//     );
+// }
+// #define PRINT_BUFFERS() print_buffers(__LINE__, hlbuff)
 
 #endif //__PMU_H_

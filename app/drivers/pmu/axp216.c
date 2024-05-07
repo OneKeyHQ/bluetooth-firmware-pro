@@ -1,5 +1,6 @@
 #include "axp216.h"
-#include "nrf_delay.h"
+
+#include "ntc_util.h"
 
 // macros
 
@@ -47,6 +48,14 @@ static bool axp216_config_battery(void)
     return true;
 }
 
+static bool axp216_config_adc(void)
+{
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_ADC_CONTROL3, 0x12));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_ADC_EN, 0xE1));
+
+    return true;
+}
+
 static bool axp216_config_irq(void)
 {
     // disable irq
@@ -86,6 +95,7 @@ static bool axp216_config_control_parameter(void)
 
     return true;
 }
+
 static bool axp216_output_ctl(bool on_off)
 {
 
@@ -111,8 +121,6 @@ static bool axp216_output_ctl(bool on_off)
 
 Power_Error_t axp216_init(void)
 {
-    // nrf_delay_ms(300);
-
     if ( initialized )
     {
         return PWR_ERROR_NONE;
@@ -232,7 +240,9 @@ Power_Error_t axp216_config(void)
     EC_E_BOOL_R_PWR_ERR(axp216_config_voltage());
     EC_E_BOOL_R_PWR_ERR(axp216_config_battery());
     EC_E_BOOL_R_PWR_ERR(axp216_config_irq());
-    nrf_delay_ms(200);
+    EC_E_BOOL_R_PWR_ERR(axp216_config_adc());
+
+    pmu_interface_p->Delay_ms(200);
 
     return PWR_ERROR_NONE;
 }
@@ -294,58 +304,54 @@ Power_Error_t axp216_get_state(Power_State_t* state)
 
 Power_Error_t axp216_get_status(Power_Status_t* status)
 {
-    H8L4_Buff h8l4_conv;
-    uint8_t tmp;
+    HL_Buff hlbuff;
 
     memset(status, 0x00, sizeof(Power_Status_t));
     status->isValid = false;
 
     // battery percent
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_BAT_LEVEL, &tmp));
-    if ( (tmp & 0x80) == 0x80 ) // is data valid
-        status->batteryPercent = tmp & 0x7f;
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_BAT_LEVEL, &(hlbuff.u8_low)));
+    if ( (hlbuff.u8_low & 0x80) == 0x80 ) // is data valid
+        status->batteryPercent = hlbuff.u8_low & 0x7f;
     else
         status->batteryPercent = 100;
 
     // battery voltage
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VBATH_RES, &tmp));
-    h8l4_conv.u8_high = tmp;
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VBATL_RES, &tmp));
-    h8l4_conv.u8_high = tmp & 0xf0;
-    status->batteryVoltage = h8l4_conv.u16; // TODO: CALCULATE ACTUAL VALUE
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VBATH_RES, &(hlbuff.u8_high)));
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VBATL_RES, &(hlbuff.u8_low)));
+    status->batteryVoltage = (hlbuff.u16 >> 4) * 1.1 + 0; // val * step - base
 
     // battery temp
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VTSH_RES, &tmp));
-    h8l4_conv.u8_high = tmp;
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VTSL_RES, &tmp));
-    h8l4_conv.u8_high = tmp & 0xf0;
-    status->batteryTemp = h8l4_conv.u16; // TODO: CALCULATE ACTUAL VALUE
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VTSH_RES, &(hlbuff.u8_high)));
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VTSL_RES, &(hlbuff.u8_low)));
+    status->batteryTemp =
+        ntc_temp_cal_cv(NTC_Char_NCP15XH103F03RC_2585, 40, ((hlbuff.u16 >> 4) * 0.8 + 0) * 1000); // temp_c
 
     // pmu temp
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTTEMPH, &tmp));
-    h8l4_conv.u8_high = tmp;
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTTEMPL, &tmp));
-    h8l4_conv.u8_high = tmp & 0xf0;
-    status->pmuTemp = h8l4_conv.u16; // TODO: CALCULATE ACTUAL VALUE
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTTEMPH, &(hlbuff.u8_high)));
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTTEMPL, &(hlbuff.u8_low)));
+    status->pmuTemp = (uint16_t)((hlbuff.u16 >> 4) * 0.1 - 267.7); // val * step - base
 
     // charging
+    hlbuff.u8_high = 0;
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CHARGE1, &(hlbuff.u8_low)));
+    status->chargeAllowed = ((hlbuff.u8_low & (1 << 7)) == (1 << 7));
 
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CHARGE1, &tmp));
-    status->chargeAllowed = ((tmp & (1 << 7)) == (1 << 7));
-
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_STATUS, &tmp));
+    hlbuff.u8_high = 0;
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_STATUS, &(hlbuff.u8_low)));
     status->chargerAvailable =
-        (((tmp & (1 << 7) & (1 << 6)) == ((1 << 7) & (1 << 6))) || // acin
-         ((tmp & (1 << 5) & (1 << 4)) == ((1 << 5) & (1 << 4)))    // vbus
+        (((hlbuff.u8_low & ((1 << 7) | (1 << 6))) == ((1 << 7) | (1 << 6))) && // acin
+         ((hlbuff.u8_low & ((1 << 5) | (1 << 4))) == ((1 << 5) | (1 << 4)))    // vbus
         );
 
-    if ( ((tmp & (1 << 2)) == (1 << 2)) ) // check if charging
+    if ( ((hlbuff.u8_low & (1 << 2)) == (1 << 2)) ) // check if charging
     {
         // read gpio
         EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000010)); // gpio1 input
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_GPIO01_SIGNAL, &tmp));    // gpio1 read
+        hlbuff.u8_high = 0;
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_GPIO01_SIGNAL, &(hlbuff.u8_low))); // gpio1 read
         EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000111)); // gpio1 float
-        status->wirelessCharge = ((tmp & (1 << 1)) == (1 << 1));
+        status->wirelessCharge = ((hlbuff.u8_low & (1 << 1)) == (1 << 1));
 
         // if not wireless charging then it's wired
         status->wiredCharge = !status->wirelessCharge;
@@ -358,25 +364,22 @@ Power_Error_t axp216_get_status(Power_Status_t* status)
 
     if ( status->wiredCharge || status->wirelessCharge )
     {
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CCBATH_RES, &tmp));
-        h8l4_conv.u8_high = tmp;
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CCBATL_RES, &tmp));
-        h8l4_conv.u8_high = tmp & 0xf0;
-        status->chargeCurrent = h8l4_conv.u16;
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CCBATH_RES, &(hlbuff.u8_high)));
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CCBATL_RES, &(hlbuff.u8_low)));
+        status->chargeCurrent = (hlbuff.u16 >> 4);
         status->dischargeCurrent = 0;
     }
     else
     {
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_DCBATH_RES, &tmp));
-        h8l4_conv.u8_high = tmp;
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_DCBATL_RES, &tmp));
-        h8l4_conv.u8_high = tmp & 0xf0;
-        status->dischargeCurrent = h8l4_conv.u16;
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_DCBATH_RES, &(hlbuff.u8_high)));
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_DCBATL_RES, &(hlbuff.u8_low)));
+        status->dischargeCurrent = (hlbuff.u16 >> 4);
         status->chargeCurrent = 0;
     }
 
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_MODE_CHGSTATUS, &tmp));
-    status->chargeFinished = ((tmp & (1 << 6)) == (1 << 6));
+    hlbuff.u8_high = 0;
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_MODE_CHGSTATUS, &(hlbuff.u8_low)));
+    status->chargeFinished = ((hlbuff.u8_low & (1 << 6)) == (1 << 6));
 
     status->isValid = true;
     return PWR_ERROR_NONE;
@@ -399,160 +402,163 @@ void axp216_setup_interface(PMU_Interface_t* pmu_if_p, PMU_t* pmu_p)
     pmu_p->GetStatus = axp216_get_status;
 }
 
-// static ret_code_t power_pre_config()
-// {
-//     NRF_LOG_INFO("**************** %s ****************", __FUNCTION__);
-//     NRF_LOG_FLUSH();
+#ifdef NOT_USED_ASDF
+static ret_code_t power_pre_config()
+{
+    NRF_LOG_INFO("**************** %s ****************", __FUNCTION__);
+    NRF_LOG_FLUSH();
 
-//     ENSURE_I2C_AVAILABLE()
+    ENSURE_I2C_AVAILABLE()
 
-//     preg(AXP216_ALDO1OUT_VOL);
-//     preg(AXP216_ALDO2OUT_VOL);
-//     preg(AXP216_ALDO3OUT_VOL);
-//     preg(AXP216_DC1OUT_VOL);
+    preg(AXP216_ALDO1OUT_VOL);
+    preg(AXP216_ALDO2OUT_VOL);
+    preg(AXP216_ALDO3OUT_VOL);
+    preg(AXP216_DC1OUT_VOL);
 
-//     // ALDO1 -> LDO_1V8 1.8V
-//     NRF_LOG_INFO("ALDO1 -> LDO_1V8 1.8V");
-//     NRF_LOG_FLUSH();
-//     NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO1OUT_VOL, 0x0B));
-//     // ret = axp216_reg_write(AXP216_ALDO1OUT_VOL, 0x0B);
-//     // if ( ret != NRF_SUCCESS )
-//     //     return ret;
+    // ALDO1 -> LDO_1V8 1.8V
+    NRF_LOG_INFO("ALDO1 -> LDO_1V8 1.8V");
+    NRF_LOG_FLUSH();
+    NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO1OUT_VOL, 0x0B));
+    // ret = axp216_reg_write(AXP216_ALDO1OUT_VOL, 0x0B);
+    // if ( ret != NRF_SUCCESS )
+    //     return ret;
 
-//     // ALDO2 -> LDO_FB 3.3V
-//     NRF_LOG_INFO("ALDO2 -> LDO_FB 3.3V");
-//     NRF_LOG_FLUSH();
-//     NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO2OUT_VOL, 0x1a));
-//     // ret = axp216_reg_write(AXP216_ALDO2OUT_VOL, 0x1a);
-//     // ret = axp216_reg_write(AXP216_ALDO2OUT_VOL, 0x1C);
-//     // if ( ret != NRF_SUCCESS )
-//     //     return ret;static void pmu_sleep_ctrl(bool sleep_enable)
-// {
-//     NRF_LOG_INFO("**************** %s ****************", __FUNCTION__);
+    // ALDO2 -> LDO_FB 3.3V
+    NRF_LOG_INFO("ALDO2 -> LDO_FB 3.3V");
+    NRF_LOG_FLUSH();
+    NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO2OUT_VOL, 0x1a));
+    // ret = axp216_reg_write(AXP216_ALDO2OUT_VOL, 0x1a);
+    // ret = axp216_reg_write(AXP216_ALDO2OUT_VOL, 0x1C);
+    // if ( ret != NRF_SUCCESS )
+    //     return ret;static void pmu_sleep_ctrl(bool sleep_enable)
+    {
+        NRF_LOG_INFO("**************** %s ****************", __FUNCTION__);
 
-//     if ( !i2c_configured )
-//         return;
+        if ( !i2c_configured )
+            return;
 
-//     if ( sleep_enable )
-//     {
-//         // prepare sleep
-//         axp_set_bits(AXP216_VOFF_SET, (1 << 3));
-//         // power off (sleep)
-//         power_off();
-//     }
-//     else
-//     {
-//         // wakeup
-//         // axp_set_bits(AXP216_VOFF_SET, (1 << 5));
+        if ( sleep_enable )
+        {
+            // prepare sleep
+            axp_set_bits(AXP216_VOFF_SET, (1 << 3));
+            // power off (sleep)
+            power_off();
+        }
+        else
+        {
+            // wakeup
+            // axp_set_bits(AXP216_VOFF_SET, (1 << 5));
 
-//         uint8_t reg_val;
-//         NRF_EXEC_RETRY(axp216_read(AXP216_VOFF_SET, 1, &reg_val));
+            uint8_t reg_val;
+            NRF_EXEC_RETRY(axp216_read(AXP216_VOFF_SET, 1, &reg_val));
 
-//         if ( (reg_val & (1 << 5)) != (1 << 5) )
-//         {
-//             reg_val |= (1 << 5);
-//             NRF_EXEC_RETRY(axp216_reg_write(AXP216_VOFF_SET, reg_val));
-//         }
-//     }
-// }
+            if ( (reg_val & (1 << 5)) != (1 << 5) )
+            {
+                reg_val |= (1 << 5);
+                NRF_EXEC_RETRY(axp216_reg_write(AXP216_VOFF_SET, reg_val));
+            }
+        }
+    }
 
-//     // ALDO3 -> LDO_NF 3.3V
-//     NRF_LOG_INFO("ALDO3 -> LDO_NF 3.3V");
-//     NRF_LOG_FLUSH();
-//     NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO3OUT_VOL, 0x1a));
-//     // ret = axp216_reg_write(AXP216_ALDO3OUT_VOL, 0x1a);
-//     // ret = axp216_reg_write(AXP216_ALDO3OUT_VOL, 0x1E);
-//     // if ( ret != NRF_SUCCESS )
-//     //     return ret;
+    // ALDO3 -> LDO_NF 3.3V
+    NRF_LOG_INFO("ALDO3 -> LDO_NF 3.3V");
+    NRF_LOG_FLUSH();
+    NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO3OUT_VOL, 0x1a));
+    // ret = axp216_reg_write(AXP216_ALDO3OUT_VOL, 0x1a);
+    // ret = axp216_reg_write(AXP216_ALDO3OUT_VOL, 0x1E);
+    // if ( ret != NRF_SUCCESS )
+    //     return ret;
 
-//     // DCDC1 -> MAIN 3.3V
-//     NRF_LOG_INFO("DCDC1 -> MAIN 3.3V");
-//     NRF_LOG_FLUSH();
-//     NRF_EXEC_RETRY(axp216_reg_write(AXP216_DC1OUT_VOL, 0x11));
-//     // ret = axp216_reg_write(AXP216_DC1OUT_VOL, 0x11);
-//     // if ( ret != NRF_SUCCESS )
-//     //     return ret;
+    // DCDC1 -> MAIN 3.3V
+    NRF_LOG_INFO("DCDC1 -> MAIN 3.3V");
+    NRF_LOG_FLUSH();
+    NRF_EXEC_RETRY(axp216_reg_write(AXP216_DC1OUT_VOL, 0x11));
+    // ret = axp216_reg_write(AXP216_DC1OUT_VOL, 0x11);
+    // if ( ret != NRF_SUCCESS )
+    //     return ret;
 
-//     preg(AXP216_ALDO1OUT_VOL);
-//     preg(AXP216_ALDO2OUT_VOL);
-//     preg(AXP216_ALDO3OUT_VOL);
-//     preg(AXP216_DC1OUT_VOL);
+    preg(AXP216_ALDO1OUT_VOL);
+    preg(AXP216_ALDO2OUT_VOL);
+    preg(AXP216_ALDO3OUT_VOL);
+    preg(AXP216_DC1OUT_VOL);
 
-//     return NRF_SUCCESS;
-// }
+    return NRF_SUCCESS;
+}
 
-// static void print_axp_reg(char* reg_name, uint8_t reg_addr)
-// {
-//     ret_code_t ret = 0;
-//     uint8_t val = 0x5a;
-//     axp216_read(reg_addr, 1, &val);
-//     NRF_LOG_INFO("%d ret=%ld", __LINE__, ret);
-//     NRF_LOG_INFO("%s(0x%02x)=0x%02x", reg_name, reg_addr, val);
-// }
-// #define preg(x) print_axp_reg(#x, x)
+static void print_axp_reg(char* reg_name, uint8_t reg_addr)
+{
+    ret_code_t ret = 0;
+    uint8_t val = 0x5a;
+    axp216_read(reg_addr, 1, &val);
+    NRF_LOG_INFO("%d ret=%ld", __LINE__, ret);
+    NRF_LOG_INFO("%s(0x%02x)=0x%02x", reg_name, reg_addr, val);
+}
+  #define preg(x) print_axp_reg(#x, x)
 
-// #define NRF_EXEC_RETRY_ADV(EXPR, RETRY, DELAY_MS)
-//     {
-//         uint32_t retry = 1;
-//         ret_code_t ret = NRF_SUCCESS;
-//         while ( retry <= RETRY )
-//         {
-//             NRF_LOG_INFO("EXPR=%s, TRY=%lu/%lu", #EXPR, retry, RETRY);
-//             ret = (EXPR);
-//             if ( ret == NRF_SUCCESS )
-//                 break;
-//             else
-//                 nrf_delay_ms(DELAY_MS);
-//             retry++;
-//         }
-//         if ( ret != NRF_SUCCESS )
-//             return ret;
-//     }
+  #define NRF_EXEC_RETRY_ADV(EXPR, RETRY, DELAY_MS)
+{
+    uint32_t retry = 1;
+    ret_code_t ret = NRF_SUCCESS;
+    while ( retry <= RETRY )
+    {
+        NRF_LOG_INFO("EXPR=%s, TRY=%lu/%lu", #EXPR, retry, RETRY);
+        ret = (EXPR);
+        if ( ret == NRF_SUCCESS )
+            break;
+        else
+            nrf_delay_ms(DELAY_MS);
+        retry++;
+    }
+    if ( ret != NRF_SUCCESS )
+        return ret;
+}
 
-// #define NRF_EXEC_RETRY(EXPR) NRF_EXEC_RETRY_ADV(EXPR, 10, 10)
+  #define NRF_EXEC_RETRY(EXPR) NRF_EXEC_RETRY_ADV(EXPR, 10, 10)
 
-// static ret_code_t power_config_aio(bool left_on)
-// {
-//     NRF_LOG_INFO("**************** %s ****************", __FUNCTION__);
-//     NRF_LOG_FLUSH();
+static ret_code_t power_config_aio(bool left_on)
+{
+    NRF_LOG_INFO("**************** %s ****************", __FUNCTION__);
+    NRF_LOG_FLUSH();
 
-//     ENSURE_I2C_AVAILABLE();
+    ENSURE_I2C_AVAILABLE();
 
-//     // configure voltages
-//     // ALDO1 -> LDO_1V8 1.8V
-//     NRF_LOG_INFO("ALDO1 -> LDO_1V8 1.8V");
-//     NRF_LOG_FLUSH();
-//     NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO1OUT_VOL, 0x0B));
-//     // ALDO2 -> LDO_FB 3.3V
-//     NRF_LOG_INFO("ALDO2 -> LDO_FB 3.3V");
-//     NRF_LOG_FLUSH();
-//     NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO2OUT_VOL, 0x1a));
-//     // ALDO3 -> LDO_NF 3.3V
-//     NRF_LOG_INFO("ALDO3 -> LDO_NF 3.3V");
-//     NRF_LOG_FLUSH();
-//     NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO3OUT_VOL, 0x1a));
-//     // DCDC1 -> MAIN 3.3V
-//     NRF_LOG_INFO("DCDC1 -> MAIN 3.3V");
-//     NRF_LOG_FLUSH();
-//     NRF_EXEC_RETRY(axp216_reg_write(AXP216_DC1OUT_VOL, 0x11));
+    // configure voltages
+    // ALDO1 -> LDO_1V8 1.8V
+    NRF_LOG_INFO("ALDO1 -> LDO_1V8 1.8V");
+    NRF_LOG_FLUSH();
+    NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO1OUT_VOL, 0x0B));
+    // ALDO2 -> LDO_FB 3.3V
+    NRF_LOG_INFO("ALDO2 -> LDO_FB 3.3V");
+    NRF_LOG_FLUSH();
+    NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO2OUT_VOL, 0x1a));
+    // ALDO3 -> LDO_NF 3.3V
+    NRF_LOG_INFO("ALDO3 -> LDO_NF 3.3V");
+    NRF_LOG_FLUSH();
+    NRF_EXEC_RETRY(axp216_reg_write(AXP216_ALDO3OUT_VOL, 0x1a));
+    // DCDC1 -> MAIN 3.3V
+    NRF_LOG_INFO("DCDC1 -> MAIN 3.3V");
+    NRF_LOG_FLUSH();
+    NRF_EXEC_RETRY(axp216_reg_write(AXP216_DC1OUT_VOL, 0x11));
 
-//     // configure controls
-//     if ( left_on )
-//     {
-//         NRF_EXEC_RETRY(axp216_reg_write(AXP216_LDO_DC_EN2, 0x20));
-//         NRF_EXEC_RETRY(axp216_reg_write(AXP216_LDO_DC_EN1, 0xC2));
-//     }
-//     else
-//     {
-//         NRF_EXEC_RETRY(axp216_reg_write(AXP216_LDO_DC_EN1, 0x00));
-//         NRF_EXEC_RETRY(axp216_reg_write(AXP216_LDO_DC_EN2, 0x14)); // bit 2:4 default 101, should not be
-//         changed
-//     }
+    // configure controls
+    if ( left_on )
+    {
+        NRF_EXEC_RETRY(axp216_reg_write(AXP216_LDO_DC_EN2, 0x20));
+        NRF_EXEC_RETRY(axp216_reg_write(AXP216_LDO_DC_EN1, 0xC2));
+    }
+    else
+    {
+        NRF_EXEC_RETRY(axp216_reg_write(AXP216_LDO_DC_EN1, 0x00));
+        NRF_EXEC_RETRY(axp216_reg_write(AXP216_LDO_DC_EN2, 0x14)); // bit 2:4 default 101, should not be
+        changed
+    }
 
-//     // preg(AXP216_LDO_DC_EN1);
-//     // preg(AXP216_LDO_DC_EN2);
-//     // preg(AXP216_ALDO1OUT_VOL);
-//     // preg(AXP216_ALDO2OUT_VOL);
-//     // preg(AXP216_ALDO3OUT_VOL);
-//     // preg(AXP216_DC1OUT_VOL);
-// }
+    // preg(AXP216_LDO_DC_EN1);
+    // preg(AXP216_LDO_DC_EN2);
+    // preg(AXP216_ALDO1OUT_VOL);
+    // preg(AXP216_ALDO2OUT_VOL);
+    // preg(AXP216_ALDO3OUT_VOL);
+    // preg(AXP216_DC1OUT_VOL);
+}
+
+#endif

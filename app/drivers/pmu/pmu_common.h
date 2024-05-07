@@ -26,35 +26,18 @@
 
 // ================================
 // types
-typedef union
-{
-    struct
-    {
-        uint16_t u16_padding : 4;
-        uint16_t u16         : 12;
-    } __attribute__((packed, aligned(1)));
-
-    struct
-    {
-        uint16_t u8_padding : 4;
-        uint16_t u8_high    : 8;
-        uint16_t u8_low     : 4;
-    } __attribute__((packed, aligned(1)));
-} H8L4_Buff; // convertor, all type to uint16_t as gcc complains if mixed with uint8_t
 
 typedef union
 {
+    uint16_t u16;
+    
     struct
     {
-        uint16_t u16;
-    } __attribute__((packed, aligned(1)));
-
-    struct
-    {
-        uint8_t u8_high;
         uint8_t u8_low;
+        uint8_t u8_high;
     } __attribute__((packed, aligned(1)));
-} H6L8_Buff;
+
+} HL_Buff;
 
 typedef enum
 {
@@ -86,6 +69,16 @@ typedef enum
     PWR_ENUM_ITEM(IRQ, PB_LONG),          // PWR_IRQ_PB_LONG
     PWR_ENUM_ITEM(IRQ, PB_FORCEOFF),      // PWR_IRQ_PB_FORCEOFF
 } Power_Irq_t;
+
+typedef enum
+{
+    PWR_ENUM_ITEM(LOG_LEVEL, OFF) = 0, // PWR_LOG_LEVEL_OFF
+    PWR_ENUM_ITEM(LOG_LEVEL, ERR),     // PWR_LOG_LEVEL_ERR
+    PWR_ENUM_ITEM(LOG_LEVEL, WARN),    // PWR_LOG_LEVEL_WARN
+    PWR_ENUM_ITEM(LOG_LEVEL, INFO),    // PWR_LOG_LEVEL_INFO
+    PWR_ENUM_ITEM(LOG_LEVEL, DBG),     // PWR_LOG_LEVEL_DBG
+    PWR_ENUM_ITEM(LOG_LEVEL, TRACE),   // PWR_LOG_LEVEL_TRACE
+} Power_LogLevel_t;
 
 typedef struct
 {
@@ -126,6 +119,9 @@ typedef struct
 
     } Reg;
 
+    void (*Delay_ms)(uint32_t ms);
+    void (*Log)(Power_LogLevel_t level, const char* fmt, ...);
+
 } PMU_Interface_t;
 
 typedef struct
@@ -141,5 +137,40 @@ typedef struct
     Power_Error_t (*GetState)(Power_State_t* state);
     Power_Error_t (*GetStatus)(Power_Status_t* status);
 } PMU_t;
+
+#if PMU_IF_FUNCTION_TEMPLATES
+static void pmu_if_log(Power_LogLevel_t level, const char* fmt, ...)
+{
+    char log_buffer[128];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(log_buffer, sizeof(log_buffer), fmt, args);
+    va_end(args);
+
+    switch ( level )
+    {
+    case PWR_LOG_LEVEL_ERR:
+        LOG_ERROR(log_buffer);
+        break;
+    case PWR_LOG_LEVEL_WARN:
+        LOG_WARNING(log_buffer);
+        break;
+    case PWR_LOG_LEVEL_INFO:
+        LOG_INFO(log_buffer);
+        break;
+    case PWR_LOG_LEVEL_DBG:
+        LOG_DEBUG(log_buffer);
+        break;
+    case PWR_LOG_LEVEL_TRACE:
+        LOG_TRACE(log_buffer);
+        break;
+
+    case PWR_LOG_LEVEL_OFF:
+        break;
+    default:
+        break;
+    }
+}
+#endif
 
 #endif //__PMU_COMMON_H_

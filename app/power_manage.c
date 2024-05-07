@@ -1,10 +1,14 @@
 #include <memory.h>
+#include <stdarg.h>
+
+#include <SEGGER_RTT_Conf.h>
+#include <SEGGER_RTT.h>
 
 #include "power_manage.h"
 
 #include "nrf_i2c.h"
 
-// #include "nrf_delay.h"
+#include "nrf_delay.h"
 // #include "nrf_gpio.h"
 // #include "nrf_drv_gpiote.h"
 
@@ -93,6 +97,77 @@ static void pmu_if_irq(const uint64_t irq)
     if ( 0 != (irq & (1 << PWR_IRQ_PB_FORCEOFF)) ) {}
 }
 
+#ifndef PMU_LOG_NRF_LOG
+static void pmu_if_log(Power_LogLevel_t level, const char* fmt, ...)
+{
+
+    // assume SEGGER_RTT_Init() already called
+
+    char log_buffer[128];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(log_buffer, sizeof(log_buffer), fmt, args);
+    va_end(args);
+
+    switch ( level )
+    {
+    case PWR_LOG_LEVEL_ERR:
+        SEGGER_RTT_printf(0, "%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_WARN:
+        SEGGER_RTT_printf(0, "%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_INFO:
+        SEGGER_RTT_printf(0, "%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_DBG:
+        SEGGER_RTT_printf(0, "%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_TRACE:
+        // not supported
+        break;
+
+    case PWR_LOG_LEVEL_OFF:
+        break;
+    default:
+        break;
+    }
+}
+#else
+static void pmu_if_log(Power_LogLevel_t level, const char* fmt, ...)
+{
+    char log_buffer[128];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(log_buffer, sizeof(log_buffer), fmt, args);
+    va_end(args);
+
+    switch ( level )
+    {
+    case PWR_LOG_LEVEL_ERR:
+        NRF_LOG_ERROR("%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_WARN:
+        NRF_LOG_WARNING("%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_INFO:
+        NRF_LOG_INFO("%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_DBG:
+        NRF_LOG_DEBUG("%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_TRACE:
+        // not supported
+        break;
+
+    case PWR_LOG_LEVEL_OFF:
+        break;
+    default:
+        break;
+    }
+}
+#endif
+
 // ================================
 // functions public
 bool power_manage_init()
@@ -113,6 +188,8 @@ bool power_manage_init()
     pmu_if.Reg.Read = i2c_handle->Reg.Read;
     pmu_if.Reg.SetBits = i2c_handle->Reg.SetBits;
     pmu_if.Reg.ClrBits = i2c_handle->Reg.ClrBits;
+    pmu_if.Delay_ms = nrf_delay_ms;
+    pmu_if.Log = pmu_if_log;
 
     // pmu handle
     pmu_p = pmu_probe(&pmu_if);

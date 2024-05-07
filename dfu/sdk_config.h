@@ -2037,6 +2037,14 @@
 
 // </e>
 
+
+// <q> HARDFAULT_HANDLER_ENABLED  - hardfault_default - HardFault default handler for debugging and release
+ 
+#ifndef HARDFAULT_HANDLER_ENABLED
+#define HARDFAULT_HANDLER_ENABLED 1
+#endif
+
+
 // <e> NRF_FSTORAGE_ENABLED - nrf_fstorage - Flash abstraction library
 //==========================================================
 #ifndef NRF_FSTORAGE_ENABLED
@@ -2150,7 +2158,7 @@
  
 
 #ifndef NRF_FPRINTF_FLAG_AUTOMATIC_CR_ON_LF_ENABLED
-#define NRF_FPRINTF_FLAG_AUTOMATIC_CR_ON_LF_ENABLED 1
+#define NRF_FPRINTF_FLAG_AUTOMATIC_CR_ON_LF_ENABLED 0
 #endif
 
 // <q> NRF_FPRINTF_DOUBLE_ENABLED  - Enable IEEE-754 double precision formatting.
@@ -5445,146 +5453,6 @@
 #define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
 #endif
 
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
-// <o> NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO  
-// <i> Priority with which BLE events are dispatched to the NFC pairing library.
-
-#ifndef NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO
-#define NFC_BLE_PAIR_LIB_BLE_OBSERVER_PRIO 1
-#endif
-
 // <o> NRF_BLE_BMS_BLE_OBSERVER_PRIO  
 // <i> Priority with which BLE events are dispatched to the Bond Management Service.
 
@@ -5874,7 +5742,6 @@
 
 // </h> 
 //==========================================================
-//
 
 // <<< end of configuration section >>>
 #endif //SDK_CONFIG_H

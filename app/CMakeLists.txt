@@ -286,7 +286,7 @@ set(
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_clock.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_gpiote.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_rng.c
-  ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_rtc.c
+  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_rtc.c
   # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_nfct.c
   # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_saadc.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_spim.c
@@ -381,11 +381,11 @@ target_sources(
   drivers/nrf_flash.c
   drivers/nrf_uicr.c
   drivers/pmu/pmu.c
+  drivers/pmu/ntc_util.c
   drivers/pmu/axp216.c
   drivers/pmu/axp2101.c
   drivers/light/lm36011.c
   data_transmission.c
-  rtc_calendar.c
   ecdsa.c
   power_manage.c
   flashled_manage.c
@@ -460,13 +460,14 @@ target_link_options(
   # let linker dump unused sections
   -Wl,--gc-sections
   # use newlib in nano version
-  --specs=nano.specs -lc -lnosys -lm
+  --specs=nano.specs -lc -lnosys
 )
 
 target_link_libraries(
   ${CMAKE_PROJECT_NAME} PRIVATE
   ${NRF_SDK_LINK}
   MicroECC
+  m
 )
 
 ###############################

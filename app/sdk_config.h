@@ -5280,7 +5280,7 @@
 // <e> RTC_ENABLED - nrf_drv_rtc - RTC peripheral driver - legacy layer
 //==========================================================
 #ifndef RTC_ENABLED
-#define RTC_ENABLED 1
+#define RTC_ENABLED 0
 #endif
 // <o> RTC_DEFAULT_CONFIG_FREQUENCY - Frequency  <16-32768> 
 
@@ -5324,14 +5324,14 @@
  
 
 #ifndef RTC1_ENABLED
-#define RTC1_ENABLED 0
+#define RTC1_ENABLED 0 // APP_TIMER_V2_RTC1_ENABLED is used instead
 #endif
 
 // <q> RTC2_ENABLED  - Enable RTC2 instance
  
 
 #ifndef RTC2_ENABLED
-#define RTC2_ENABLED 1
+#define RTC2_ENABLED 0
 #endif
 
 // <o> NRF_MAXIMUM_LATENCY_US - Maximum possible time[us] in highest priority interrupt 
@@ -5344,7 +5344,7 @@
 // <e> SAADC_ENABLED - nrf_drv_saadc - SAADC peripheral driver - legacy layer
 //==========================================================
 #ifndef SAADC_ENABLED
-#define SAADC_ENABLED 1
+#define SAADC_ENABLED 0
 #endif
 // <o> SAADC_CONFIG_RESOLUTION  - Resolution
  

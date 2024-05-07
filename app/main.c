@@ -91,7 +91,7 @@
 // #include "nrf_fstorage.h"
 // #include "nrf_fstorage_sd.h"
 #include "nrf_power.h"
-#include "rtc_calendar.h"
+// #include "rtc_calendar.h"
 
 #include "ecdsa.h"
 #include "power_manage.h"
@@ -405,12 +405,26 @@ static uint8_t mac_ascii[12];
 static uint8_t mac[6] = {0x42, 0x13, 0xc7, 0x98, 0x95, 0x1a}; // Device MAC address
 static char ble_adv_name[ADV_NAME_LENGTH];
 
-extern rtc_date_t rtc_date;
+// extern rtc_date_t rtc_date;
 static Power_Status_t pmu_status;
 static void pmu_status_refresh()
 {
     pmu_p->GetStatus(&pmu_status);
-    NRF_LOG_INFO("pmu_status_refresh %d: ", pmu_status.batteryPercent);
+
+    NRF_LOG_INFO("=== Power_Status_t ===");
+    NRF_LOG_INFO("isValid=%u", pmu_status.isValid);
+    NRF_LOG_INFO("batteryPercent=%u", pmu_status.batteryPercent);
+    NRF_LOG_INFO("batteryVoltage=%lu", pmu_status.batteryVoltage);
+    NRF_LOG_INFO("batteryTemp=%lu", pmu_status.batteryTemp);
+    NRF_LOG_INFO("pmuTemp=%lu", pmu_status.pmuTemp);
+    NRF_LOG_INFO("chargeAllowed=%u", pmu_status.chargeAllowed);
+    NRF_LOG_INFO("chargerAvailable=%u", pmu_status.chargerAvailable);
+    NRF_LOG_INFO("chargeFinished=%u", pmu_status.chargeFinished);
+    NRF_LOG_INFO("wiredCharge=%u", pmu_status.wiredCharge);
+    NRF_LOG_INFO("wirelessCharge=%u", pmu_status.wirelessCharge);
+    NRF_LOG_INFO("chargeCurrent=%lu", pmu_status.chargeCurrent);
+    NRF_LOG_INFO("dischargeCurrent=%lu", pmu_status.dischargeCurrent);
+    NRF_LOG_INFO("=== ============== ===");
     NRF_LOG_FLUSH();
 }
 
@@ -2160,7 +2174,7 @@ static void send_stm_data(uint8_t* pdata, uint8_t lenth)
     uart_trans_buff[2] = 0x00;
     uart_trans_buff[3] = lenth + 1;
     memcpy(&uart_trans_buff[4], pdata, lenth);
-    NRF_LOG_INFO("send_stm_data called from DATE: %d , %d", pdata[0], pdata[1]);
+    // NRF_LOG_INFO("send_stm_data called from DATE: %d , %d", pdata[0], pdata[1]);
     uart_trans_buff[uart_trans_buff[3] + 3] = calcXor(uart_trans_buff, (uart_trans_buff[3] + 3));
 
     uart_put_data(uart_trans_buff, uart_trans_buff[3] + 4);
@@ -2172,7 +2186,7 @@ static void system_init()
 #ifdef SCHED_ENABLE
     create_ringBuffer(&m_ble_fifo, data_recived_buf, sizeof(data_recived_buf));
 #endif
-    usr_rtc_init();
+    // usr_rtc_init();
     usr_spim_init();
 
     set_send_stm_data_p(send_stm_data);
@@ -2459,9 +2473,6 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         send_stm_data(bak_buff, 2);
     }
 
-    Power_Status_t status;
-    pmu_p->GetStatus(&status);
-
     switch ( pwr_status_flag )
     {
     case PWR_SHUTDOWN_SYS:
@@ -2488,13 +2499,13 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
     case PWR_BAT_PERCENT:
         pwr_status_flag = PWR_DEF;
         bak_buff[0] = BLE_SYSTEM_POWER_PERCENT;
-        bak_buff[1] = status.batteryPercent;
+        bak_buff[1] = pmu_status.batteryPercent;
         send_stm_data(bak_buff, 2);
         break;
     case PWR_USB_STATUS:
         bak_buff[0] = BLE_CMD_POWER_STA;
 
-        if ( status.wiredCharge || status.wirelessCharge )
+        if ( pmu_status.wiredCharge || pmu_status.wirelessCharge )
         {
             bak_buff[1] = 0x03;
         }
@@ -2503,7 +2514,7 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
             bak_buff[1] = 0x02;
         }
 
-        if ( status.wiredCharge )
+        if ( pmu_status.wiredCharge )
         {
             bak_buff[2] = AXP_CHARGE_TYPE_USB;
         }
@@ -2556,24 +2567,22 @@ static void led_ctl_process(void* p_event_data, uint16_t event_size)
 
 static void bat_msg_report_process(void* p_event_data, uint16_t event_size)
 {
-    Power_Status_t status;
-    pmu_p->GetStatus(&status);
 
     uint16_t val = 0;
 
     switch ( bat_msg_flag )
     {
     case SEND_BAT_VOL:
-        val = status.batteryVoltage;
+        val = pmu_status.batteryVoltage;
         break;
     case SEND_BAT_CHARGE_CUR:
-        val = status.chargeCurrent;
+        val = pmu_status.chargeCurrent;
         break;
     case SEND_BAT_DISCHARGE_CUR:
-        val = status.dischargeCurrent;
+        val = pmu_status.dischargeCurrent;
         break;
     case SEND_BAT_INNER_TEMP:
-        val = status.batteryTemp;
+        val = pmu_status.batteryTemp;
         break;
     default:
         return;
@@ -2605,12 +2614,19 @@ static void main_loop(void)
     app_sched_event_put(NULL, 0, bat_msg_report_process);
 }
 
+static void m_wdt_event_handler(void)
+{
+    NRF_LOG_INFO("WDT Triggered!");
+    NRF_LOG_FLUSH();
+    while ( 1 ) {}
+}
+
 static void watch_dog_init(void)
 {
     uint32_t err_code = NRF_SUCCESS;
     // Configure WDT.
     nrf_drv_wdt_config_t config = NRF_DRV_WDT_DEAFULT_CONFIG;
-    err_code = nrf_drv_wdt_init(&config, NULL);
+    err_code = nrf_drv_wdt_init(&config, m_wdt_event_handler);
     APP_ERROR_CHECK(err_code);
     err_code = nrf_drv_wdt_channel_alloc(&m_channel_id);
     APP_ERROR_CHECK(err_code);
@@ -2656,7 +2672,7 @@ int main(void)
         false
     ); // TODO: check return!
 
-    // watch_dog_init(); //???? why keep reboot, did we feed the dog?
+    watch_dog_init();
     NRF_LOG_INFO("NRF INIT END");
 
     // Enter main loop.
