@@ -309,23 +309,38 @@ Power_Error_t axp216_get_status(Power_Status_t* status)
     memset(status, 0x00, sizeof(Power_Status_t));
     status->isValid = false;
 
-    // battery percent
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_BAT_LEVEL, &(hlbuff.u8_low)));
-    if ( (hlbuff.u8_low & 0x80) == 0x80 ) // is data valid
-        status->batteryPercent = hlbuff.u8_low & 0x7f;
+    // battery present
+    hlbuff.u8_high = 0;
+    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_MODE_CHGSTATUS, &(hlbuff.u8_low)));
+    status->batteryPresent = ((hlbuff.u8_low & (1 << 5)) == (1 << 5)); // bit 5, not documented
+
+    if ( status->batteryPresent )
+    {
+        // battery percent
+        hlbuff.u8_high = 0;
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_BAT_LEVEL, &(hlbuff.u8_low)));
+        if ( (hlbuff.u8_low & 0x80) == 0x80 ) // is data valid
+            status->batteryPercent = hlbuff.u8_low & 0x7f;
+        else
+            status->batteryPercent = 100;
+
+        // battery voltage
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VBATH_RES, &(hlbuff.u8_high)));
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VBATL_RES, &(hlbuff.u8_low)));
+        status->batteryVoltage = (hlbuff.u16 >> 4) * 1.1 + 0; // val * step - base
+
+        // battery temp
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VTSH_RES, &(hlbuff.u8_high)));
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VTSL_RES, &(hlbuff.u8_low)));
+        status->batteryTemp =
+            ntc_temp_cal_cv(NTC_Char_NCP15XH103F03RC_2585, 40, ((hlbuff.u16 >> 4) * 0.8 + 0) * 1000); // temp_c
+    }
     else
-        status->batteryPercent = 100;
-
-    // battery voltage
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VBATH_RES, &(hlbuff.u8_high)));
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VBATL_RES, &(hlbuff.u8_low)));
-    status->batteryVoltage = (hlbuff.u16 >> 4) * 1.1 + 0; // val * step - base
-
-    // battery temp
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VTSH_RES, &(hlbuff.u8_high)));
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VTSL_RES, &(hlbuff.u8_low)));
-    status->batteryTemp =
-        ntc_temp_cal_cv(NTC_Char_NCP15XH103F03RC_2585, 40, ((hlbuff.u16 >> 4) * 0.8 + 0) * 1000); // temp_c
+    {
+        status->batteryPercent = 0;
+        status->batteryVoltage = 0;
+        status->batteryTemp = 0;
+    }
 
     // pmu temp
     EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_INTTEMPH, &(hlbuff.u8_high)));
@@ -344,42 +359,53 @@ Power_Error_t axp216_get_status(Power_Status_t* status)
          ((hlbuff.u8_low & ((1 << 5) | (1 << 4))) == ((1 << 5) | (1 << 4)))    // vbus
         );
 
-    if ( ((hlbuff.u8_low & (1 << 2)) == (1 << 2)) ) // check if charging
+    if ( status->chargeAllowed && status->chargerAvailable )
     {
-        // read gpio
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000010)); // gpio1 input
-        hlbuff.u8_high = 0;
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_GPIO01_SIGNAL, &(hlbuff.u8_low))); // gpio1 read
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000111)); // gpio1 float
-        status->wirelessCharge = ((hlbuff.u8_low & (1 << 1)) == (1 << 1));
+        if ( ((hlbuff.u8_low & (1 << 2)) == (1 << 2)) ) // check if charging
+        {
+            // read gpio
+            EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000010)); // gpio1 input
+            hlbuff.u8_high = 0;
+            EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_GPIO01_SIGNAL, &(hlbuff.u8_low))); // gpio1 read
+            EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000111));          // gpio1 float
+            status->wirelessCharge = ((hlbuff.u8_low & (1 << 1)) == (1 << 1));
 
-        // if not wireless charging then it's wired
-        status->wiredCharge = !status->wirelessCharge;
+            // if not wireless charging then it's wired
+            status->wiredCharge = !status->wirelessCharge;
+        }
+        else
+        {
+            status->wiredCharge = false;
+            status->wirelessCharge = false;
+        }
+
+        if ( status->wiredCharge || status->wirelessCharge )
+        {
+            EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CCBATH_RES, &(hlbuff.u8_high)));
+            EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CCBATL_RES, &(hlbuff.u8_low)));
+            status->chargeCurrent = (hlbuff.u16 >> 4);
+            status->dischargeCurrent = 0;
+        }
+        else
+        {
+            EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_DCBATH_RES, &(hlbuff.u8_high)));
+            EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_DCBATL_RES, &(hlbuff.u8_low)));
+            status->dischargeCurrent = (hlbuff.u16 >> 4);
+            status->chargeCurrent = 0;
+        }
+
+        hlbuff.u8_high = 0;
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_MODE_CHGSTATUS, &(hlbuff.u8_low)));
+        status->chargeFinished = ((hlbuff.u8_low & (1 << 6)) == (1 << 6));
     }
     else
     {
+        status->chargeFinished = false;
         status->wiredCharge = false;
         status->wirelessCharge = false;
-    }
-
-    if ( status->wiredCharge || status->wirelessCharge )
-    {
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CCBATH_RES, &(hlbuff.u8_high)));
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CCBATL_RES, &(hlbuff.u8_low)));
-        status->chargeCurrent = (hlbuff.u16 >> 4);
+        status->chargeCurrent = 0;
         status->dischargeCurrent = 0;
     }
-    else
-    {
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_DCBATH_RES, &(hlbuff.u8_high)));
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_DCBATL_RES, &(hlbuff.u8_low)));
-        status->dischargeCurrent = (hlbuff.u16 >> 4);
-        status->chargeCurrent = 0;
-    }
-
-    hlbuff.u8_high = 0;
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_MODE_CHGSTATUS, &(hlbuff.u8_low)));
-    status->chargeFinished = ((hlbuff.u8_low & (1 << 6)) == (1 << 6));
 
     status->isValid = true;
     return PWR_ERROR_NONE;

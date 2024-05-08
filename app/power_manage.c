@@ -9,8 +9,7 @@
 #include "nrf_i2c.h"
 
 #include "nrf_delay.h"
-// #include "nrf_gpio.h"
-// #include "nrf_drv_gpiote.h"
+#include "nrf_gpio.h"
 
 // workarounds to keep this file clean
 static void (*send_stm_data_p)(uint8_t* pdata, uint8_t lenth);
@@ -97,8 +96,78 @@ static void pmu_if_irq(const uint64_t irq)
     if ( 0 != (irq & (1 << PWR_IRQ_PB_FORCEOFF)) ) {}
 }
 
+static bool pmu_if_gpio_config(uint32_t pin_num, const Power_GPIO_Config_t config)
+{
+    switch ( config )
+    {
+    case PWR_GPIO_Config_DEFAULT:
+        nrf_gpio_cfg_default(pin_num);
+        break;
+
+    case PWR_GPIO_Config_READ_NP:
+        nrf_gpio_cfg_input(pin_num, NRF_GPIO_PIN_NOPULL);
+        break;
+
+    case PWR_GPIO_Config_READ_PH:
+        nrf_gpio_cfg_input(pin_num, NRF_GPIO_PIN_PULLUP);
+        break;
+
+    case PWR_GPIO_Config_READ_PL:
+        nrf_gpio_cfg_input(pin_num, NRF_GPIO_PIN_PULLDOWN);
+        break;
+
+    case PWR_GPIO_Config_WRITE_NP:
+        nrf_gpio_cfg_output(pin_num);
+        break;
+
+    case PWR_GPIO_Config_WRITE_PH:
+        nrf_gpio_cfg(
+            pin_num, NRF_GPIO_PIN_DIR_OUTPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_S0S1,
+            NRF_GPIO_PIN_NOSENSE
+        );
+        break;
+    case PWR_GPIO_Config_WRITE_PL:
+        nrf_gpio_cfg(
+            pin_num, NRF_GPIO_PIN_DIR_OUTPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_PULLDOWN, NRF_GPIO_PIN_S0S1,
+            NRF_GPIO_PIN_NOSENSE
+        );
+        break;
+
+    case PWR_GPIO_Config_UNUSED:
+        nrf_gpio_input_disconnect(pin_num);
+        break;
+
+    default:
+        return false;
+    }
+
+    return true;
+}
+
+static bool pmu_if_gpio_write(uint32_t pin_num, const bool high_low)
+{
+    // must already configured as output
+    if ( nrf_gpio_pin_dir_get(pin_num) == NRF_GPIO_PIN_DIR_OUTPUT )
+    {
+        nrf_gpio_pin_write(pin_num, (high_low ? 1 : 0));
+        return true;
+    }
+    return false;
+}
+
+static bool pmu_if_gpio_read(uint32_t pin_num, bool* const high_low)
+{
+    // must already configured as input
+    if ( nrf_gpio_pin_dir_get(pin_num) == NRF_GPIO_PIN_DIR_INPUT )
+    {
+        *high_low = nrf_gpio_pin_out_read(pin_num);
+        return true;
+    }
+    return false;
+}
+
 #ifndef PMU_LOG_NRF_LOG
-static void pmu_if_log(Power_LogLevel_t level, const char* fmt, ...)
+static void pmu_if_log(const Power_LogLevel_t level, const char* fmt, ...)
 {
 
     // assume SEGGER_RTT_Init() already called
@@ -188,6 +257,9 @@ bool power_manage_init()
     pmu_if.Reg.Read = i2c_handle->Reg.Read;
     pmu_if.Reg.SetBits = i2c_handle->Reg.SetBits;
     pmu_if.Reg.ClrBits = i2c_handle->Reg.ClrBits;
+    pmu_if.GPIO.Config = pmu_if_gpio_config;
+    pmu_if.GPIO.Write = pmu_if_gpio_write;
+    pmu_if.GPIO.Read = pmu_if_gpio_read;
     pmu_if.Delay_ms = nrf_delay_ms;
     pmu_if.Log = pmu_if_log;
 

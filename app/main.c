@@ -413,6 +413,7 @@ static void pmu_status_refresh()
 
     NRF_LOG_INFO("=== Power_Status_t ===");
     NRF_LOG_INFO("isValid=%u", pmu_status.isValid);
+    NRF_LOG_INFO("batteryPresent=%u", pmu_status.batteryPresent);
     NRF_LOG_INFO("batteryPercent=%u", pmu_status.batteryPercent);
     NRF_LOG_INFO("batteryVoltage=%lu", pmu_status.batteryVoltage);
     NRF_LOG_INFO("batteryTemp=%lu", pmu_status.batteryTemp);
@@ -1187,7 +1188,8 @@ static void nus_data_handler(ble_nus_evt_t* p_evt)
                     ble_evt_flag = BLE_RCV_DATA;
                 }
             }
-            else if ( data_recived_buf[0] == 0x5A && data_recived_buf[1] == 0xA5 && data_recived_buf[2] == 0x07 && data_recived_buf[3] == 0x1 && data_recived_buf[4] == 0x03 )
+            else if ( data_recived_buf[0] == 0x5A && data_recived_buf[1] == 0xA5 && data_recived_buf[2] == 0x07 &&
+                      data_recived_buf[3] == 0x1 && data_recived_buf[4] == 0x03 )
             {
                 ble_adv_switch_flag = BLE_OFF_ALWAYS;
                 return;
@@ -2503,17 +2505,9 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         send_stm_data(bak_buff, 2);
         break;
     case PWR_USB_STATUS:
+        pwr_status_flag = PWR_DEF;
         bak_buff[0] = BLE_CMD_POWER_STA;
-
-        if ( pmu_status.wiredCharge || pmu_status.wirelessCharge )
-        {
-            bak_buff[1] = 0x03;
-        }
-        else
-        {
-            bak_buff[1] = 0x02;
-        }
-
+        bak_buff[1] = pmu_status.chargerAvailable;
         if ( pmu_status.wiredCharge )
         {
             bak_buff[2] = AXP_CHARGE_TYPE_USB;

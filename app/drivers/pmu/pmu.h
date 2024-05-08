@@ -11,6 +11,7 @@ PMU_t* pmu_probe(PMU_Interface_t* pmu_if);
 // {
 //     NRF_LOG_INFO("=== Power_Status_t ===\n");
 //     NRF_LOG_INFO("isValid=%u\n",status.isValid);
+//     NRF_LOG_INFO("batteryPresent=%u\n",status.batteryPresent);
 //     NRF_LOG_INFO("batteryPercent=%u\n",status.batteryPercent);
 //     NRF_LOG_INFO("batteryVoltage=%lu\n",status.batteryVoltage);
 //     NRF_LOG_INFO("batteryTemp=%lu\n",status.batteryTemp);

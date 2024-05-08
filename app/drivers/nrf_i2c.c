@@ -24,7 +24,8 @@ static bool nrf_i2c_init()
             .sda = TWI_SDA_M,
             .frequency = NRF_DRV_TWI_FREQ_400K,
             .interrupt_priority = APP_IRQ_PRIORITY_HIGH,
-            .clear_bus_init = true};
+            .clear_bus_init = true
+        };
         if ( NRF_SUCCESS != nrf_drv_twi_init(&nrf_i2c_handle, &twi_config, NULL, NULL) )
         {
             return false;

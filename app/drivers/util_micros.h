@@ -13,7 +13,7 @@
     }
 
 #define JOIN_EXPR(a, b, c) a##_##b##_##c
-// regex ->(JOIN_EXPR\((.*), (.*), (.*)\).*,)
+// regex ->(JOIN_EXPR\((.*), (.*), (.*)\).*,).*
 // replace -> $1 // $2_$3_$4
 
 #include "nrf_log.h"

@@ -21,7 +21,7 @@
 #define EC_E_BOOL_R_BOOL(expr)         ExecuteCheck_ADV(expr, true, { return false; })
 
 #define PWR_ENUM_ITEM(b, c)            JOIN_EXPR(PWR, b, c)
-// regex ->(PWR_ENUM_ITEM\((.*), (.*)\).*,)
+// regex ->(PWR_ENUM_ITEM\((.*), (.*)\).*,).*
 // replace -> $1 // PWR_$2_$3
 
 // ================================
@@ -30,7 +30,7 @@
 typedef union
 {
     uint16_t u16;
-    
+
     struct
     {
         uint8_t u8_low;
@@ -72,6 +72,18 @@ typedef enum
 
 typedef enum
 {
+    PWR_ENUM_ITEM(GPIO_Config, DEFAULT) = 0, // PWR_GPIO_Config_DEFAULT
+    PWR_ENUM_ITEM(GPIO_Config, READ_NP),     // PWR_GPIO_Config_READ_NP
+    PWR_ENUM_ITEM(GPIO_Config, READ_PH),     // PWR_GPIO_Config_READ_PH
+    PWR_ENUM_ITEM(GPIO_Config, READ_PL),     // PWR_GPIO_Config_READ_PL
+    PWR_ENUM_ITEM(GPIO_Config, WRITE_NP),    // PWR_GPIO_Config_WRITE_NP
+    PWR_ENUM_ITEM(GPIO_Config, WRITE_PH),    // PWR_GPIO_Config_WRITE_PH
+    PWR_ENUM_ITEM(GPIO_Config, WRITE_PL),    // PWR_GPIO_Config_WRITE_PL
+    PWR_ENUM_ITEM(GPIO_Config, UNUSED),      // PWR_GPIO_Config_UNUSED
+} Power_GPIO_Config_t;
+
+typedef enum
+{
     PWR_ENUM_ITEM(LOG_LEVEL, OFF) = 0, // PWR_LOG_LEVEL_OFF
     PWR_ENUM_ITEM(LOG_LEVEL, ERR),     // PWR_LOG_LEVEL_ERR
     PWR_ENUM_ITEM(LOG_LEVEL, WARN),    // PWR_LOG_LEVEL_WARN
@@ -84,6 +96,7 @@ typedef struct
 {
     bool isValid;
 
+    bool batteryPresent;
     uint8_t batteryPercent;
     uint16_t batteryVoltage;
     uint16_t batteryTemp;
@@ -119,8 +132,15 @@ typedef struct
 
     } Reg;
 
-    void (*Delay_ms)(uint32_t ms);
-    void (*Log)(Power_LogLevel_t level, const char* fmt, ...);
+    struct
+    {
+        bool (*Config)(uint32_t pin_num, const Power_GPIO_Config_t config);
+        bool (*Write)(uint32_t pin_num, const bool high_low);
+        bool (*Read)(uint32_t pin_num, bool* const high_low);
+    } GPIO;
+
+    void (*Delay_ms)(const uint32_t ms);
+    void (*Log)(const Power_LogLevel_t level, const char* fmt, ...);
 
 } PMU_Interface_t;
 

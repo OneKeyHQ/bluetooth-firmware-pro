@@ -23,8 +23,8 @@
 #define BLE_OPEN_EMMC            0x03
 #define BLE_PWR_PERCENT          0X04
 
-//
 #define BLE_CMD_POWER_STA 0x08
+
 #define BLE_INSERT_POWER  0x01
 #define BLE_REMOVE_POWER  0x02
 #define BLE_CHARGING_PWR  0x03

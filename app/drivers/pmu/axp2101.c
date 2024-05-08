@@ -1,5 +1,7 @@
 #include "axp2101.h"
 
+#include "ntc_util.h"
+
 // macros
 #define axp2101_reg_read(reg, val)  pmu_interface_p->Reg.Read(AXP2101_I2C_ADDR, reg, val)
 #define axp2101_reg_write(reg, val) pmu_interface_p->Reg.Write(AXP2101_I2C_ADDR, reg, val)
@@ -59,6 +61,17 @@ static bool axp2101_config_irq(void)
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN1, 0xC0));
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN2, 0xCF));
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN3, 0x18));
+
+    return true;
+}
+
+static bool axp2101_config_adc(void)
+{
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DIE_TEMP_CFG, 0b00000001)); // 115C max
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_ADC_CH_EN0, 0b00011111));
+
+    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_TS_CFG, 0b00000001)); // bit 1:0 = 01
+    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_TS_CFG, 0b00000010)); // TS current 40ua
 
     return true;
 }
@@ -177,6 +190,7 @@ Power_Error_t axp2101_config(void)
     EC_E_BOOL_R_PWR_ERR(axp2101_config_voltage());
     EC_E_BOOL_R_PWR_ERR(axp2101_config_battery());
     EC_E_BOOL_R_PWR_ERR(axp2101_config_irq());
+    EC_E_BOOL_R_PWR_ERR(axp2101_config_adc());
     return PWR_ERROR_NONE;
 }
 
@@ -231,31 +245,45 @@ Power_Error_t axp2101_get_status(Power_Status_t* status)
     memset(status, 0x00, sizeof(Power_Status_t));
     status->isValid = false;
 
-    // battery percent
+    // battery present
     hlbuff.u8_high = 0;
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_SOC, &(hlbuff.u8_low)));
-    status->batteryPercent = hlbuff.u8_low & 0x7f; // drop bit 7
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT0, &(hlbuff.u8_low)));
+    status->batteryPresent = ((hlbuff.u8_low & (1 << 3)) == (1 << 3));
 
-    // battery voltage
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_H, &(hlbuff.u8_high)));
-    hlbuff.u8_high &= 0b00111111; // drop bit 7:6
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_L, &(hlbuff.u8_low)));
-    status->batteryVoltage = hlbuff.u16;
+    if ( status->batteryPresent )
+    {
+        // battery percent
+        hlbuff.u8_high = 0;
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_SOC, &(hlbuff.u8_low)));
+        status->batteryPercent = hlbuff.u8_low;
 
-    // battery temp
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_H, &(hlbuff.u8_high)));
-    hlbuff.u8_high &= 0b00111111; // drop bit 7:6
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_L, &(hlbuff.u8_low)));
-    status->batteryTemp = hlbuff.u16;
+        // battery voltage
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_H, &(hlbuff.u8_high)));
+        hlbuff.u8_high &= 0b00111111; // drop bit 7:6
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_L, &(hlbuff.u8_low)));
+        status->batteryVoltage = hlbuff.u16;
+
+        // battery temp
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_H, &(hlbuff.u8_high)));
+        hlbuff.u8_high &= 0b00111111; // drop bit 7:6
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_L, &(hlbuff.u8_low)));
+        status->batteryTemp =
+            ntc_temp_cal_cv(NTC_Char_NCP15XH103F03RC_2585, 40, ((hlbuff.u16 * 0.5) * 0.8 + 0) * 1000); // temp_c
+    }
+    else
+    {
+        status->batteryPercent = 0;
+        status->batteryVoltage = 0;
+        status->batteryTemp = 0;
+    }
 
     // pmu temp
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_H, &(hlbuff.u8_high)));
     hlbuff.u8_high &= 0b00111111; // drop bit 7:6
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_L, &(hlbuff.u8_low)));
-    status->pmuTemp = hlbuff.u16;
+    status->pmuTemp = (7274 - hlbuff.u16) / 20 + 22;
 
     // charging
-
     hlbuff.u8_high = 0;
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_MODULE_EN, &(hlbuff.u8_low)));
     status->chargeAllowed = ((hlbuff.u8_low & (1 << 1)) == (1 << 1));
@@ -264,32 +292,45 @@ Power_Error_t axp2101_get_status(Power_Status_t* status)
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT0, &(hlbuff.u8_low)));
     status->chargerAvailable = ((hlbuff.u8_low & (1 << 5)) == (1 << 5)); // vbus good
 
-    // check if charging
-    hlbuff.u8_high = 0;
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT1, &(hlbuff.u8_low)));
-    if ( (hlbuff.u8_low & 0b01100000) == 0b00100000 ) // bit 6:5 = 01
+    if ( status->chargeAllowed && status->chargerAvailable )
     {
-        // read gpio
-        // TODO: impl.
-        status->wirelessCharge = ((hlbuff.u8_low & (1 << 1)) == (1 << 1));
+        hlbuff.u8_high = 0;
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT1, &(hlbuff.u8_low)));
+        status->chargeFinished = ((hlbuff.u8_low & 0b00000111) == 0b00000100); // bit 2:0 = 100 charge done
 
-        // if not wireless charging then it's wired
-        status->wiredCharge = !status->wirelessCharge;
+        if ( (hlbuff.u8_low & 0b01100000) == 0b00100000 || // bit 6:5 = 01 battery current charge
+             status->chargeFinished                        // still try get power source
+        )
+        {
+            // TODO: find a batter way to check GPIO?
+            // read gpio
+            bool gpio_high_low;
+            pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_READ_NP);
+            pmu_interface_p->GPIO.Read(8, &gpio_high_low);
+            pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_UNUSED);
+
+            status->wirelessCharge = gpio_high_low; // high is wireless
+            // if not wireless charging then it's wired
+            status->wiredCharge = !status->wirelessCharge;
+        }
+        else
+        {
+            status->wiredCharge = false;
+            status->wirelessCharge = false;
+        }
+
+        // not supported by AXP2101
+        status->chargeCurrent = 0;
+        status->dischargeCurrent = 0;
     }
     else
     {
+        status->chargeFinished = false;
         status->wiredCharge = false;
         status->wirelessCharge = false;
+        status->chargeCurrent = 0;
+        status->dischargeCurrent = 0;
     }
-
-    // current measure not supported
-    status->chargeCurrent = 0;
-    status->dischargeCurrent = 0;
-
-    // check if battery standby
-    hlbuff.u8_high = 0;
-    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT1, &(hlbuff.u8_low)));
-    status->chargeFinished = ((hlbuff.u8_low & 0b01100000) == 0b00000000); // bit 6:5 = 00
 
     status->isValid = true;
     return PWR_ERROR_NONE;
