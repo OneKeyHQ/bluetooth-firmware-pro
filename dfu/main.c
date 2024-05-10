@@ -60,6 +60,8 @@
 #include "nrf_log_default_backends.h"
 #include "nrf_mbr.h"
 
+#include "axp216_config.h"
+
 static void on_error(void)
 {
     NRF_LOG_FINAL_FLUSH();
@@ -141,8 +143,6 @@ void app_read_protect(void)
     }
 }
 
-extern bool axp216_minimum_config();
-
 /**@brief Function for application main entry. */
 int main(void)
 {
@@ -160,14 +160,15 @@ int main(void)
     if ( !axp216_minimum_config() )
     {
         NRF_LOG_INFO("AXP216 Configure Succeed!");
-        NRF_LOG_FLUSH();
     }
     else
     {
         NRF_LOG_INFO("AXP216 Configure Failed");
         NRF_LOG_INFO("This board may not come with AXP216, or bad IC");
-        NRF_LOG_FLUSH();
     }
+    NRF_LOG_FLUSH();
+
+    while(1);
 
     // Must happen before flash protection is applied, since it edits a protected page.
     nrf_bootloader_mbr_addrs_populate();

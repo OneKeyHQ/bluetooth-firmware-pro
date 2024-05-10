@@ -4,9 +4,9 @@
 
 #include "nrf_delay.h"
 #include "nrf_twi.h"
-#include "nrf_drv_twi.h"
+#include "nrfx_twi.h"
 
-static const nrf_drv_twi_t nrf_i2c_handle = NRF_DRV_TWI_INSTANCE(TWI_INSTANCE_ID);
+static const nrfx_twi_t nrf_i2c_handle = NRFX_TWI_INSTANCE(TWI_INSTANCE_ID);
 static bool i2c_configured = false;
 static I2C_t i2c_handle = {NULL};
 
@@ -19,18 +19,17 @@ static bool nrf_i2c_init()
 
     if ( !i2c_configured )
     {
-        const nrf_drv_twi_config_t twi_config = {
+        const nrfx_twi_config_t twi_config = {
             .scl = TWI_SCL_M,
             .sda = TWI_SDA_M,
-            .frequency = NRF_DRV_TWI_FREQ_400K,
-            .interrupt_priority = APP_IRQ_PRIORITY_HIGH,
-            .clear_bus_init = true
+            .frequency = NRF_TWI_FREQ_400K,
+            .interrupt_priority = APP_IRQ_PRIORITY_HIGH
         };
-        if ( NRF_SUCCESS != nrf_drv_twi_init(&nrf_i2c_handle, &twi_config, NULL, NULL) )
+        if ( NRF_SUCCESS != nrfx_twi_init(&nrf_i2c_handle, &twi_config, NULL, NULL) )
         {
             return false;
         }
-        nrf_drv_twi_enable(&nrf_i2c_handle);
+        nrfx_twi_enable(&nrf_i2c_handle);
 
         i2c_configured = true;
     }
@@ -44,8 +43,8 @@ static bool nrf_i2c_deinit()
 
     if ( i2c_configured )
     {
-        nrf_drv_twi_disable(&nrf_i2c_handle);
-        nrf_drv_twi_uninit(&nrf_i2c_handle);
+        nrfx_twi_disable(&nrf_i2c_handle);
+        nrfx_twi_uninit(&nrf_i2c_handle);
 
         i2c_configured = false;
     }
@@ -62,11 +61,11 @@ static bool nrf_i2c_send(const uint8_t device_addr, const uint32_t len, const ui
         return false;
 
     // wait busy
-    while ( nrf_drv_twi_is_busy(&nrf_i2c_handle) )
+    while ( nrfx_twi_is_busy(&nrf_i2c_handle) )
         ;
 
     // send
-    return (NRF_SUCCESS == nrf_drv_twi_tx(&nrf_i2c_handle, device_addr, data, len, false));
+    return (NRF_SUCCESS == nrfx_twi_tx(&nrf_i2c_handle, device_addr, data, len, false));
 }
 
 static bool nrf_i2c_receive(const uint8_t device_addr, const uint32_t len, uint8_t* const data)
@@ -78,11 +77,11 @@ static bool nrf_i2c_receive(const uint8_t device_addr, const uint32_t len, uint8
         return false;
 
     // wait busy
-    while ( nrf_drv_twi_is_busy(&nrf_i2c_handle) )
+    while ( nrfx_twi_is_busy(&nrf_i2c_handle) )
         ;
 
     // read
-    return (NRF_SUCCESS == nrf_drv_twi_rx(&nrf_i2c_handle, device_addr, data, len));
+    return (NRF_SUCCESS == nrfx_twi_rx(&nrf_i2c_handle, device_addr, data, len));
 }
 
 // reg

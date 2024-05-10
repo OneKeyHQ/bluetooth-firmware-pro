@@ -1,3 +1,5 @@
+#include "axp216_config.h"
+
 #include "util_micros.h"
 #include "nrf_i2c.h"
 #include "nrf_delay.h"
@@ -23,7 +25,7 @@
 #define axp216_set_bits(reg, mask) nrf_i2c_handle->Reg.SetBits(AXP216_I2C_ADDR, reg, mask)
 #define axp216_clr_bits(reg, mask) nrf_i2c_handle->Reg.ClrBits(AXP216_I2C_ADDR, reg, mask)
 
-I2C_t* nrf_i2c_handle = NULL;
+static I2C_t* nrf_i2c_handle = NULL;
 
 bool axp216_minimum_config()
 {
@@ -38,7 +40,7 @@ bool axp216_minimum_config()
     {
         if ( !axp216_reg_read(AXP216_IC_TYPE, &val) )
         {
-            nrf_delay_ms(5); // needed? i2c has it's own timeout
+            nrf_delay_ms(1); // needed? i2c has it's own timeout
             continue;
         }
 
@@ -62,7 +64,8 @@ bool axp216_minimum_config()
             // power cycle
             EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN1, 0x00));
             EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN2, 0x14));
-            EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN2, 0x20));
+            nrf_delay_ms(200);
+            EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN2, 0x3C));
             EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN1, 0xC2));
 
             break;
