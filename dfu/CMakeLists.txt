@@ -142,24 +142,24 @@ set(
   ${NRF_SDK_ROOT}/components/softdevice/common/nrf_sdh.c
   ${NRF_SDK_ROOT}/components/softdevice/common/nrf_sdh_ble.c
   ${NRF_SDK_ROOT}/components/softdevice/common/nrf_sdh_soc.c
-  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_rtt.c
-  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_serial.c
+  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_rtt.c
+  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_serial.c
   # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_uart.c
-  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_default_backends.c
-  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_frontend.c
-  # ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_str_formatter.c
-  # ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT.c
-  # ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c
-  # ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT_printf.c
+  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_default_backends.c
+  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_frontend.c
+  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_str_formatter.c
+  ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT.c
+  ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c
+  ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT_printf.c
   ${NRF_SDK_ROOT}/external/fprintf/nrf_fprintf.c
   ${NRF_SDK_ROOT}/external/fprintf/nrf_fprintf_format.c
   ${NRF_SDK_ROOT}/external/nano-pb/pb_common.c
   ${NRF_SDK_ROOT}/external/nano-pb/pb_decode.c
   ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_uart.c
-  # ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_twi.c
+  ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_twi.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uart.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uarte.c
-  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twi.c
+  ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twi.c
   # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twim.c
   # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_gpiote.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/prs/nrfx_prs.c
@@ -196,7 +196,7 @@ target_compile_options(
   # Optimization flags
   -Os -g3
   # Uncomment the line below to enable link time optimization
-  # -flto
+  -flto=auto
   # C flags common to all targets
   -DFLOAT_ABI_HARD
   -DuECC_ENABLE_VLI_API=0
@@ -242,20 +242,23 @@ add_executable(
 target_sources(
   ${CMAKE_PROJECT_NAME} PRIVATE 
   ${NRF_SDK_SRC}
+  ../drivers/nrf_i2c.c
+  axp216_config.c
 )
 
 target_include_directories(
   ${CMAKE_PROJECT_NAME} PRIVATE
   ${PROJECT_SOURCE_DIR}
   ${NRF_SDK_INC}
+  ../drivers
 )
 
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Optimization flags
-  -Os -g3 -s
+  -O1 -ggdb
   # Uncomment the line below to enable link time optimization
-  -flto
+  -flto=auto
   # C flags common to all targets
   -DBLE_STACK_SUPPORT_REQD
   -DCONFIG_GPIO_AS_PINRESET
@@ -263,7 +266,7 @@ target_compile_options(
   -DMBR_PRESENT
   -DNRF52
   -DNRF52832_XXAA
-  -DNRF52_PAN_74
+  # -DNRF52_PAN_74
   -DNRF_DFU_DEBUG_VERSION
   -DNRF_DFU_SETTINGS_VERSION=2
   -DNRF_DFU_SVCI_ENABLED
@@ -286,14 +289,14 @@ target_compile_options(
   # keep every function in a separate section, this allows linker to discard unused ones
   -ffunction-sections -fdata-sections -fno-strict-aliasing
   -fno-builtin -fshort-enums
-  # heap and stack
-  -D__HEAP_SIZE=0
+  # heap and stack (why set them for a library?)
+  # -D__HEAP_SIZE=0
 )
 
 target_link_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Linker flags
-  -O3 -g3 -s
+  -O1 -ggdb
   -mthumb -mabi=aapcs -L${NRF_SDK_ROOT}/modules/nrfx/mdk -T${PROJECT_SOURCE_DIR}/secure_bootloader_gcc_nrf52.ld
   -mcpu=cortex-m4
   -mfloat-abi=hard -mfpu=fpv4-sp-d16

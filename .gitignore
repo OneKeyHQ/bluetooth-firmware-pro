@@ -12,3 +12,4 @@ temp.pk
 build_local_signed.sh
 # garbages
 *.bak
+nrf_sdk

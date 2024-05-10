@@ -141,9 +141,34 @@ void app_read_protect(void)
     }
 }
 
+extern bool axp216_minimum_config();
+
 /**@brief Function for application main entry. */
 int main(void)
 {
+    NRF_LOG_INIT(nrf_bootloader_dfu_timer_counter_get);
+    NRF_LOG_DEFAULT_BACKENDS_INIT();
+
+    NRF_LOG_INFO("Enter DFU");
+    NRF_LOG_FLUSH();
+
+    uint32_t u32Reset_reason = NRF_POWER->RESETREAS;
+    NRF_POWER->RESETREAS = NRF_POWER->RESETREAS; // Clear reset reason by writting 1.
+    NRF_LOG_INFO("Reset Status -> %x", u32Reset_reason);
+    NRF_LOG_FLUSH();
+
+    if ( !axp216_minimum_config() )
+    {
+        NRF_LOG_INFO("AXP216 Configure Succeed!");
+        NRF_LOG_FLUSH();
+    }
+    else
+    {
+        NRF_LOG_INFO("AXP216 Configure Failed");
+        NRF_LOG_INFO("This board may not come with AXP216, or bad IC");
+        NRF_LOG_FLUSH();
+    }
+
     // Must happen before flash protection is applied, since it edits a protected page.
     nrf_bootloader_mbr_addrs_populate();
 
@@ -152,20 +177,14 @@ int main(void)
     APP_ERROR_CHECK(nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false));
 
     // app_read_protect();
-
-    // (void)NRF_LOG_INIT(nrf_bootloader_dfu_timer_counter_get);
-    // NRF_LOG_DEFAULT_BACKENDS_INIT();
-
-    // NRF_LOG_INFO("Enter DFU");
-    // NRF_LOG_FLUSH();
-
     APP_ERROR_CHECK(nrf_bootloader_init(dfu_observer1));
-    // NRF_LOG_FLUSH();
+    NRF_LOG_FLUSH();
 
-    // NRF_LOG_ERROR("Exit DFU");
-    // NRF_LOG_FLUSH();
+    NRF_LOG_ERROR("Exit DFU");
+    NRF_LOG_FLUSH();
 
     APP_ERROR_CHECK_BOOL(false);
+
 }
 
 /**

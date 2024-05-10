@@ -377,14 +377,14 @@ add_executable(
 target_sources(
   ${CMAKE_PROJECT_NAME} PRIVATE 
   ${NRF_SDK_SRC}
-  drivers/nrf_i2c.c
-  drivers/nrf_flash.c
-  drivers/nrf_uicr.c
-  drivers/pmu/pmu.c
-  drivers/pmu/ntc_util.c
-  drivers/pmu/axp216.c
-  drivers/pmu/axp2101.c
-  drivers/light/lm36011.c
+  ../drivers/nrf_i2c.c
+  ../drivers/nrf_flash.c
+  ../drivers/nrf_uicr.c
+  ../drivers/pmu/pmu.c
+  ../drivers/pmu/ntc_util.c
+  ../drivers/pmu/axp216.c
+  ../drivers/pmu/axp2101.c
+  ../drivers/light/lm36011.c
   data_transmission.c
   ecdsa.c
   power_manage.c
@@ -396,9 +396,9 @@ target_include_directories(
   ${CMAKE_PROJECT_NAME} PRIVATE
   ${PROJECT_SOURCE_DIR}
   ${NRF_SDK_INC}
-  drivers
-  drivers/pmu
-  drivers/light
+  ../drivers
+  ../drivers/pmu
+  ../drivers/light
 )
 
 execute_process(
