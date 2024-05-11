@@ -277,14 +277,12 @@ set(
   ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c
   ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT_printf.c
   ${NRF_SDK_ROOT}/external/utf_converter/utf.c
-  ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_clock.c
   ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_rng.c
+  # ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_clock.c
   # ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_spi.c
   # ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_twi.c
   # ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_uart.c
   # ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_power.c
-  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_nfct.c
-  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_saadc.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_clock.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_gpiote.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_rng.c
@@ -292,12 +290,13 @@ set(
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_spim.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_timer.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twi.c
-  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twim.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uart.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uarte.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_wdt.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_nvmc.c
-  # ${NRF_SDK_ROOT}/modules/nrfx/hal/nrf_nvmc.c
+  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twim.c
+  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_nfct.c
+  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_saadc.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/prs/nrfx_prs.c
   ${NRF_SDK_ROOT}/modules/nrfx/mdk/gcc_startup_nrf52.S
   ${NRF_SDK_ROOT}/modules/nrfx/mdk/system_nrf52.c

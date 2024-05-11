@@ -47,18 +47,19 @@
  */
 
 #include <stdint.h>
-#include "app_error.h"
-#include "app_error_weak.h"
-#include "nrf_bootloader.h"
-#include "nrf_bootloader_app_start.h"
-#include "nrf_bootloader_dfu_timers.h"
-#include "nrf_bootloader_info.h"
 #include "nrf_delay.h"
 #include "nrf_dfu.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
+#include "app_error.h"
+#include "app_error_weak.h"
+#include "nrf_bootloader.h"
+#include "nrf_bootloader_app_start.h"
+// #include "nrf_bootloader_dfu_timers.h"
+#include "nrf_bootloader_info.h"
 #include "nrf_mbr.h"
+#include "nrf_gpio.h"
 
 #include "axp216_config.h"
 
@@ -143,10 +144,18 @@ void app_read_protect(void)
     }
 }
 
+// static char spinner()
+// {
+//     static uint8_t count = 0;
+//     count++;
+//     char spin_symb[] = {'-', '/', '|', '\\'};
+//     return spin_symb[count % 4];
+// }
+
 /**@brief Function for application main entry. */
 int main(void)
 {
-    NRF_LOG_INIT(nrf_bootloader_dfu_timer_counter_get);
+    NRF_LOG_INIT(NULL);
     NRF_LOG_DEFAULT_BACKENDS_INIT();
 
     NRF_LOG_INFO("Enter DFU");
@@ -157,18 +166,44 @@ int main(void)
     NRF_LOG_INFO("Reset Status -> %x", u32Reset_reason);
     NRF_LOG_FLUSH();
 
-    if ( !axp216_minimum_config() )
+    AXP216_CONF_R_t acr;
+    bool keeptrying = true;
+
+    while ( keeptrying )
     {
-        NRF_LOG_INFO("AXP216 Configure Succeed!");
-    }
-    else
-    {
-        NRF_LOG_INFO("AXP216 Configure Failed");
-        NRF_LOG_INFO("This board may not come with AXP216, or bad IC");
+        acr = axp216_minimum_config();
+        switch ( acr )
+        {
+        case AXP216_CONF_BUS_ERR:
+            NRF_LOG_INFO("AXP216_CONF_BUS_ERR");
+            break;
+        case AXP216_CONF_NO_ACK:
+            NRF_LOG_INFO("AXP216_CONF_NO_ACK");
+            keeptrying = false;
+            break;
+        case AXP216_CONF_SUCCESS:
+            NRF_LOG_INFO("AXP216_CONF_SUCCESS");
+            keeptrying = false;
+            break;
+        case AXP216_CONF_FAILED:
+            NRF_LOG_INFO("AXP216_CONF_FAILED");
+            break;
+        case AXP216_CONF_INVALID:
+        default:
+            NRF_LOG_INFO("AXP216_CONF_INVALID");
+            break;
+        }
+        nrf_delay_ms(1);
     }
     NRF_LOG_FLUSH();
 
-    while(1);
+    // while ( !keeptrying )
+    // {
+    //     // NRF_LOG_RAW_INFO("DEBUG CATCH \f\f\f[%c]", spinner());
+    //     NRF_LOG_INFO("DEBUG CATCH [%c]", spinner())
+    //     NRF_LOG_FLUSH();
+    //     nrf_delay_ms(1000);
+    // }
 
     // Must happen before flash protection is applied, since it edits a protected page.
     nrf_bootloader_mbr_addrs_populate();
@@ -185,7 +220,6 @@ int main(void)
     NRF_LOG_FLUSH();
 
     APP_ERROR_CHECK_BOOL(false);
-
 }
 
 /**

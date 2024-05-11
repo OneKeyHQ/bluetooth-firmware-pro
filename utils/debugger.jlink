@@ -1,4 +1,4 @@
-speed 25000
+speed 12000
 RSetType 0
 Halt
 WaitHalt

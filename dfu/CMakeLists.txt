@@ -156,7 +156,7 @@ set(
   ${NRF_SDK_ROOT}/external/nano-pb/pb_common.c
   ${NRF_SDK_ROOT}/external/nano-pb/pb_decode.c
   ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_uart.c
-  ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_twi.c
+  # ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_twi.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uart.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uarte.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twi.c

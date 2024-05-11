@@ -3,15 +3,84 @@
 #include "util_micros.h"
 
 #include "nrf_delay.h"
-#include "nrf_twi.h"
+#include "nrf_gpio.h"
+// #include "nrf_twi.h"
 #include "nrfx_twi.h"
 
 static const nrfx_twi_t nrf_i2c_handle = NRFX_TWI_INSTANCE(TWI_INSTANCE_ID);
 static bool i2c_configured = false;
 static I2C_t i2c_handle = {NULL};
 
+static const nrfx_twi_config_t twi_config = {
+    .scl = TWI_SCL_M,                           //
+    .sda = TWI_SDA_M,                           //
+    .frequency = NRF_TWI_FREQ_400K,             //
+    .interrupt_priority = APP_IRQ_PRIORITY_HIGH //
+};
+
 // ================================
 // functions private
+
+// clang-format off
+#define I2C_PIN_INIT_CONF                                     \
+    ( (GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos) \
+    | (GPIO_PIN_CNF_DRIVE_S0D1     << GPIO_PIN_CNF_DRIVE_Pos) \
+    | (GPIO_PIN_CNF_PULL_Pullup    << GPIO_PIN_CNF_PULL_Pos)  \
+    | (GPIO_PIN_CNF_INPUT_Connect  << GPIO_PIN_CNF_INPUT_Pos) \
+    | (GPIO_PIN_CNF_DIR_Input      << GPIO_PIN_CNF_DIR_Pos))
+
+#define I2C_PIN_UNINIT_CONF                                     \
+    ( (GPIO_PIN_CNF_SENSE_Disabled   << GPIO_PIN_CNF_SENSE_Pos) \
+    | (GPIO_PIN_CNF_DRIVE_H0H1       << GPIO_PIN_CNF_DRIVE_Pos) \
+    | (GPIO_PIN_CNF_PULL_Disabled    << GPIO_PIN_CNF_PULL_Pos)  \
+    | (GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos) \
+    | (GPIO_PIN_CNF_DIR_Input        << GPIO_PIN_CNF_DIR_Pos))
+
+#define I2C_PIN_INIT_CONF_CLR                                 \
+    ( (GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos) \
+    | (GPIO_PIN_CNF_DRIVE_S0D1     << GPIO_PIN_CNF_DRIVE_Pos) \
+    | (GPIO_PIN_CNF_PULL_Pullup    << GPIO_PIN_CNF_PULL_Pos)  \
+    | (GPIO_PIN_CNF_INPUT_Connect  << GPIO_PIN_CNF_INPUT_Pos) \
+    | (GPIO_PIN_CNF_DIR_Output     << GPIO_PIN_CNF_DIR_Pos))
+// clang-format on
+
+static void nrf_i2c_bus_clear()
+{
+    i2c_configured = false;
+
+    NRF_GPIO->PIN_CNF[twi_config.scl] = I2C_PIN_INIT_CONF;
+    NRF_GPIO->PIN_CNF[twi_config.sda] = I2C_PIN_INIT_CONF;
+
+    nrf_gpio_pin_set(twi_config.scl);
+    nrf_gpio_pin_set(twi_config.sda);
+
+    NRF_GPIO->PIN_CNF[twi_config.scl] = I2C_PIN_INIT_CONF_CLR;
+    NRF_GPIO->PIN_CNF[twi_config.sda] = I2C_PIN_INIT_CONF_CLR;
+
+    nrf_delay_us(4);
+
+    for ( int i = 0; i < 9; i++ )
+    {
+        if ( nrf_gpio_pin_read(twi_config.sda) )
+        {
+            if ( i == 0 )
+            {
+                return;
+            }
+            else
+            {
+                break;
+            }
+        }
+        nrf_gpio_pin_clear(twi_config.scl);
+        nrf_delay_us(4);
+        nrf_gpio_pin_set(twi_config.scl);
+        nrf_delay_us(4);
+    }
+    nrf_gpio_pin_clear(twi_config.sda);
+    nrf_delay_us(4);
+    nrf_gpio_pin_set(twi_config.sda);
+}
 
 static bool nrf_i2c_init()
 {
@@ -19,12 +88,6 @@ static bool nrf_i2c_init()
 
     if ( !i2c_configured )
     {
-        const nrfx_twi_config_t twi_config = {
-            .scl = TWI_SCL_M,
-            .sda = TWI_SDA_M,
-            .frequency = NRF_TWI_FREQ_400K,
-            .interrupt_priority = APP_IRQ_PRIORITY_HIGH
-        };
         if ( NRF_SUCCESS != nrfx_twi_init(&nrf_i2c_handle, &twi_config, NULL, NULL) )
         {
             return false;
@@ -173,6 +236,7 @@ I2C_t* nrf_i2c_get_instance()
     i2c_handle.Init = nrf_i2c_init;
     i2c_handle.Deinit = nrf_i2c_deinit;
     i2c_handle.Send = nrf_i2c_send;
+    i2c_handle.Reset = nrf_i2c_bus_clear;
     i2c_handle.Receive = nrf_i2c_receive;
     i2c_handle.Reg.Write = nrf_i2c_reg_write;
     i2c_handle.Reg.Read = nrf_i2c_reg_read;

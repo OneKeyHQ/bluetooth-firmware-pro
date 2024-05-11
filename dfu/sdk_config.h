@@ -77,7 +77,7 @@
  
 
 #ifndef NRF_BL_APP_SIGNATURE_CHECK_REQUIRED
-#define NRF_BL_APP_SIGNATURE_CHECK_REQUIRED 0
+#define NRF_BL_APP_SIGNATURE_CHECK_REQUIRED 1
 #endif
 
 // <q> NRF_BL_DFU_ALLOW_UPDATE_FROM_APP  - Whether to allow the app to receive firmware updates for the bootloader to activate.
@@ -87,7 +87,7 @@
 // <i> The bootloader will do its own postvalidation.
 
 #ifndef NRF_BL_DFU_ALLOW_UPDATE_FROM_APP
-#define NRF_BL_DFU_ALLOW_UPDATE_FROM_APP 0
+#define NRF_BL_DFU_ALLOW_UPDATE_FROM_APP 1
 #endif
 
 // </h> 
@@ -2190,7 +2190,7 @@
 // <i> longer one will be fragmented.
 
 #ifndef NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE
-#define NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE 2048
+#define NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE 1024
 #endif
 
 // <o> NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS - Period before retrying writing to RTT 
@@ -2287,7 +2287,7 @@
 // <4=> Debug 
 
 #ifndef NRF_LOG_DEFAULT_LEVEL
-#define NRF_LOG_DEFAULT_LEVEL 3
+#define NRF_LOG_DEFAULT_LEVEL 4
 #endif
 
 // <q> NRF_LOG_DEFERRED  - Enable deffered logger.
@@ -2315,20 +2315,6 @@
 
 #ifndef NRF_LOG_NON_DEFFERED_CRITICAL_REGION_ENABLED
 #define NRF_LOG_NON_DEFFERED_CRITICAL_REGION_ENABLED 0
-#endif
-
-// <o> NRF_LOG_STR_PUSH_BUFFER_SIZE  - Size of the buffer dedicated for strings stored using @ref NRF_LOG_PUSH.
- 
-// <16=> 16 
-// <32=> 32 
-// <64=> 64 
-// <128=> 128 
-// <256=> 256 
-// <512=> 512 
-// <1024=> 1024 
-
-#ifndef NRF_LOG_STR_PUSH_BUFFER_SIZE
-#define NRF_LOG_STR_PUSH_BUFFER_SIZE 128
 #endif
 
 // <o> NRF_LOG_STR_PUSH_BUFFER_SIZE  - Size of the buffer dedicated for strings stored using @ref NRF_LOG_PUSH.
@@ -3709,7 +3695,7 @@
 // <e> NRFX_TWI_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
 #ifndef NRFX_TWI_CONFIG_LOG_ENABLED
-#define NRFX_TWI_CONFIG_LOG_ENABLED 0
+#define NRFX_TWI_CONFIG_LOG_ENABLED 1
 #endif
 // <o> NRFX_TWI_CONFIG_LOG_LEVEL  - Default Severity level
  
@@ -3720,7 +3706,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_TWI_CONFIG_LOG_LEVEL
-#define NRFX_TWI_CONFIG_LOG_LEVEL 3
+#define NRFX_TWI_CONFIG_LOG_LEVEL 4
 #endif
 
 // <o> NRFX_TWI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3806,57 +3792,6 @@
 
 #ifndef TWIS_CONFIG_DEBUG_COLOR
 #define TWIS_CONFIG_DEBUG_COLOR 0
-#endif
-
-// </e>
-
-// <e> TWI_CONFIG_LOG_ENABLED - Enables logging in the module.
-//==========================================================
-#ifndef TWI_CONFIG_LOG_ENABLED
-#define TWI_CONFIG_LOG_ENABLED 0
-#endif
-// <o> TWI_CONFIG_LOG_LEVEL  - Default Severity level
- 
-// <0=> Off 
-// <1=> Error 
-// <2=> Warning 
-// <3=> Info 
-// <4=> Debug 
-
-#ifndef TWI_CONFIG_LOG_LEVEL
-#define TWI_CONFIG_LOG_LEVEL 3
-#endif
-
-// <o> TWI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
- 
-// <0=> Default 
-// <1=> Black 
-// <2=> Red 
-// <3=> Green 
-// <4=> Yellow 
-// <5=> Blue 
-// <6=> Magenta 
-// <7=> Cyan 
-// <8=> White 
-
-#ifndef TWI_CONFIG_INFO_COLOR
-#define TWI_CONFIG_INFO_COLOR 0
-#endif
-
-// <o> TWI_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
- 
-// <0=> Default 
-// <1=> Black 
-// <2=> Red 
-// <3=> Green 
-// <4=> Yellow 
-// <5=> Blue 
-// <6=> Magenta 
-// <7=> Cyan 
-// <8=> White 
-
-#ifndef TWI_CONFIG_DEBUG_COLOR
-#define TWI_CONFIG_DEBUG_COLOR 0
 #endif
 
 // </e>
