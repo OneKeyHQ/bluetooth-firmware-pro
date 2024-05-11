@@ -1925,9 +1925,13 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
         bak_buff[0] = BLE_CMD_POWER_STA;
         bak_buff[1] = g_charge_status;
         bak_buff[2] = get_charge_type();
-        send_stm_data(bak_buff, 3);
-        // NRF_LOG_INFO("charge_status  = %d", g_charge_status);
-        // NRF_LOG_INFO("charge_type  = %d", get_charge_type());
+        if (get_charge_type() == AXP_CHARGE_TYPE_WIRELESS) {
+           axp_update(AXP_CHARGE_CONTROL1, 0, 0x0F);//wireless charging
+           send_stm_data(bak_buff, 3);
+        } else {
+           axp_update(AXP_CHARGE_CONTROL1, 0x01, 0x0F);//usb charging
+           send_stm_data(bak_buff, 3);
+        }
       }
       // AXP interrupt processing logic
       uint8_t irq_req_value = get_irq_status();
@@ -2366,7 +2370,13 @@ static void ble_ctl_process(void *p_event_data, uint16_t event_size) {
       bak_buff[0] = BLE_CMD_POWER_STA;
       bak_buff[1] = get_charge_status();
       bak_buff[2] = get_charge_type();
-      send_stm_data(bak_buff, 3);
+      if (get_charge_type() == AXP_CHARGE_TYPE_WIRELESS) {
+          axp_update(AXP_CHARGE_CONTROL1, 0, 0x0F);      //wireless charging
+          send_stm_data(bak_buff, 3);
+      } else {
+          axp_update(AXP_CHARGE_CONTROL1, 0x01, 0x0F);   //usb charging
+          send_stm_data(bak_buff, 3);
+      }
       pwr_status_flag = PWR_DEF;
       break;
     default:
