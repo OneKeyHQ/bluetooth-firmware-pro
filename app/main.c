@@ -2087,14 +2087,10 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
         {
             NRF_LOG_INFO("NRF_GPIOTE_POLARITY_LOTOHI");
             NRF_LOG_FLUSH();
-            // open_all_power();
-            // pmu_p->SetState(PWR_STATE_ON);
         }
         else if ( action == NRF_GPIOTE_POLARITY_HITOLO )
         {
-            NRF_LOG_INFO("NRF_GPIOTE_POLARITY_HITOLO");
-            NRF_LOG_FLUSH();
-            // enter_low_power_mode();
+            enter_low_power_mode();
         }
         break;
     default:
