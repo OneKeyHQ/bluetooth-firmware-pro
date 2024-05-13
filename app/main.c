@@ -236,7 +236,7 @@
     6 //!< The ADC is configured to use VDD with 1/3 prescaling as input. And hence the result of conversion
       //!< is to be multiplied by 3 to get the actual value of the battery voltage.
 #define ADC_RESULT_IN_MILLI_VOLTS(ADC_VALUE) \
-    ((((ADC_VALUE) * ADC_REF_VOLTAGE_IN_MILLIVOLTS) / ADC_RES_10BIT) * ADC_PRE_SCALING_COMPENSATION)
+    ((((ADC_VALUE)*ADC_REF_VOLTAGE_IN_MILLIVOLTS) / ADC_RES_10BIT) * ADC_PRE_SCALING_COMPENSATION)
 
 // UART define
 #define MAX_TEST_DATA_BYTES (15U) /**< max number of test bytes to be used for tx and rx. */
@@ -1188,8 +1188,7 @@ static void nus_data_handler(ble_nus_evt_t* p_evt)
                     ble_evt_flag = BLE_RCV_DATA;
                 }
             }
-            else if ( data_recived_buf[0] == 0x5A && data_recived_buf[1] == 0xA5 && data_recived_buf[2] == 0x07 &&
-                      data_recived_buf[3] == 0x1 && data_recived_buf[4] == 0x03 )
+            else if ( data_recived_buf[0] == 0x5A && data_recived_buf[1] == 0xA5 && data_recived_buf[2] == 0x07 && data_recived_buf[3] == 0x1 && data_recived_buf[4] == 0x03 )
             {
                 ble_adv_switch_flag = BLE_OFF_ALWAYS;
                 return;
@@ -2083,12 +2082,7 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
         }
         break;
     case POWER_IC_OK_IO:
-        if ( action == NRF_GPIOTE_POLARITY_LOTOHI )
-        {
-            NRF_LOG_INFO("NRF_GPIOTE_POLARITY_LOTOHI");
-            NRF_LOG_FLUSH();
-        }
-        else if ( action == NRF_GPIOTE_POLARITY_HITOLO )
+        if ( action == NRF_GPIOTE_POLARITY_HITOLO )
         {
             enter_low_power_mode();
         }

@@ -111,7 +111,6 @@ AXP216_CONF_R_t axp216_minimum_config()
     return result;
 }
 
-
 // static uint32_t wait_axp()
 // {
 //     uint32_t wait_ms = 0;

@@ -155,7 +155,7 @@ device_settings_t* deviceSettings_p = NULL;
 static bool device_settings_convert_legacy(device_settings_t* converted)
 {
     uint32_t bt_ctrl_legacy = 0;
-    
+
     memcpy((uint8_t*)(&bt_ctrl_legacy), (uint32_t*)BLE_CTL_ADDR, sizeof(bt_ctrl_legacy));
 
     if ( bt_ctrl_legacy == 0xffffffff )
