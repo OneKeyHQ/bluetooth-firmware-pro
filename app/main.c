@@ -2094,8 +2094,6 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 
 static void gpio_int_handler_pmu(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-    NRF_LOG_INFO("NRF IRQ gpio_int_handler_pmu begin  ...");
-    NRF_LOG_FLUSH();
     pmu_p->Irq();
 }
 

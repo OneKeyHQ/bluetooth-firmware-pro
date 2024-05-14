@@ -125,24 +125,25 @@ static void dfu_observer1(nrf_dfu_evt_type_t evt_type)
     }
 }
 
-void app_read_protect(void)
-{
-    uint32_t writedata = 0;
+// NRF_BL_DEBUG_PORT_DISABLE = 1 already did it
+// void app_read_protect(void)
+// {
+//     uint32_t writedata = 0;
 
-    writedata = NRF_UICR->APPROTECT;
-    if ( (writedata & 0x000000FF) != 0 )
-    {
-        // enable write
-        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
+//     writedata = NRF_UICR->APPROTECT;
+//     if ( (writedata & 0x000000FF) != 0 )
+//     {
+//         // enable write
+//         NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
 
-        while ( NRF_NVMC->READY == NVMC_READY_READY_Busy ) {}
-        NRF_UICR->APPROTECT = 0xFFFFFF00;
-        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
-        while ( NRF_NVMC->READY == NVMC_READY_READY_Busy ) {}
-        // after set APPROTECT,need reset
-        NVIC_SystemReset();
-    }
-}
+//         while ( NRF_NVMC->READY == NVMC_READY_READY_Busy ) {}
+//         NRF_UICR->APPROTECT = 0xFFFFFF00;
+//         NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
+//         while ( NRF_NVMC->READY == NVMC_READY_READY_Busy ) {}
+//         // after set APPROTECT,need reset
+//         NVIC_SystemReset();
+//     }
+// }
 
 // static char spinner()
 // {

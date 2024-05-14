@@ -194,7 +194,7 @@ target_include_directories(
 target_compile_options(
   MicroECC PRIVATE
   # Optimization flags
-  -Os -g3
+  -Os -g0 -s
   # Uncomment the line below to enable link time optimization
   -flto=auto
   # C flags common to all targets
@@ -220,7 +220,7 @@ target_compile_options(
 target_link_options(
   MicroECC PRIVATE
   # Linker flags
-  -Os -g3
+  -Os -g0 -s
   -mthumb -mabi=aapcs -L${NRF_SDK_ROOT}/modules/nrfx/mdk -T${MicroECC_DIR}/nrf52hf_armgcc/armgcc/ext_micro_ecc_gcc_nRF5x.ld
   -mcpu=cortex-m4
   -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -256,7 +256,8 @@ target_include_directories(
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Optimization flags
-  -O1 -ggdb
+  # -Og -ggdb
+  -Os -g0
   # Uncomment the line below to enable link time optimization
   -flto=auto
   # C flags common to all targets
@@ -296,7 +297,8 @@ target_compile_options(
 target_link_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Linker flags
-  -O1 -ggdb
+  # -Og -ggdb
+  -Os -g0
   -mthumb -mabi=aapcs -L${NRF_SDK_ROOT}/modules/nrfx/mdk -T${PROJECT_SOURCE_DIR}/secure_bootloader_gcc_nrf52.ld
   -mcpu=cortex-m4
   -mfloat-abi=hard -mfpu=fpv4-sp-d16

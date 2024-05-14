@@ -389,12 +389,14 @@ target_sources(
   power_manage.c
   flashled_manage.c
   device_config.c
+  dfu_upgrade.c
 )
 
 target_include_directories(
   ${CMAKE_PROJECT_NAME} PRIVATE
   ${PROJECT_SOURCE_DIR}
   ${NRF_SDK_INC}
+  ../artifacts # this is only for the dfu_upgrade_payload.h
   ../drivers
   ../drivers/pmu
   ../drivers/light

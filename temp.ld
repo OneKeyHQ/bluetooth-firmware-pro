@@ -1,9 +1,0 @@
-MEMORY
-{
-  bootloader_settings_page (r) : ORIGIN = 0x0007F000, LENGTH = 0x1000 /*0x8000*/
-  mbr_params_page (r) : ORIGIN = 0x0007E000, LENGTH = 0x1000
-  FLASH_DFU (rx) : ORIGIN = 0x77000, LENGTH = 0x7000
-  FLASH_APP (rx) : ORIGIN = 0x26000, LENGTH = 0x51000
-  FLASH_SD (rx) : ORIGIN = 0x01000, LENGTH = 0x25000
-  FLASH_MBR (rx) : ORIGIN = 0x0, LENGTH = 0x1000
-}

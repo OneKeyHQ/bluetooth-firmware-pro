@@ -63,7 +63,7 @@ static bool m_rx_ovf;
 static app_fifo_t                  m_rx_fifo;                               /**< RX FIFO buffer for storing data received on the UART until the application fetches them using app_uart_get(). */
 static app_fifo_t                  m_tx_fifo;                               /**< TX FIFO buffer for storing data to be transmitted on the UART when TXD is ready. Data is put to the buffer on using app_uart_put(). */
 
-static void uart_event_handler(nrfx_uart_event_t * p_event, void* p_context)
+static void uart_event_handler(nrfx_uart_event_t const * p_event, void* p_context)
 {
     app_uart_evt_t app_uart_event;
     uint32_t err_code;

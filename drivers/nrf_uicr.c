@@ -6,9 +6,8 @@
 #include "nrfx_nvmc.h"
 // #include "nrf_nvmc.h"
 
-#define EC_E_NRFX_SUCCESS_R_BOOL(expr)         ExecuteCheck_ADV(expr, NRFX_SUCCESS, { return false; })
+#define EC_E_NRFX_SUCCESS_R_BOOL(expr) ExecuteCheck_ADV(expr, NRFX_SUCCESS, { return false; })
 #define EC_E_BOOL_R_BOOL(expr)         ExecuteCheck_ADV(expr, true, { return false; })
-
 
 static inline bool uicr_validate_addr_range(uint32_t addr_start, uint32_t addr_end)
 {
@@ -60,6 +59,27 @@ bool uicr_read(uint32_t addr, void* data, uint32_t len)
     return true;
 }
 
+bool uicr_update_bootloader_addr(uint32_t bootloader_addr)
+{
+    // backup
+    NRF_UICR_Type uicr_backup;
+    EC_E_BOOL_R_BOOL(uicr_read(UICR_START, &uicr_backup, sizeof(NRF_UICR_Type)))
+
+    // copy over new customer region
+    uicr_backup.NRFFW[0] = bootloader_addr;
+
+    // wipe
+    EC_E_NRFX_SUCCESS_R_BOOL(nrfx_nvmc_uicr_erase());
+
+    // check blank
+    EC_E_BOOL_R_BOOL(uicr_check_blank(UICR_START, UICR_SIZE));
+
+    // write back
+    EC_E_BOOL_R_BOOL(uicr_write(UICR_START, &uicr_backup, sizeof(NRF_UICR_Type)));
+
+    return true; // remember to reboot !
+}
+
 bool uicr_update_customer(void* data, uint8_t len)
 {
     if ( len > sizeof(NRF_UICR->CUSTOMER) )
@@ -67,21 +87,19 @@ bool uicr_update_customer(void* data, uint8_t len)
 
     // backup
     NRF_UICR_Type uicr_backup;
-    EC_E_BOOL_R_BOOL(uicr_read(UICR_START, &uicr_backup, sizeof(NRF_UICR_Type)) )
+    EC_E_BOOL_R_BOOL(uicr_read(UICR_START, &uicr_backup, sizeof(NRF_UICR_Type)))
+
+    // copy over new customer region
+    memcpy((uint8_t*)(&(uicr_backup.CUSTOMER)), data, len);
 
     // wipe
     EC_E_NRFX_SUCCESS_R_BOOL(nrfx_nvmc_uicr_erase());
 
     // check blank
-    if ( !uicr_check_blank(UICR_START, UICR_SIZE) )
-        return false;
-
-    // copy over new customer region
-    memcpy((uint8_t*)(&(uicr_backup.CUSTOMER)), data, len);
+    EC_E_BOOL_R_BOOL(uicr_check_blank(UICR_START, UICR_SIZE));
 
     // write back
-    if ( !uicr_write(UICR_START, &uicr_backup, sizeof(NRF_UICR_Type)) )
-        return false;
+    EC_E_BOOL_R_BOOL(uicr_write(UICR_START, &uicr_backup, sizeof(NRF_UICR_Type)));
 
     return true; // remember to reboot !
 }

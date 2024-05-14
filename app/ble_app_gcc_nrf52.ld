@@ -17,6 +17,13 @@ SECTIONS
   {
     KEEP(*(.device_config))
   } > CONFIG
+  
+  .payload :
+  {
+    PROVIDE(__start_payload_ptrs = .);
+    KEEP(*(.payload))
+    PROVIDE(__stop_payload_ptrs = .);
+  } > FLASH
 }
 
 SECTIONS

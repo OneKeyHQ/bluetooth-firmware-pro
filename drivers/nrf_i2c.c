@@ -14,7 +14,7 @@ static I2C_t i2c_handle = {NULL};
 static const nrfx_twi_config_t twi_config = {
     .scl = TWI_SCL_M,                           //
     .sda = TWI_SDA_M,                           //
-    .frequency = NRF_TWI_FREQ_400K,             //
+    .frequency = NRF_TWI_FREQ_100K,             //
     .interrupt_priority = APP_IRQ_PRIORITY_HIGH //
 };
 
@@ -92,6 +92,7 @@ static bool nrf_i2c_init()
         {
             return false;
         }
+
         nrfx_twi_enable(&nrf_i2c_handle);
 
         i2c_configured = true;

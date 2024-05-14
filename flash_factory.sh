@@ -4,7 +4,7 @@ tee flashFactory.jlink > /dev/null << EOT
 usb $JLINK_SN
 device NRF52832_XXAA
 SelectInterface swd
-speed 12000
+speed 8000
 RSetType 0
 erase
 loadbin $(dirname $0)/artifacts_signed/factory.hex 0x00000000

@@ -12,7 +12,7 @@
             "executable": "${workspaceFolder}/artifacts/OnekeyProBTFW_BL",
             // "loadFiles": [],
             "preAttachCommands": [
-                "mon speed 20000"
+                "mon speed 8000"
             ],
             "request": "attach",
             "type": "cortex-debug",
@@ -32,7 +32,7 @@
             "executable": "${workspaceFolder}/artifacts/OnekeyProBTFW_APP",
             // "loadFiles": [],
             "preAttachCommands": [
-                "mon speed 20000"
+                "mon speed 8000"
             ],
             "request": "attach",
             "type": "cortex-debug",

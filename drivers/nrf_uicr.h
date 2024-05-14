@@ -14,6 +14,7 @@ bool uicr_check_blank(uint32_t addr, uint32_t len);
 bool uicr_mass_erase(void);
 bool uicr_write(uint32_t addr, void* data, uint32_t len);
 bool uicr_read(uint32_t addr, void* data, uint32_t len);
+bool uicr_update_bootloader_addr(uint32_t bootloader_addr);
 bool uicr_update_customer(void* data, uint8_t len);
 
 #endif //_NRF_UICR_

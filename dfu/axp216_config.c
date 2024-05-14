@@ -4,7 +4,7 @@
 #include "nrf_i2c.h"
 #include "nrf_delay.h"
 
-#include "nrf_log.h"
+// #include "nrf_log.h"
 
 // axp216 defines
 
@@ -54,7 +54,7 @@ AXP216_CONF_R_t axp216_minimum_config()
             if ( !axp216_reg_read(AXP216_IC_TYPE, &val) )
             {
                 result = AXP216_CONF_NO_ACK;
-                nrf_delay_ms(100); // needed? i2c has it's own timeout
+                nrf_delay_ms(50);
                 continue;
             }
 

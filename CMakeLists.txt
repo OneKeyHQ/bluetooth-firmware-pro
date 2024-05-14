@@ -18,7 +18,7 @@ include(ExternalProject)
 ExternalProject_Add(
   dfu
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/dfu
-  INSTALL_DIR ${PROJECT_BINARY_DIR}/artifacts
+  INSTALL_DIR ${PROJECT_SOURCE_DIR}/artifacts
   CMAKE_GENERATOR "Ninja"
   CMAKE_ARGS "-DTOOL_CHAIN_PREFIX=${TOOL_CHAIN_PREFIX} "
   CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${PROJECT_SOURCE_DIR}/artifacts " 
@@ -26,10 +26,11 @@ ExternalProject_Add(
 ExternalProject_Add(
   app
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/app
-  INSTALL_DIR ${PROJECT_BINARY_DIR}/artifacts
+  INSTALL_DIR ${PROJECT_SOURCE_DIR}/artifacts
   CMAKE_GENERATOR "Ninja"
   CMAKE_ARGS "-DTOOL_CHAIN_PREFIX=${TOOL_CHAIN_PREFIX} "
   CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${PROJECT_SOURCE_DIR}/artifacts "
+  ${CMAKE_PROJECT_NAME}_DFU_UPGRADE_PAYLOAD
 )
 
 ###############################
@@ -53,6 +54,13 @@ set(FILE_OUTPUT_OTA_BIN "${DIR_OUTPUT}/ota.bin")
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_OUT_DIR ALL
   COMMAND mkdir -p ${DIR_OUTPUT}
+)
+
+# dfu payload
+add_custom_target(
+  ${CMAKE_PROJECT_NAME}_DFU_UPGRADE_PAYLOAD ALL
+  COMMAND python ${DIR_UTILS}/bin2array.py -l 16 -i ${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_BL -o ${PROJECT_SOURCE_DIR}/artifacts/dfu_upgrade_payload.h
+  DEPENDS dfu
 )
 
 # prepare nrf tools
