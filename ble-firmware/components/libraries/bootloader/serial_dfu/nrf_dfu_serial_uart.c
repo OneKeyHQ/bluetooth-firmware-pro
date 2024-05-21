@@ -47,7 +47,7 @@
 #include "nrf_dfu_req_handler.h"
 #include "slip.h"
 #include "nrf_balloc.h"
-#include "nrf_drv_uart.h"
+#include "nrfx_uarte.h"
 
 #define NRF_LOG_MODULE_NAME nrf_dfu_serial_uart
 #include "nrf_log.h"
@@ -61,7 +61,7 @@ NRF_LOG_MODULE_REGISTER();
  */
 
 #define NRF_SERIAL_OPCODE_SIZE          (sizeof(uint8_t))
-#define NRF_UART_MAX_RESPONSE_SIZE_SLIP (2 * NRF_SERIAL_MAX_RESPONSE_SIZE + 1)
+#define NRF_UARTE_MAX_RESPONSE_SIZE_SLIP (2 * NRF_SERIAL_MAX_RESPONSE_SIZE + 1)
 #define RX_BUF_SIZE                     (64) //to get 64bytes payload
 #define OPCODE_OFFSET                   (sizeof(uint32_t) - NRF_SERIAL_OPCODE_SIZE)
 #define DATA_OFFSET                     (OPCODE_OFFSET + NRF_SERIAL_OPCODE_SIZE)
@@ -70,12 +70,12 @@ NRF_LOG_MODULE_REGISTER();
 
 NRF_BALLOC_DEF(m_payload_pool, (UART_SLIP_MTU + 1), NRF_DFU_SERIAL_UART_RX_BUFFERS);
 
-static nrf_drv_uart_t m_uart =  NRF_DRV_UART_INSTANCE(0);
+static nrfx_uarte_t m_uart =  NRFX_UARTE_INSTANCE(0);
 static uint8_t m_rx_byte;
 
 static nrf_dfu_serial_t m_serial;
 static slip_t m_slip;
-static uint8_t m_rsp_buf[NRF_UART_MAX_RESPONSE_SIZE_SLIP];
+static uint8_t m_rsp_buf[NRF_UARTE_MAX_RESPONSE_SIZE_SLIP];
 static bool m_active;
 
 static nrf_dfu_observer_t m_observer;
@@ -100,7 +100,7 @@ static ret_code_t rsp_send(uint8_t const * p_data, uint32_t length)
     uint32_t slip_len;
     (void) slip_encode(m_rsp_buf, (uint8_t *)p_data, length, &slip_len);
 
-    return nrf_drv_uart_tx(&m_uart, m_rsp_buf, slip_len);
+    return nrfx_uarte_tx(&m_uart, m_rsp_buf, slip_len);
 }
 
 static __INLINE void on_rx_complete(nrf_dfu_serial_t * p_transport, uint8_t * p_data, uint8_t len)
@@ -113,7 +113,7 @@ static __INLINE void on_rx_complete(nrf_dfu_serial_t * p_transport, uint8_t * p_
         ret_code = slip_decode_add_byte(&m_slip, p_data[0]);
     }
 
-    (void) nrf_drv_uart_rx(&m_uart, &m_rx_byte, 1);
+    (void) nrfx_uarte_rx(&m_uart, &m_rx_byte, 1);
 
     if (ret_code == NRF_SUCCESS)
     {
@@ -136,17 +136,17 @@ static __INLINE void on_rx_complete(nrf_dfu_serial_t * p_transport, uint8_t * p_
 
 }
 
-static void uart_event_handler(nrf_drv_uart_event_t * p_event, void * p_context)
+static void uart_event_handler(nrfx_uarte_event_t const * p_event, void * p_context)
 {
     switch (p_event->type)
     {
-        case NRF_DRV_UART_EVT_RX_DONE:
+        case NRFX_UARTE_EVT_RX_DONE:
             on_rx_complete((nrf_dfu_serial_t*)p_context,
                            p_event->data.rxtx.p_data,
                            p_event->data.rxtx.bytes);
             break;
 
-        case NRF_DRV_UART_EVT_ERROR:
+        case NRFX_UARTE_EVT_ERROR:
             APP_ERROR_HANDLER(p_event->data.error.error_mask);
             break;
 
@@ -185,28 +185,28 @@ static uint32_t uart_dfu_transport_init(nrf_dfu_observer_t observer)
     m_serial.rsp_func           = rsp_send;
     m_serial.payload_free_func  = payload_free;
     m_serial.mtu                = UART_SLIP_MTU;
-    m_serial.p_rsp_buf          = &m_rsp_buf[NRF_UART_MAX_RESPONSE_SIZE_SLIP -
+    m_serial.p_rsp_buf          = &m_rsp_buf[NRF_UARTE_MAX_RESPONSE_SIZE_SLIP -
                                             NRF_SERIAL_MAX_RESPONSE_SIZE];
     m_serial.p_low_level_transport = &uart_dfu_transport;
 
-    nrf_drv_uart_config_t uart_config = NRF_DRV_UART_DEFAULT_CONFIG;
+    nrfx_uarte_config_t uart_config = NRFX_UARTE_DEFAULT_CONFIG;
 
     uart_config.pseltxd   = TX_PIN_NUMBER;
     uart_config.pselrxd   = RX_PIN_NUMBER;
     uart_config.pselcts   = CTS_PIN_NUMBER;
     uart_config.pselrts   = RTS_PIN_NUMBER;
     uart_config.hwfc      = NRF_DFU_SERIAL_UART_USES_HWFC ?
-                                NRF_UART_HWFC_ENABLED : NRF_UART_HWFC_DISABLED;
+                                NRF_UARTE_HWFC_ENABLED : NRF_UARTE_HWFC_DISABLED;
     uart_config.p_context = &m_serial;
 
-    err_code =  nrf_drv_uart_init(&m_uart, &uart_config, uart_event_handler);
+    err_code =  nrfx_uarte_init(&m_uart, &uart_config, uart_event_handler);
     if (err_code != NRF_SUCCESS)
     {
         NRF_LOG_ERROR("Failed initializing uart");
         return err_code;
     }
 
-    err_code = nrf_drv_uart_rx(&m_uart, &m_rx_byte, 1);
+    err_code = nrfx_uarte_rx(&m_uart, &m_rx_byte, 1);
     if (err_code != NRF_SUCCESS)
     {
         NRF_LOG_ERROR("Failed initializing rx");
@@ -229,7 +229,7 @@ static uint32_t uart_dfu_transport_close(nrf_dfu_transport_t const * p_exception
 {
     if ((m_active == true) && (p_exception != &uart_dfu_transport))
     {
-        nrf_drv_uart_uninit(&m_uart);
+        nrfx_uarte_uninit(&m_uart);
         m_active = false;
     }
 
@@ -240,17 +240,17 @@ uint32_t uart_battery_transport_init(void)
 {
     uint32_t err_code = NRF_SUCCESS;
     
-    nrf_drv_uart_config_t uart_config = NRF_DRV_UART_DEFAULT_CONFIG;
+    nrfx_uarte_config_t uart_config = NRFX_UARTE_DEFAULT_CONFIG;
 
     uart_config.pseltxd   = TX_PIN_NUMBER;
     uart_config.pselrxd   = RX_PIN_NUMBER;
     uart_config.pselcts   = CTS_PIN_NUMBER;
     uart_config.pselrts   = RTS_PIN_NUMBER;
     uart_config.hwfc      = NRF_DFU_SERIAL_UART_USES_HWFC ?
-                                NRF_UART_HWFC_ENABLED : NRF_UART_HWFC_DISABLED;
+                                NRF_UARTE_HWFC_ENABLED : NRF_UARTE_HWFC_DISABLED;
     uart_config.p_context = &m_serial;
 
-    err_code =  nrf_drv_uart_init(&m_uart, &uart_config, uart_event_handler);
+    err_code =  nrfx_uarte_init(&m_uart, &uart_config, uart_event_handler);
     if (err_code != NRF_SUCCESS)
     {
         NRF_LOG_ERROR("Failed initializing uart");
@@ -262,6 +262,6 @@ uint32_t uart_battery_transport_init(void)
 
 ret_code_t battery_percent_send(uint8_t const * p_data, uint32_t length)
 {
-    return nrf_drv_uart_tx(&m_uart, p_data, length);
+    return nrfx_uarte_tx(&m_uart, p_data, length);
 }
 

@@ -76,26 +76,6 @@ static bool axp2101_config_adc(void)
     return true;
 }
 
-static bool axp2101_output_ctl(bool on_off)
-{
-    if ( on_off )
-    {
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x01));
-        // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0X00)); // no need
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x01)
-        ); // dcdc1 on, other off
-           // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00)); // no need
-    }
-    else
-    {
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
-        // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00)); // no need
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x00));
-        // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00)); // no need
-    }
-    return true;
-}
-
 // function public
 
 Power_Error_t axp2101_init(void)
@@ -198,19 +178,34 @@ Power_Error_t axp2101_set_state(const Power_State_t state)
 {
     switch ( state )
     {
-    case PWR_STATE_OFF:
+    case PWR_STATE_SOFT_OFF:
         // close output
-        EC_E_BOOL_R_PWR_ERR(axp2101_output_ctl(false));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x40)); // keep cpuldo on
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00));
+        // cpuldo is not used and not connected, keep it on is just for prevent axp "sleep"
+        // "close all output means sleep" is a really stupid design, as axp turns off I2C when sleeping
+        // there is no way to wake it up if you do't enable wakeup source before close all output
+        break;
+    case PWR_STATE_HARD_OFF:
+        // close output (not needed as the pmu off will kill all output)
+        // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
+        // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));
+        // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x00));
+        // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00));
         // pmu off
         EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_COMM_CFG, (1 << 0)));
         break;
     case PWR_STATE_ON:
         // try wakeup anyways
-        EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_SLEEP_CFG, (1 << 1)));
         // config eveything
         EC_E_BOOL_R_PWR_ERR(axp2101_config());
         // open output
-        EC_E_BOOL_R_PWR_ERR(axp2101_output_ctl(true));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x01)); // aldo1 on, other off
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0X00)); // all off
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x01));   // dcdc1 on, other off
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));   // all off
         break;
     case PWR_STATE_SLEEP:
         // allow irq wakeup
@@ -218,7 +213,14 @@ Power_Error_t axp2101_set_state(const Power_State_t state)
         // enable wakeup
         EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_SLEEP_CFG, (1 << 3)));
         // close output ("sleep")
-        EC_E_BOOL_R_PWR_ERR(axp2101_output_ctl(false));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x00));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00));
+        break;
+    case PWR_STATE_WAKEUP:
+        // wakeup via i2c
+        EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_SLEEP_CFG, (1 << 1)));
         break;
 
     case PWR_STATE_INVALID:
@@ -274,7 +276,7 @@ Power_Error_t axp2101_get_status(Power_Status_t* status)
     {
         status->batteryPercent = 0;
         status->batteryVoltage = 0;
-        status->batteryTemp = 0;
+        status->batteryTemp = -999;
     }
 
     // pmu temp
@@ -305,11 +307,11 @@ Power_Error_t axp2101_get_status(Power_Status_t* status)
             // TODO: find a batter way to check GPIO?
             // read gpio
             bool gpio_high_low;
-            pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_READ_NP);
+            pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_READ_PH);
             pmu_interface_p->GPIO.Read(8, &gpio_high_low);
             pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_UNUSED);
 
-            status->wirelessCharge = gpio_high_low; // high is wireless
+            status->wirelessCharge = !gpio_high_low; // low is wireless
             // if not wireless charging then it's wired
             status->wiredCharge = !status->wirelessCharge;
         }

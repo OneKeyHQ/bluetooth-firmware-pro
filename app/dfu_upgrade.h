@@ -3,6 +3,10 @@
 
 #include <stdbool.h>
 
-bool dfu_upgrade(void);
+#define DFU_ADDR         0x6E000
+#define DFU_SETTING_ADDR 0x7F000
+#define MBR_PARAM_ADDR   0x7E000
+
+void try_dfu_upgrade(bool force);
 
 #endif // _DFU_UPGRADE_H_

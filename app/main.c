@@ -86,75 +86,66 @@
 #include "nrf_crypto.h"
 #include "nrf_crypto_init.h"
 #include "nrf_delay.h"
-#include "nrf_drv_gpiote.h"
 #include "nrf_drv_wdt.h"
 // #include "nrf_fstorage.h"
 // #include "nrf_fstorage_sd.h"
 #include "nrf_power.h"
-// #include "rtc_calendar.h"
+#include "nrf_uarte.h"
+#include "nrfx_gpiote.h"
 
 #include "ecdsa.h"
 #include "power_manage.h"
 #include "flashled_manage.h"
 #include "data_transmission.h"
 #include "device_config.h"
-
-#if defined(UART_PRESENT)
-  #define RX_PIN_NUMBER  11
-  #define TX_PIN_NUMBER  12
-  #define CTS_PIN_NUMBER UART_PIN_DISCONNECTED
-  #define RTS_PIN_NUMBER UART_PIN_DISCONNECTED
-  #include "nrf_uart.h"
-#endif
-#if defined(UARTE_PRESENT)
-  #include "nrf_uarte.h"
-#endif
-
 #include "firmware_config.h"
+#include "dfu_upgrade.h"
+// #include "rtc_calendar.h"
 
-#define APDU_TAG_BLE           0x44
+#define RX_PIN_NUMBER           11
+#define TX_PIN_NUMBER           12
+#define CTS_PIN_NUMBER          UART_PIN_DISCONNECTED
+#define RTS_PIN_NUMBER          UART_PIN_DISCONNECTED
 
-#define BLE_DEFAULT            0
-#define BLE_CONNECT            1
-#define BLE_DISCONNECT         2
-#define BLE_DIS_PIN            3
-#define BLE_PIN_ERR            4
-#define BLE_PIN_TIMEOUT        5
-#define BLE_PIN_CANCEL         7
-#define BLE_RCV_DATA           8
+#define APDU_TAG_BLE            0x44
 
-#define DEFAULT_FLAG           0
-#define SEND_SPI_DATA          1
-#define READ_SPI_HEAD          2
-#define READ_SPI_DATA          3
+#define BLE_DEFAULT             0
+#define BLE_CONNECT             1
+#define BLE_DISCONNECT          2
+#define BLE_DIS_PIN             3
+#define BLE_PIN_ERR             4
+#define BLE_PIN_TIMEOUT         5
+#define BLE_PIN_CANCEL          7
+#define BLE_RCV_DATA            8
 
-#define BLE_DEF                0
-#define BLE_ON_ALWAYS          1
-#define BLE_OFF_ALWAYS         2
-#define BLE_DISCON             3
-#define BLE_CON                4
-#define BLE_PAIR               5
+#define DEFAULT_FLAG            0
+#define SEND_SPI_DATA           1
+#define READ_SPI_HEAD           2
+#define READ_SPI_DATA           3
 
-#define PWR_DEF                0
-#define PWR_SHUTDOWN_SYS       1
-#define PWR_CLOSE_EMMC         2
-#define PWR_OPEN_EMMC          3
-#define PWR_BAT_PERCENT        5
-#define PWR_USB_STATUS         6
+#define BLE_DEF                 0
+#define BLE_ON_ALWAYS           1
+#define BLE_OFF_ALWAYS          2
+#define BLE_DISCON              3
+#define BLE_CON                 4
+#define BLE_PAIR                5
 
-#define LED_DEF                0
-#define LED_SET_BRIHTNESS      1
-#define LED_GET_BRIHTNESS      2
+#define PWR_DEF                 0
+#define PWR_SHUTDOWN_SYS        1
+#define PWR_CLOSE_EMMC          2
+#define PWR_OPEN_EMMC           3
+#define PWR_BAT_PERCENT         5
+#define PWR_USB_STATUS          6
 
-#define BAT_DEF                0
-#define SEND_BAT_VOL           1
-#define SEND_BAT_CHARGE_CUR    2
-#define SEND_BAT_DISCHARGE_CUR 3
-#define SEND_BAT_INNER_TEMP    4
+#define LED_DEF                 0
+#define LED_SET_BRIHTNESS       1
+#define LED_GET_BRIHTNESS       2
 
-// #define NO_CHARGE  0
-// #define USB_CHARGE 1
-// #define ERROR_STA  2
+#define BAT_DEF                 0
+#define SEND_BAT_VOL            1
+#define SEND_BAT_CHARGE_CUR     2
+#define SEND_BAT_DISCHARGE_CUR  3
+#define SEND_BAT_INNER_TEMP     4
 
 #define INIT_VALUE              0
 #define AUTH_VALUE              1
@@ -169,28 +160,17 @@
 #define COMPANY_IDENTIFIER      0xFE
 
 // SCHEDULER CONFIGS
-#define SCHED_MAX_EVENT_DATA_SIZE 64 //!< Maximum size of the scheduler event data.
-#define SCHED_QUEUE_SIZE          20 //!< Size of the scheduler queue.
+#define SCHED_MAX_EVENT_DATA_SIZE   64 //!< Maximum size of the scheduler event data.
+#define SCHED_QUEUE_SIZE            20 //!< Size of the scheduler queue.
 
-#define RCV_DATA_TIMEOUT_INTERVAL APP_TIMER_TICKS(100)
-#define BATTERY_LEVEL_MEAS_INTERVAL                                        \
-    APP_TIMER_TICKS(1000) /**< Battery level measurement interval (ticks). \
-                           */
-#define BATTERY_MEAS_LONG_INTERVAL APP_TIMER_TICKS(5000)
-#define MIN_BATTERY_LEVEL                                                            \
-    81 /**< Minimum battery level as returned by the simulated measurement function. \
-        */
-#define MAX_BATTERY_LEVEL                                                             \
-    100 /**< Maximum battery level as returned by the simulated measurement function. \
-         */
-#define BATTERY_LEVEL_INCREMENT                                                                       \
-    1 /**< Value by which the battery level is incremented/decremented for each call to the simulated \
-         measurement function. */
+#define RCV_DATA_TIMEOUT_INTERVAL   APP_TIMER_TICKS(100)
+#define BATTERY_LEVEL_MEAS_INTERVAL APP_TIMER_TICKS(1000) /**< Battery level measurement interval (ticks). */
+#define BATTERY_MEAS_LONG_INTERVAL  APP_TIMER_TICKS(5000)
 
-#define MIN_CONN_INTERVAL MSEC_TO_UNITS(30, UNIT_1_25_MS) /**< Minimum acceptable connection interval (10 ms). */
-#define MAX_CONN_INTERVAL MSEC_TO_UNITS(30, UNIT_1_25_MS) /**< Maximum acceptable connection interval (100 ms) */
-#define SLAVE_LATENCY     0                               /**< Slave latency. */
-#define CONN_SUP_TIMEOUT  MSEC_TO_UNITS(300, UNIT_10_MS)  /**< Connection supervisory timeout (4 seconds). */
+#define MIN_CONN_INTERVAL           MSEC_TO_UNITS(30, UNIT_1_25_MS) /**< Minimum acceptable connection interval (10 ms). */
+#define MAX_CONN_INTERVAL           MSEC_TO_UNITS(30, UNIT_1_25_MS) /**< Maximum acceptable connection interval (100 ms) */
+#define SLAVE_LATENCY               0                               /**< Slave latency. */
+#define CONN_SUP_TIMEOUT            MSEC_TO_UNITS(300, UNIT_10_MS) /**< Connection supervisory timeout (4 seconds). */
 #define FIRST_CONN_PARAMS_UPDATE_DELAY                                                                    \
     APP_TIMER_TICKS(100) /**< Time from initiating event (connect or start of notification) to first time \
                             sd_ble_gap_conn_param_update is called (5 seconds). */
@@ -236,7 +216,7 @@
     6 //!< The ADC is configured to use VDD with 1/3 prescaling as input. And hence the result of conversion
       //!< is to be multiplied by 3 to get the actual value of the battery voltage.
 #define ADC_RESULT_IN_MILLI_VOLTS(ADC_VALUE) \
-    ((((ADC_VALUE)*ADC_REF_VOLTAGE_IN_MILLIVOLTS) / ADC_RES_10BIT) * ADC_PRE_SCALING_COMPENSATION)
+    ((((ADC_VALUE) * ADC_REF_VOLTAGE_IN_MILLIVOLTS) / ADC_RES_10BIT) * ADC_PRE_SCALING_COMPENSATION)
 
 // UART define
 #define MAX_TEST_DATA_BYTES (15U) /**< max number of test bytes to be used for tx and rx. */
@@ -330,11 +310,13 @@
 #define STM_REQUEST_SIGN           0x03
 
 // end Receive ST CMD
+
 // VALUE
 #define VALUE_CONNECT    0x01
 #define VALUE_DISCONNECT 0x02
 #define VALUE_SECCESS    0x01
 #define VALUE_FAILED     0x02
+
 // DFU STATUS
 #define VALUE_PREPARE_DFU  0x01
 #define VALUE_ENTER_DFU    0x02
@@ -405,7 +387,12 @@ static uint8_t mac_ascii[12];
 static uint8_t mac[6] = {0x42, 0x13, 0xc7, 0x98, 0x95, 0x1a}; // Device MAC address
 static char ble_adv_name[ADV_NAME_LENGTH];
 
-// extern rtc_date_t rtc_date;
+// void BusFault_Handler(void)
+// {
+//     NRF_LOG_ERROR("BusFault -> 0x08%x", SCB->BFAR);
+//     NRF_LOG_FINAL_FLUSH();
+// }
+
 static Power_Status_t pmu_status;
 static void pmu_status_refresh()
 {
@@ -416,7 +403,7 @@ static void pmu_status_refresh()
     NRF_LOG_INFO("batteryPresent=%u", pmu_status.batteryPresent);
     NRF_LOG_INFO("batteryPercent=%u", pmu_status.batteryPercent);
     NRF_LOG_INFO("batteryVoltage=%lu", pmu_status.batteryVoltage);
-    NRF_LOG_INFO("batteryTemp=%lu", pmu_status.batteryTemp);
+    NRF_LOG_INFO("batteryTemp=%ld", pmu_status.batteryTemp);
     NRF_LOG_INFO("pmuTemp=%lu", pmu_status.pmuTemp);
     NRF_LOG_INFO("chargeAllowed=%u", pmu_status.chargeAllowed);
     NRF_LOG_INFO("chargerAvailable=%u", pmu_status.chargerAvailable);
@@ -470,11 +457,11 @@ static uint8_t rcv_head_flag = 0;
 static uint8_t ble_status_flag = 0;
 static bool ble_send_ready = false;
 
-// AXP216 global status
+// global vars
 static uint8_t g_bas_update_flag = 0;
 
-// LM    global status
-static uint8_t led_brightness_value = 0;
+// LM global status
+static volatile uint8_t led_brightness_value = 0;
 
 #ifdef SCHED_ENABLE
 static ringbuffer_t m_ble_fifo;
@@ -567,53 +554,36 @@ static uint32_t get_ringBuffer_length(ringbuffer_t* ringBuf)
  */
 static bool app_shutdown_handler(nrf_pwr_mgmt_evt_t event)
 {
-    nrf_gpio_pin_sense_t sense;
+    NRF_LOG_DEBUG("%s , nrf_pwr_mgmt_evt_t = %d", __func__, event);
+
     switch ( event )
     {
-    case NRF_PWR_MGMT_EVT_PREPARE_DFU:
-        NRF_LOG_INFO("Power management wants to reset to DFU mode.");
-        // YOUR_JOB: Get ready to reset into DFU mode
-        //
-        // If you aren't finished with any ongoing tasks, return "false" to
-        // signal to the system that reset is impossible at this stage.
-        //
-        // Here is an example using a variable to delay resetting the device.
-        //
-        // if (!m_ready_for_reset)
-        // {
-        //      return false;
-        // }
-        // else
-        //{
-        //
-        //    // Device ready to enter
-        //    uint32_t err_code;
-        //    err_code = sd_softdevice_disable();
-        //    APP_ERROR_CHECK(err_code);
-        //    err_code = app_timer_stop_all();
-        //    APP_ERROR_CHECK(err_code);
-        //}
-        break;
     case NRF_PWR_MGMT_EVT_PREPARE_WAKEUP:
-        sense = NRF_GPIO_PIN_SENSE_HIGH;
-        nrf_gpio_cfg_sense_set(POWER_IC_OK_IO, sense);
-        break;
 
+        // disconnect (if connected)
+        if ( m_conn_handle != BLE_CONN_HANDLE_INVALID )
+        {
+            // ret_code_t err_code;
+            // if ( sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION) != NRF_SUCCESS )
+            //     return false;
+            // only try disconnect, as the connection will be dropped anyways after shutdown
+            sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+            m_conn_handle = BLE_CONN_HANDLE_INVALID;
+            ble_evt_flag = BLE_DISCONNECT;
+        }
+        // stop bt adv
+        bt_advertising_ctrl(false, false);
+        // enable wakeup
+        nrf_gpio_cfg_sense_input(POWER_IC_OK_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
+        return true;
+
+    case NRF_PWR_MGMT_EVT_PREPARE_DFU:
+    case NRF_PWR_MGMT_EVT_PREPARE_SYSOFF:
+    case NRF_PWR_MGMT_EVT_PREPARE_RESET:
     default:
-        // YOUR_JOB: Implement any of the other events available from the power management module:
-        //      -NRF_PWR_MGMT_EVT_PREPARE_SYSOFF
-        //      -NRF_PWR_MGMT_EVT_PREPARE_WAKEUP
-        //      -NRF_PWR_MGMT_EVT_PREPARE_RESET
         return true;
     }
-
-    NRF_LOG_INFO("Power management allowed to reset to DFU mode.");
-    return true;
 }
-
-// lint -esym(528, m_app_shutdown_handler)
-/**@brief Register application shutdown handler with priority 0.
- */
 NRF_PWR_MGMT_HANDLER_REGISTER(app_shutdown_handler, 0);
 
 static void buttonless_dfu_sdh_state_observer(nrf_sdh_state_evt_t state, void* p_context)
@@ -649,9 +619,9 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t* p_file_name)
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
 } /**< Structure used to identify the battery service. */
 
-static void gpio_uninit(void)
+static inline void gpio_uninit(void)
 {
-    nrf_drv_gpiote_uninit();
+    nrfx_gpiote_uninit();
 }
 
 static void enter_low_power_mode(void)
@@ -684,12 +654,12 @@ void battery_level_meas_timeout_handler(void* p_context)
     }
 }
 
-static volatile uint8_t timeout_count = 0;
-static volatile uint16_t timeout_longcnt = 0;
-
 void m_100ms_timeout_hander(void* p_context)
 {
     UNUSED_PARAMETER(p_context);
+
+    static volatile uint8_t timeout_count = 0;
+    static volatile uint16_t timeout_longcnt = 0;
 
     nrf_drv_wdt_channel_feed(m_channel_id);
 
@@ -1188,7 +1158,8 @@ static void nus_data_handler(ble_nus_evt_t* p_evt)
                     ble_evt_flag = BLE_RCV_DATA;
                 }
             }
-            else if ( data_recived_buf[0] == 0x5A && data_recived_buf[1] == 0xA5 && data_recived_buf[2] == 0x07 && data_recived_buf[3] == 0x1 && data_recived_buf[4] == 0x03 )
+            else if ( data_recived_buf[0] == 0x5A && data_recived_buf[1] == 0xA5 && data_recived_buf[2] == 0x07 &&
+                      data_recived_buf[3] == 0x1 && data_recived_buf[4] == 0x03 )
             {
                 ble_adv_switch_flag = BLE_OFF_ALWAYS;
                 return;
@@ -1862,11 +1833,7 @@ static void usr_uart_init(void)
         .cts_pin_no = CTS_PIN_NUMBER,
         .flow_control = APP_UART_FLOW_CONTROL_DISABLED,
         .use_parity = false,
-#if defined(UART_PRESENT)
-        .baud_rate = NRF_UART_BAUDRATE_115200
-#else
         .baud_rate = NRF_UARTE_BAUDRATE_115200
-#endif
     };
 
     APP_UART_FIFO_INIT(
@@ -2065,7 +2032,7 @@ static void idle_state_handle(void)
     }
 }
 
-void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
+void in_gpiote_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
     NRF_LOG_INFO("NRF IRQ  in_gpiote_handler  begin  ...");
     NRF_LOG_FLUSH();
@@ -2092,7 +2059,7 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
     }
 }
 
-static void gpio_int_handler_pmu(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
+static void gpio_int_handler_pmu(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
     pmu_p->Irq();
 }
@@ -2101,25 +2068,25 @@ static void gpiote_init(void)
 {
     ret_code_t err_code;
 
-    err_code = nrf_drv_gpiote_init();
+    err_code = nrfx_gpiote_init();
     APP_ERROR_CHECK(err_code);
 
-    // nrf_drv_gpiote_in_config_t in_config = NRFX_GPIOTE_CONFIG_IN_SENSE_TOGGLE(false);
+    // nrfx_gpiote_in_config_t in_config = NRFX_GPIOTE_CONFIG_IN_SENSE_TOGGLE(false);
     // in_config.pull = NRF_GPIO_PIN_PULLUP;
 
-    nrf_drv_gpiote_in_config_t in_config1 = NRFX_GPIOTE_CONFIG_IN_SENSE_HITOLO(true);
+    nrfx_gpiote_in_config_t in_config1 = NRFX_GPIOTE_CONFIG_IN_SENSE_HITOLO(true);
     in_config1.pull = NRF_GPIO_PIN_PULLUP;
-    err_code = nrf_drv_gpiote_in_init(SLAVE_SPI_RSP_IO, &in_config1, in_gpiote_handler);
+    err_code = nrfx_gpiote_in_init(SLAVE_SPI_RSP_IO, &in_config1, in_gpiote_handler);
     APP_ERROR_CHECK(err_code);
-    nrf_drv_gpiote_in_event_enable(SLAVE_SPI_RSP_IO, true);
+    nrfx_gpiote_in_event_enable(SLAVE_SPI_RSP_IO, true);
 
-    err_code = nrf_drv_gpiote_in_init(POWER_IC_OK_IO, &in_config1, in_gpiote_handler);
+    err_code = nrfx_gpiote_in_init(POWER_IC_OK_IO, &in_config1, in_gpiote_handler);
     APP_ERROR_CHECK(err_code);
-    nrf_drv_gpiote_in_event_enable(POWER_IC_OK_IO, true);
+    nrfx_gpiote_in_event_enable(POWER_IC_OK_IO, true);
 
-    err_code = nrf_drv_gpiote_in_init(POWER_IC_IRQ_IO, &in_config1, gpio_int_handler_pmu);
+    err_code = nrfx_gpiote_in_init(POWER_IC_IRQ_IO, &in_config1, gpio_int_handler_pmu);
     APP_ERROR_CHECK(err_code);
-    nrf_drv_gpiote_in_event_enable(POWER_IC_IRQ_IO, true);
+    nrfx_gpiote_in_event_enable(POWER_IC_IRQ_IO, true);
 }
 
 static void gpio_init(void)
@@ -2170,44 +2137,6 @@ static void send_stm_data(uint8_t* pdata, uint8_t lenth)
     uart_put_data(uart_trans_buff, uart_trans_buff[3] + 4);
 }
 
-static void system_init()
-{
-    NRF_LOG_INFO("system start");
-#ifdef SCHED_ENABLE
-    create_ringBuffer(&m_ble_fifo, data_recived_buf, sizeof(data_recived_buf));
-#endif
-    // usr_rtc_init();
-    usr_spim_init();
-
-    set_send_stm_data_p(send_stm_data);
-
-    if ( !power_manage_init() )
-    {
-        NRF_LOG_INFO("PMU initialization failed!");
-        NRF_LOG_FLUSH();
-        while ( 1 ) {}
-    }
-    // pmu_p->Config();
-    // NRF_LOG_INFO("axp216_config 1 end");
-    // NRF_LOG_FLUSH();
-    pmu_p->SetState(PWR_STATE_ON);
-
-    // pmu_p->Irq();
-    // NRF_LOG_INFO("axp216_config end ......");
-    // NRF_LOG_FLUSH();
-
-    usr_uart_init();
-
-    gpio_init();
-
-    set_led_brightness(0);
-
-    // NRF_LOG_INFO("uart end ......");
-    // NRF_LOG_FLUSH();
-    // NRF_LOG_INFO("uart init ok end ......");
-    // NRF_LOG_FLUSH();
-}
-
 /**@brief Function for starting advertising.
  */
 static bool bt_advertising_ctrl(bool enable, bool commit)
@@ -2216,20 +2145,20 @@ static bool bt_advertising_ctrl(bool enable, bool commit)
     if ( enable )
     {
         ble_status_flag = BLE_ON_ALWAYS;
-        deviceSettings_p->bt_ctrl = 0; // turn on
+        deviceConfig_p->settings.bt_ctrl = 0; // turn on
         if ( NRF_SUCCESS != ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST) )
             return false;
     }
     else
     {
         ble_status_flag = BLE_OFF_ALWAYS;
-        deviceSettings_p->bt_ctrl = DEVICE_CONFIG_FLAG_MAGIC; // turn off
+        deviceConfig_p->settings.bt_ctrl = DEVICE_CONFIG_FLAG_MAGIC; // turn off
         if ( NRF_SUCCESS != ble_advertising_stop(&m_advertising) )
             return false;
     }
 
     if ( commit )
-        if ( !device_settings_commit() )
+        if ( !device_config_commit() )
             return false;
 
     return true;
@@ -2274,13 +2203,13 @@ static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
     {
         bak_buff[0] = BLE_CMD_KEY_RESP;
 
-        if ( deviceKeyStore_p->flag_locked == DEVICE_CONFIG_FLAG_MAGIC )
+        if ( deviceConfig_p->keystore.flag_locked == DEVICE_CONFIG_FLAG_MAGIC )
         {
             bak_buff[1] = BLE_KEY_RESP_FAILED;
             NRF_LOG_INFO("send_stm_data 010");
             send_stm_data(bak_buff, 2);
         }
-        else if ( !device_keystore_validate() )
+        else if ( !deviceCfg_keystore_validate(&(deviceConfig_p->keystore)) )
         {
             bak_buff[1] = BLE_KEY_RESP_FAILED;
             NRF_LOG_INFO("send_stm_data 011");
@@ -2289,18 +2218,19 @@ static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
         else
         {
             bak_buff[1] = BLE_KEY_RESP_PUBKEY;
-            memcpy(&bak_buff[2], deviceKeyStore_p->public_key, sizeof(deviceKeyStore_p->public_key));
+            memcpy(&bak_buff[2], deviceConfig_p->keystore.public_key, sizeof(deviceConfig_p->keystore.public_key));
             NRF_LOG_INFO("send_stm_data 012");
-            send_stm_data(bak_buff, sizeof(deviceKeyStore_p->public_key) + 2);
+            send_stm_data(bak_buff, sizeof(deviceConfig_p->keystore.public_key) + 2);
         }
 
         trans_info_flag = DEF_RESP;
     }
     else if ( trans_info_flag == RESPONESE_BLE_PUBKEY_LOCK )
     {
-        // please note, device_keystore_lock will fail if already locked
+        // please note, deviceCfg_keystore_lock will fail if already locked
         bak_buff[0] = BLE_CMD_KEY_RESP;
-        bak_buff[1] = (device_keystore_lock() ? BLE_KEY_RESP_SUCCESS : BLE_KEY_RESP_FAILED);
+        bak_buff[1] =
+            (deviceCfg_keystore_lock(&(deviceConfig_p->keystore)) ? BLE_KEY_RESP_SUCCESS : BLE_KEY_RESP_FAILED);
         NRF_LOG_INFO("send_stm_data 013");
         send_stm_data(bak_buff, 2);
         trans_info_flag = DEF_RESP;
@@ -2310,7 +2240,7 @@ static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
         uint32_t msg_len = (uart_data_array[2] << 8 | uart_data_array[3]) - 3;
         bak_buff[0] = BLE_CMD_KEY_RESP;
 
-        if ( !device_keystore_validate() )
+        if ( !deviceCfg_keystore_validate(&(deviceConfig_p->keystore)) )
         {
             bak_buff[1] = BLE_KEY_RESP_FAILED;
             NRF_LOG_INFO("send_stm_data 014");
@@ -2319,7 +2249,7 @@ static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
         else
         {
             bak_buff[1] = BLE_KEY_RESP_SIGN;
-            sign_ecdsa_msg(deviceKeyStore_p->private_key, uart_data_array + 6, msg_len, bak_buff + 2);
+            sign_ecdsa_msg(deviceConfig_p->keystore.private_key, uart_data_array + 6, msg_len, bak_buff + 2);
             NRF_LOG_INFO("send_stm_data 015");
             send_stm_data(bak_buff, 64 + 2);
         }
@@ -2476,7 +2406,7 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         {
             bt_disconnect();
         }
-        pmu_p->SetState(PWR_STATE_OFF);
+        pmu_p->SetState(PWR_STATE_HARD_OFF);
         break;
     case PWR_CLOSE_EMMC:
         respons_flag = BLE_CLOSE_EMMC;
@@ -2564,7 +2494,7 @@ static void bat_msg_report_process(void* p_event_data, uint16_t event_size)
         val = pmu_status.dischargeCurrent;
         break;
     case SEND_BAT_INNER_TEMP:
-        val = pmu_status.batteryTemp;
+        val = (uint16_t)(pmu_status.batteryTemp);
         break;
     default:
         return;
@@ -2617,6 +2547,9 @@ static void watch_dog_init(void)
 
 int main(void)
 {
+    // enable busfault
+    // SCB->SHCSR |= SCB_SHCSR_BUSFAULTENA_Msk;
+
 #ifdef BUTTONLESS_ENABLED
     // Initialize the async SVCI interface to bootloader before any interrupts are enabled.
     ret_code_t err_code = ble_dfu_buttonless_async_svci_init();
@@ -2624,12 +2557,53 @@ int main(void)
 #endif
     // Initialize.
     log_init();
-    system_init();
+    gpio_init();
+    usr_uart_init();
+    usr_spim_init();
+    set_led_brightness(0);
+
+    NRF_LOG_INFO("system start");
+#ifdef SCHED_ENABLE
+    create_ringBuffer(&m_ble_fifo, data_recived_buf, sizeof(data_recived_buf));
+#endif
+
+    NRF_LOG_INFO("PMU initialization");
+    set_send_stm_data_p(send_stm_data);
+
+    for ( uint8_t retry = 0; retry < 10; retry++ )
+    {
+        if ( power_manage_init() )
+        {
+            break;
+        }
+        else
+        {
+            NRF_LOG_INFO("Retrying...");
+            NRF_LOG_FLUSH();
+            nrf_delay_ms(10);
+        }
+    }
+    if ( pmu_p != NULL && pmu_p->isInitialized )
+    {
+        NRF_LOG_INFO("PMU initialization success");
+        NRF_LOG_FLUSH();
+    }
+    else
+    {
+        NRF_LOG_INFO("PMU initialization fail");
+        NRF_LOG_FLUSH();
+        enter_low_power_mode(); // something wrong, shutdown to prevent battery drain
+    }
+    // axp_reg_dump(0x34);
+    // pmu_p->SetState(PWR_STATE_SOFT_OFF);
+    // nrf_delay_ms(100);
+    pmu_p->SetState(PWR_STATE_ON);
+
+    // try_dfu_upgrade(true);
 
     scheduler_init();
     nrf_crypto_init();
-    device_keystore_init(); // TODO: check return!
-    device_settings_init(); // TODO: check return!
+    device_config_init(); // TODO: check return!
     timers_init();
     power_management_init();
 
@@ -2643,18 +2617,18 @@ int main(void)
     services_init();
     advertising_init();
     conn_params_init();
-    application_timers_start();
-    // Start execution.
 
     // bt init
     bt_advertising_ctrl(
-        ((deviceSettings_p->flag_initialized == DEVICE_CONFIG_FLAG_MAGIC) && // valid
-         (deviceSettings_p->bt_ctrl == DEVICE_CONFIG_FLAG_MAGIC))            // set to flag means turn off
+        ((deviceConfig_p->settings.flag_initialized == DEVICE_CONFIG_FLAG_MAGIC) && // valid
+         (deviceConfig_p->settings.bt_ctrl != DEVICE_CONFIG_FLAG_MAGIC))            // set to flag means turn off
         ,
         false
     ); // TODO: check return!
 
     watch_dog_init();
+    application_timers_start();
+
     NRF_LOG_INFO("NRF INIT END");
 
     // Enter main loop.

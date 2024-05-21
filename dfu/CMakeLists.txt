@@ -155,9 +155,9 @@ set(
   ${NRF_SDK_ROOT}/external/fprintf/nrf_fprintf_format.c
   ${NRF_SDK_ROOT}/external/nano-pb/pb_common.c
   ${NRF_SDK_ROOT}/external/nano-pb/pb_decode.c
-  ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_uart.c
+  # ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_uart.c
   # ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_twi.c
-  ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uart.c
+  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uart.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uarte.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twi.c
   # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twim.c
@@ -274,8 +274,6 @@ target_compile_options(
   -DNRF_SD_BLE_API_VERSION=7
   -DS132
   -DSOFTDEVICE_PRESENT
-  -mcpu=cortex-m4
-  -mthumb -mabi=aapcs
   # project flags
   -DBOARD_PCA10040
   -DSVC_INTERFACE_CALL_AS_NORMAL_FUNCTION
@@ -286,6 +284,8 @@ target_compile_options(
   -DuECC_VLI_NATIVE_LITTLE_ENDIAN=1
   # -Wall -Werror
   -Wall
+  -mcpu=cortex-m4
+  -mthumb -mabi=aapcs
   -mfloat-abi=hard -mfpu=fpv4-sp-d16
   # keep every function in a separate section, this allows linker to discard unused ones
   -ffunction-sections -fdata-sections -fno-strict-aliasing
@@ -299,13 +299,14 @@ target_link_options(
   # Linker flags
   # -Og -ggdb
   -Os -g0
-  -mthumb -mabi=aapcs -L${NRF_SDK_ROOT}/modules/nrfx/mdk -T${PROJECT_SOURCE_DIR}/secure_bootloader_gcc_nrf52.ld
   -mcpu=cortex-m4
+  -mthumb -mabi=aapcs
   -mfloat-abi=hard -mfpu=fpv4-sp-d16
   # let linker dump unused sections
   -Wl,--gc-sections
   # use newlib in nano version
   --specs=nano.specs -lc -lnosys -lm
+  -L${NRF_SDK_ROOT}/modules/nrfx/mdk -T${PROJECT_SOURCE_DIR}/secure_bootloader_gcc_nrf52.ld
 )
 
 target_link_libraries(

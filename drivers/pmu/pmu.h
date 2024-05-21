@@ -14,7 +14,7 @@ PMU_t* pmu_probe(PMU_Interface_t* pmu_if);
 //     NRF_LOG_INFO("batteryPresent=%u\n",status.batteryPresent);
 //     NRF_LOG_INFO("batteryPercent=%u\n",status.batteryPercent);
 //     NRF_LOG_INFO("batteryVoltage=%lu\n",status.batteryVoltage);
-//     NRF_LOG_INFO("batteryTemp=%lu\n",status.batteryTemp);
+//     NRF_LOG_INFO("batteryTemp=%ld\n",status.batteryTemp);
 //     NRF_LOG_INFO("pmuTemp=%lu\n",status.pmuTemp);
 //     NRF_LOG_INFO("chargeAllowed=%u\n",status.chargeAllowed);
 //     NRF_LOG_INFO("chargerAvailable=%u\n",status.chargerAvailable);

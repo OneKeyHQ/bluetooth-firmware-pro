@@ -165,7 +165,7 @@ static bool pmu_if_gpio_read(uint32_t pin_num, bool* const high_low)
     return false;
 }
 
-#ifndef PMU_LOG_NRF_LOG
+#ifdef PMU_LOG_NRF_LOG
 static void pmu_if_log(const Power_LogLevel_t level, const char* fmt, ...)
 {
 
@@ -219,7 +219,7 @@ static void pmu_if_log(Power_LogLevel_t level, const char* fmt, ...)
         NRF_LOG_WARNING("%s", log_buffer);
         break;
     case PWR_LOG_LEVEL_INFO:
-        NRF_LOG_INFO("%s", log_buffer);
+        NRF_LOG_RAW_INFO("%s", log_buffer);
         break;
     case PWR_LOG_LEVEL_DBG:
         NRF_LOG_DEBUG("%s", log_buffer);
@@ -233,6 +233,8 @@ static void pmu_if_log(Power_LogLevel_t level, const char* fmt, ...)
     default:
         break;
     }
+
+    NRF_LOG_FLUSH();
 }
 #endif
 
@@ -289,6 +291,22 @@ bool power_manage_deinit()
     memset(&pmu_if, 0x00, sizeof(PMU_Interface_t));
 
     return true;
+}
+
+void axp_reg_dump(uint8_t pmu_addr)
+{
+    uint8_t val = 0x99;
+
+    if ( !pmu_if.isInitialized )
+        return;
+
+    pmu_if.Log(PWR_LOG_LEVEL_INFO, "**************** axp_reg_dump ****************\n");
+
+    for ( uint16_t reg = 0; reg <= 0xff; reg++ )
+    {
+        pmu_if.Reg.Read(pmu_addr, reg, &val);
+        pmu_if.Log(PWR_LOG_LEVEL_INFO, "reg 0x%02x = 0x%02x\n", reg, val);
+    }
 }
 
 #if notused

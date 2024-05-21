@@ -177,26 +177,36 @@ int main(void)
         {
         case AXP216_CONF_BUS_ERR:
             NRF_LOG_INFO("AXP216_CONF_BUS_ERR");
+            NRF_LOG_FLUSH();
             break;
         case AXP216_CONF_NO_ACK:
             NRF_LOG_INFO("AXP216_CONF_NO_ACK");
+            NRF_LOG_FLUSH();
+            // keeptrying = false; // try forever if no ack
+            nrf_delay_ms(100);
+            break;
+        case AXP216_CONF_NOT_NEEDED:
+            NRF_LOG_INFO("AXP216_CONF_NOT_NEEDED");
+            NRF_LOG_FLUSH();
             keeptrying = false;
             break;
         case AXP216_CONF_SUCCESS:
             NRF_LOG_INFO("AXP216_CONF_SUCCESS");
+            NRF_LOG_FLUSH();
             keeptrying = false;
             break;
         case AXP216_CONF_FAILED:
             NRF_LOG_INFO("AXP216_CONF_FAILED");
+            NRF_LOG_FLUSH();
             break;
         case AXP216_CONF_INVALID:
         default:
             NRF_LOG_INFO("AXP216_CONF_INVALID");
+            NRF_LOG_FLUSH();
             break;
         }
         nrf_delay_ms(1);
     }
-    NRF_LOG_FLUSH();
 
     // while ( !keeptrying )
     // {
@@ -207,11 +217,10 @@ int main(void)
     // }
 
     // Must happen before flash protection is applied, since it edits a protected page.
-    nrf_bootloader_mbr_addrs_populate();
-
-    // Protect MBR and bootloader code from being overwritten.
-    APP_ERROR_CHECK(nrf_bootloader_flash_protect(0, MBR_SIZE, false));
-    APP_ERROR_CHECK(nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false));
+    // nrf_bootloader_mbr_addrs_populate(); // not needed, we use mbr instead of uicr
+    // Protect MBR and bootloader code from being overwritten. // not needed as debug turned off, and app is signature checked
+    // APP_ERROR_CHECK(nrf_bootloader_flash_protect(0, MBR_SIZE, false));
+    // APP_ERROR_CHECK(nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false));
 
     // app_read_protect();
     APP_ERROR_CHECK(nrf_bootloader_init(dfu_observer1));

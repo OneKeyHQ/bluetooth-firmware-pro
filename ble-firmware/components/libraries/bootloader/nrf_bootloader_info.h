@@ -193,7 +193,7 @@ extern "C" {
  * This function writes two words to flash if the flash is 0xFFFFFFFF. This is done in code because
  * doing this through the hex file interferes with flashing algorithms. See nrf_mbr.h.
  */
-void nrf_bootloader_mbr_addrs_populate(void);
+// void nrf_bootloader_mbr_addrs_populate(void);
 
 /** @brief Function for checking if the debug port access is disabled.
  *

@@ -290,7 +290,7 @@ set(
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_spim.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_timer.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twi.c
-  ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uart.c
+  # ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uart.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uarte.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_wdt.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_nvmc.c
@@ -366,6 +366,15 @@ target_link_options(
 )
 
 ###############################
+# external dependency
+
+# # zlib
+# option(SKIP_INSTALL_ALL "" YES)
+# option(ZLIB_BUILD_EXAMPLES "" NO)
+# option(BUILD_SHARED_LIBS "" NO)
+# add_subdirectory(zlib)
+
+###############################
 # Target
 
 add_executable(
@@ -412,7 +421,7 @@ add_definitions('-DBUILD_ID=\"${GIT_VERSION}\"')
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Optimization flags
-  -O1 -ggdb
+  -Og -ggdb -s
   # Uncomment the line below to enable link time optimization
   -flto=auto
   # -DDEBUG
@@ -454,7 +463,7 @@ target_compile_options(
 target_link_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
   # Linker flags
-  -O1 -ggdb
+  -Og -ggdb -s
   -mthumb -mabi=aapcs -L${NRF_SDK_ROOT}/modules/nrfx/mdk -T${PROJECT_SOURCE_DIR}/ble_app_gcc_nrf52.ld
   -mcpu=cortex-m4
   -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -468,7 +477,8 @@ target_link_libraries(
   ${CMAKE_PROJECT_NAME} PRIVATE
   ${NRF_SDK_LINK}
   MicroECC
-  m
+  m # math
+  # zlibstatic
 )
 
 ###############################

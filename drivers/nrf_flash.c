@@ -64,6 +64,16 @@ void flash_wait_busy(void)
     }
 }
 
+bool flash_check_blank(uint32_t addr, uint32_t len)
+{
+    for ( uint32_t i = 0; i < len; i++ )
+    {
+        if ( *((uint8_t*)addr) != 0xff )
+            return false;
+    }
+    return true;
+}
+
 bool flash_erase(uint32_t address, uint32_t len)
 {
     uint32_t erase_page_count = len / fstorage_config.p_flash_info->erase_unit;

@@ -11,19 +11,15 @@ MEMORY
   mbr_params_page (r) : ORIGIN = 0x0007E000, LENGTH = 0x1000
   FLASH (rx) : ORIGIN = 0x6E000, LENGTH = 0x10000
 
-  uicr_bootloader_start_address (r) : ORIGIN = 0x10001014, LENGTH = 0x4
-  uicr_mbr_params_page (r) : ORIGIN = 0x10001018, LENGTH = 0x4
+  /* UICR location is deprecated long ago, we are using flash mbr location here */
+  /* mbr_bootloader_start_address (r) : ORIGIN = 0xFF8, LENGTH = 0x4
+  mbr_mbr_params_page (r) : ORIGIN = 0xFFC, LENGTH = 0x4 */
+  /* uicr_bootloader_start_address (r) : ORIGIN = 0x10001014, LENGTH = 0x4
+  uicr_mbr_params_page (r) : ORIGIN = 0x10001018, LENGTH = 0x4 */
 }
 
 SECTIONS
 {
-  . = ALIGN(4);
-  .uicr_bootloader_start_address :
-  {
-    PROVIDE(__start_uicr_bootloader_start_address = .);
-    KEEP(*(SORT(.uicr_bootloader_start_address*)))
-    PROVIDE(__stop_uicr_bootloader_start_address = .);
-  } > uicr_bootloader_start_address
   . = ALIGN(4);
   .bootloader_settings_page(NOLOAD) :
   {
@@ -31,13 +27,7 @@ SECTIONS
     KEEP(*(SORT(.bootloader_settings_page*)))
     PROVIDE(__stop_bootloader_settings_page = .);
   } > bootloader_settings_page
-  . = ALIGN(4);
-  .uicr_mbr_params_page :
-  {
-    PROVIDE(__start_uicr_mbr_params_page = .);
-    KEEP(*(SORT(.uicr_mbr_params_page*)))
-    PROVIDE(__stop_uicr_mbr_params_page = .);
-  } > uicr_mbr_params_page
+
   . = ALIGN(4);
   .mbr_params_page(NOLOAD) :
   {
@@ -45,6 +35,38 @@ SECTIONS
     KEEP(*(SORT(.mbr_params_page*)))
     PROVIDE(__stop_mbr_params_page = .);
   } > mbr_params_page
+
+  /* . = ALIGN(4);
+  .mbr_bootloader_start_address :
+  {
+    PROVIDE(__start_mbr_bootloader_start_address = .);
+    KEEP(*(SORT(.mbr_bootloader_start_address*)))
+    PROVIDE(__stop_mbr_bootloader_start_address = .);
+  } > mbr_bootloader_start_address
+
+  . = ALIGN(4);
+  .mbr_mbr_params_page :
+  {
+    PROVIDE(__start_mbr_mbr_params_page = .);
+    KEEP(*(SORT(.mbr_mbr_params_page*)))
+    PROVIDE(__stop_mbr_mbr_params_page = .);
+  } > mbr_mbr_params_page */
+
+  /* . = ALIGN(4);
+  .uicr_bootloader_start_address :
+  {
+    PROVIDE(__start_uicr_bootloader_start_address = .);
+    KEEP(*(SORT(.uicr_bootloader_start_address*)))
+    PROVIDE(__stop_uicr_bootloader_start_address = .);
+  } > uicr_bootloader_start_address
+
+  . = ALIGN(4);
+  .uicr_mbr_params_page :
+  {
+    PROVIDE(__start_uicr_mbr_params_page = .);
+    KEEP(*(SORT(.uicr_mbr_params_page*)))
+    PROVIDE(__stop_uicr_mbr_params_page = .);
+  } > uicr_mbr_params_page */
 }
 
 SECTIONS

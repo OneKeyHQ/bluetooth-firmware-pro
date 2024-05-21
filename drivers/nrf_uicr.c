@@ -45,7 +45,7 @@ bool uicr_write(uint32_t addr, void* data, uint32_t len)
 
     return true;
 
-    // uicr programs effecte only after reboot
+    // uicr programs only effect after reboot
     // but it should be up to caller, not here
     // NVIC_SystemReset();
 }
@@ -63,7 +63,7 @@ bool uicr_update_bootloader_addr(uint32_t bootloader_addr)
 {
     // backup
     NRF_UICR_Type uicr_backup;
-    EC_E_BOOL_R_BOOL(uicr_read(UICR_START, &uicr_backup, sizeof(NRF_UICR_Type)))
+    EC_E_BOOL_R_BOOL(uicr_read(UICR_START, &uicr_backup, sizeof(NRF_UICR_Type)));
 
     // copy over new customer region
     uicr_backup.NRFFW[0] = bootloader_addr;

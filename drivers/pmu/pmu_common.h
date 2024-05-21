@@ -49,9 +49,11 @@ typedef enum
 typedef enum
 {
     PWR_ENUM_ITEM(STATE, INVALID) = -1, // PWR_STATE_INVALID
-    PWR_ENUM_ITEM(STATE, OFF),          // PWR_STATE_OFF
+    PWR_ENUM_ITEM(STATE, SOFT_OFF),     // PWR_STATE_SOFT_OFF
+    PWR_ENUM_ITEM(STATE, HARD_OFF),     // PWR_STATE_HARD_OFF
     PWR_ENUM_ITEM(STATE, ON),           // PWR_STATE_ON
     PWR_ENUM_ITEM(STATE, SLEEP),        // PWR_STATE_SLEEP
+    PWR_ENUM_ITEM(STATE, WAKEUP),       // PWR_STATE_WAKEUP
 } Power_State_t;
 
 typedef enum
@@ -99,7 +101,7 @@ typedef struct
     bool batteryPresent;
     uint8_t batteryPercent;
     uint16_t batteryVoltage;
-    uint16_t batteryTemp;
+    int16_t batteryTemp;
 
     uint16_t pmuTemp;
 

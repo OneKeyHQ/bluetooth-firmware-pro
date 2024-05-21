@@ -6,24 +6,17 @@ GROUP(-lgcc -lc -lnosys)
 MEMORY
 {
   RAM (rwx) :  ORIGIN = 0x20003268, LENGTH = 0xCD98
-  
   CONFIG (rw) : ORIGIN = 0x6D000, LENGTH = 0x1000
   FLASH (rx) : ORIGIN = 0x26000, LENGTH = 0x47000
 }
 
 SECTIONS
 {
+  . = ALIGN(4);
   .device_config :
   {
     KEEP(*(.device_config))
   } > CONFIG
-  
-  .payload :
-  {
-    PROVIDE(__start_payload_ptrs = .);
-    KEEP(*(.payload))
-    PROVIDE(__stop_payload_ptrs = .);
-  } > FLASH
 }
 
 SECTIONS
@@ -135,6 +128,12 @@ SECTIONS
     PROVIDE(__start_log_backends = .);
     KEEP(*(SORT(.log_backends*)))
     PROVIDE(__stop_log_backends = .);
+  } > FLASH
+  .payload :
+  {
+    PROVIDE(__start_payload_ptrs = .);
+    KEEP(*(.payload))
+    PROVIDE(__stop_payload_ptrs = .);
   } > FLASH
 
 } INSERT AFTER .text
