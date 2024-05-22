@@ -47,14 +47,14 @@ static const nrfx_twi_config_t twi_config = {
                                             NRF_GPIO_PIN_DIR_INPUT,     \
                                             NRF_GPIO_PIN_INPUT_CONNECT, \
                                             NRF_GPIO_PIN_PULLUP,        \
-                                            NRF_GPIO_PIN_S0H1,          \
+                                            NRF_GPIO_PIN_S0D1,          \
                                             NRF_GPIO_PIN_NOSENSE)
 
 #define TWI_PIN_INIT_SCL(_pin) nrf_gpio_cfg((_pin),                     \
                                             NRF_GPIO_PIN_DIR_INPUT,     \
                                             NRF_GPIO_PIN_INPUT_CONNECT, \
                                             NRF_GPIO_PIN_PULLUP,        \
-                                            NRF_GPIO_PIN_S0S1,          \
+                                            NRF_GPIO_PIN_S0D1,          \
                                             NRF_GPIO_PIN_NOSENSE)
 // clang-format on
 
@@ -108,8 +108,10 @@ static bool nrf_i2c_init()
         }
 
         // pin config override
-        TWI_PIN_INIT_SDA(twi_config.sda);
-        TWI_PIN_INIT_SCL(twi_config.scl);
+        // nrf_gpio_pin_clear(twi_config.sda);
+        // nrf_gpio_pin_clear(twi_config.scl);
+        // TWI_PIN_INIT_SDA(twi_config.sda);
+        // TWI_PIN_INIT_SCL(twi_config.scl);
 
         nrfx_twi_enable(&nrf_i2c_handle);
 

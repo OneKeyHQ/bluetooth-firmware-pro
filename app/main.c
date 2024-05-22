@@ -2594,9 +2594,7 @@ int main(void)
         NRF_LOG_FLUSH();
         enter_low_power_mode(); // something wrong, shutdown to prevent battery drain
     }
-    // axp_reg_dump(0x34);
-    // pmu_p->SetState(PWR_STATE_SOFT_OFF);
-    // nrf_delay_ms(100);
+
     pmu_p->SetState(PWR_STATE_ON);
 
     // try_dfu_upgrade(true);

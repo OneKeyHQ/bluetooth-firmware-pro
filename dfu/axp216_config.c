@@ -32,7 +32,10 @@
 #define axp216_set_bits(reg, mask) nrf_i2c_handle->Reg.SetBits(AXP216_I2C_ADDR, reg, mask)
 #define axp216_clr_bits(reg, mask) nrf_i2c_handle->Reg.ClrBits(AXP216_I2C_ADDR, reg, mask)
 
-#define axp2101_reg_read(reg, val) nrf_i2c_handle->Reg.Read(AXP2101_I2C_ADDR, reg, val)
+#define axp2101_reg_read(reg, val)  nrf_i2c_handle->Reg.Read(AXP2101_I2C_ADDR, reg, val)
+#define axp2101_reg_write(reg, val) nrf_i2c_handle->Reg.Write(AXP2101_I2C_ADDR, reg, val)
+#define axp2101_set_bits(reg, mask) nrf_i2c_handle->Reg.SetBits(AXP2101_I2C_ADDR, reg, mask)
+#define axp2101_clr_bits(reg, mask) nrf_i2c_handle->Reg.ClrBits(AXP2101_I2C_ADDR, reg, mask)
 
 static I2C_t* nrf_i2c_handle = NULL;
 

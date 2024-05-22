@@ -183,7 +183,6 @@ int main(void)
             NRF_LOG_INFO("AXP216_CONF_NO_ACK");
             NRF_LOG_FLUSH();
             // keeptrying = false; // try forever if no ack
-            nrf_delay_ms(100);
             break;
         case AXP216_CONF_NOT_NEEDED:
             NRF_LOG_INFO("AXP216_CONF_NOT_NEEDED");
