@@ -16,9 +16,9 @@
 #define AXP_DEVICES_ADDR 0x34
 #define AXP_ADDRESS_LEN  1
 
-#define TWI_INSTANCE_ID 1
+#define TWI_INSTANCE_ID  1
 
-#define axp_debug 0
+#define axp_debug        0
 
 /*电池容量，mAh：根据实际电池容量来定义，对库仑计方法来说
 这个参数很重要，必须配置*/
@@ -30,7 +30,7 @@
 #define BATRDC 150
 
 /*开路电压方法中的电池电压的缓存*/
-//#define AXP_VOL_MAX			1
+// #define AXP_VOL_MAX			1
 /*
         充电功能使能：
         AXP:0-关闭，1-打开
@@ -136,7 +136,7 @@
 /*
         AXP:4000~4700，100/step
 */
-//#define USBVOLLIMPC		
+// #define USBVOLLIMPC
 
 /* 充电电流限制使能*/
 /*
@@ -167,7 +167,7 @@
 /*
         AXP:0-AC VBUS分开，1-使用VBUS当AC,无单独AC
 */
-#define VBUSACINSHORT 1  // 0   **
+#define VBUSACINSHORT 1 // 0   **
 /* CHGLED 管脚控制设置*/
 /*
         AXP:0-驱动马达，1-由充电功能控制
@@ -187,7 +187,7 @@
 /*
         AXP:0-关闭，1-打开
 */
-#define BATREGUEN 1  // 0 **
+#define BATREGUEN 1 // 0 **
 /* 电池检测功能使能*/
 /*
         AXP:0-关闭，1-打开
@@ -211,7 +211,7 @@
 */
 #define BATLOWLV2 5
 
-#define ABS(x) ((x) > 0 ? (x) : -(x))
+#define ABS(x)    ((x) > 0 ? (x) : -(x))
 
 /*初始化开路电压对应百分比表*/
 /*
@@ -220,52 +220,54 @@
         容量开始校准剩余容量百分比BATCAPCORRATE这两级的准确性
         AXP适用
 */
-#define OCVREG0  0    // 3.13V
-#define OCVREG1  0    // 3.27V
-#define OCVREG2  0    // 3.34V
-#define OCVREG3  1    // 3.41V
-#define OCVREG4  4    // 3.48V
-#define OCVREG5  8    // 3.52V
-#define OCVREG6  12   // 3.55V
-#define OCVREG7  16   // 3.57V
-#define OCVREG8  20   // 3.59V
-#define OCVREG9  22   // 3.61V
-#define OCVREGA  26   // 3.63V
-#define OCVREGB  30   // 3.64V
-#define OCVREGC  35   // 3.66V
-#define OCVREGD  40   // 3.7V
-#define OCVREGE  44   // 3.73V
-#define OCVREGF  48   // 3.77V
-#define OCVREG10 52   // 3.78V
-#define OCVREG11 56   // 3.8V
-#define OCVREG12 60   // 3.82V
-#define OCVREG13 64   // 3.84V
-#define OCVREG14 68   // 3.85V
-#define OCVREG15 72   // 3.87V
-#define OCVREG16 76   // 3.91V
-#define OCVREG17 80   // 3.94V
-#define OCVREG18 83   // 3.98V
-#define OCVREG19 86   // 4.01V
-#define OCVREG1A 90   // 4.05V
-#define OCVREG1B 92   // 4.08V
-#define OCVREG1C 94   // 4.1V
-#define OCVREG1D 96   // 4.12V
-#define OCVREG1E 98   // 4.14V
-#define OCVREG1F 100  // 4.15V
+#define OCVREG0  0   // 3.13V
+#define OCVREG1  0   // 3.27V
+#define OCVREG2  0   // 3.34V
+#define OCVREG3  1   // 3.41V
+#define OCVREG4  4   // 3.48V
+#define OCVREG5  8   // 3.52V
+#define OCVREG6  12  // 3.55V
+#define OCVREG7  16  // 3.57V
+#define OCVREG8  20  // 3.59V
+#define OCVREG9  22  // 3.61V
+#define OCVREGA  26  // 3.63V
+#define OCVREGB  30  // 3.64V
+#define OCVREGC  35  // 3.66V
+#define OCVREGD  40  // 3.7V
+#define OCVREGE  44  // 3.73V
+#define OCVREGF  48  // 3.77V
+#define OCVREG10 52  // 3.78V
+#define OCVREG11 56  // 3.8V
+#define OCVREG12 60  // 3.82V
+#define OCVREG13 64  // 3.84V
+#define OCVREG14 68  // 3.85V
+#define OCVREG15 72  // 3.87V
+#define OCVREG16 76  // 3.91V
+#define OCVREG17 80  // 3.94V
+#define OCVREG18 83  // 3.98V
+#define OCVREG19 86  // 4.01V
+#define OCVREG1A 90  // 4.05V
+#define OCVREG1B 92  // 4.08V
+#define OCVREG1C 94  // 4.1V
+#define OCVREG1D 96  // 4.12V
+#define OCVREG1E 98  // 4.14V
+#define OCVREG1F 100 // 4.15V
 
 /*选择需要打开的中断使能*/
-static const uint64_t AXP_NOTIFIER_ON = (AXP_IRQ_USBIN | AXP_IRQ_USBRE | AXP_IRQ_USBOV | AXP_IRQ_ACIN | AXP_IRQ_ACRE | AXP_IRQ_ACOV | AXP_IRQ_BATIN | AXP_IRQ_BATRE | AXP_IRQ_CHAST | AXP_IRQ_CHAOV |
-                                         AXP_IRQ_POKSH | AXP_IRQ_POKLO | AXP_IRQ_PEKFE | AXP_IRQ_PEKRE);  //|
-                                                                                                          // (uint64_t)AXP_IRQ_PEKFE |(uint64_t)AXP_IRQ_PEKRE);
+static const uint64_t AXP_NOTIFIER_ON =
+    (AXP_IRQ_USBIN | AXP_IRQ_USBRE | AXP_IRQ_USBOV | AXP_IRQ_ACIN | AXP_IRQ_ACRE | AXP_IRQ_ACOV | AXP_IRQ_BATIN |
+     AXP_IRQ_BATRE | AXP_IRQ_CHAST | AXP_IRQ_CHAOV | AXP_IRQ_POKSH | AXP_IRQ_POKLO | AXP_IRQ_PEKFE |
+     AXP_IRQ_PEKRE); //|
+                     // (uint64_t)AXP_IRQ_PEKFE |(uint64_t)AXP_IRQ_PEKRE);
 
 /* 需要做插入火牛、usb关机重启进boot时power_start设置为1，否则为0*/
-//#define POWER_START 0
+// #define POWER_START 0
 
 ret_code_t axp216_twi_master_init(void);
 
 ret_code_t axp216_write(const uint8_t writeAddr, const uint8_t writeData);
 
-ret_code_t axp216_read(uint8_t readAddr, uint8_t byteNum, uint8_t *readData);
+ret_code_t axp216_read(uint8_t readAddr, uint8_t byteNum, uint8_t* readData);
 
 void delay_ms(uint16_t nms);
 

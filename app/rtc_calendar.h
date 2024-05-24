@@ -7,14 +7,15 @@
 
 #define RTC_FREQUENCY 8
 
-typedef struct {
-  int RTC_Year;
-  int RTC_Month;
-  int RTC_Day;
-  int RTC_Hours;
-  int RTC_Minutes;
-  int RTC_Seconds;
-  int RTC_Weekday;
+typedef struct
+{
+    int RTC_Year;
+    int RTC_Month;
+    int RTC_Day;
+    int RTC_Hours;
+    int RTC_Minutes;
+    int RTC_Seconds;
+    int RTC_Weekday;
 } rtc_date_t;
 
 extern volatile uint32_t g_timestamp;

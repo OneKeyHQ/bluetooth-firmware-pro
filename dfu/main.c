@@ -61,110 +61,117 @@
 #include "nrf_log_default_backends.h"
 #include "nrf_mbr.h"
 
-static void on_error(void) {
-  NRF_LOG_FINAL_FLUSH();
+static void on_error(void)
+{
+    NRF_LOG_FINAL_FLUSH();
 
 #if NRF_MODULE_ENABLED(NRF_LOG_BACKEND_RTT)
-  // To allow the buffer to be flushed by the host.
-  nrf_delay_ms(100);
+    // To allow the buffer to be flushed by the host.
+    nrf_delay_ms(100);
 #endif
 #ifdef NRF_DFU_DEBUG_VERSION
-  NRF_BREAKPOINT_COND;
+    NRF_BREAKPOINT_COND;
 #endif
-  NVIC_SystemReset();
+    NVIC_SystemReset();
 }
 
-void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t* p_file_name) {
-  NRF_LOG_ERROR("%s:%d", p_file_name, line_num);
-  on_error();
+void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t* p_file_name)
+{
+    NRF_LOG_ERROR("%s:%d", p_file_name, line_num);
+    on_error();
 }
 
-void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info) {
-  NRF_LOG_ERROR("Received a fault! id: 0x%08x, pc: 0x%08x, info: 0x%08x", id, pc, info);
-  on_error();
+void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
+{
+    NRF_LOG_ERROR("Received a fault! id: 0x%08x, pc: 0x%08x, info: 0x%08x", id, pc, info);
+    on_error();
 }
 
-void app_error_handler_bare(uint32_t error_code) {
-  NRF_LOG_ERROR("Received an error: 0x%08x!", error_code);
-  on_error();
+void app_error_handler_bare(uint32_t error_code)
+{
+    NRF_LOG_ERROR("Received an error: 0x%08x!", error_code);
+    on_error();
 }
 
 /**
  * @brief Function notifies certain events in DFU process.
  */
-static void dfu_observer1(nrf_dfu_evt_type_t evt_type) {
-  switch (evt_type) {
+static void dfu_observer1(nrf_dfu_evt_type_t evt_type)
+{
+    switch ( evt_type )
+    {
     case NRF_DFU_EVT_DFU_FAILED:
     case NRF_DFU_EVT_DFU_ABORTED:
     case NRF_DFU_EVT_DFU_INITIALIZED:
 #ifdef DEV_BOARD
-      bsp_board_init(BSP_INIT_LEDS);
-      bsp_board_led_on(BSP_BOARD_LED_0);
-      bsp_board_led_on(BSP_BOARD_LED_1);
-      bsp_board_led_off(BSP_BOARD_LED_2);
+        bsp_board_init(BSP_INIT_LEDS);
+        bsp_board_led_on(BSP_BOARD_LED_0);
+        bsp_board_led_on(BSP_BOARD_LED_1);
+        bsp_board_led_off(BSP_BOARD_LED_2);
 #endif
-      break;
+        break;
     case NRF_DFU_EVT_TRANSPORT_ACTIVATED:
 #ifdef DEV_BOARD
-      bsp_board_led_off(BSP_BOARD_LED_1);
-      bsp_board_led_on(BSP_BOARD_LED_2);
+        bsp_board_led_off(BSP_BOARD_LED_1);
+        bsp_board_led_on(BSP_BOARD_LED_2);
 #endif
-      break;
+        break;
     case NRF_DFU_EVT_DFU_STARTED:
-      break;
+        break;
     default:
-      break;
-  }
+        break;
+    }
 }
 
-void app_read_protect(void) {
-  uint32_t writedata = 0;
+void app_read_protect(void)
+{
+    uint32_t writedata = 0;
 
-  writedata = NRF_UICR->APPROTECT;
-  if ((writedata & 0x000000FF) != 0) {
-    // enable write
-    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
+    writedata = NRF_UICR->APPROTECT;
+    if ( (writedata & 0x000000FF) != 0 )
+    {
+        // enable write
+        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
 
-    while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {
+        while ( NRF_NVMC->READY == NVMC_READY_READY_Busy ) {}
+        NRF_UICR->APPROTECT = 0xFFFFFF00;
+        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
+        while ( NRF_NVMC->READY == NVMC_READY_READY_Busy ) {}
+        // after set APPROTECT,need reset
+        NVIC_SystemReset();
     }
-    NRF_UICR->APPROTECT = 0xFFFFFF00;
-    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
-    while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {
-    }
-    // after set APPROTECT,need reset
-    NVIC_SystemReset();
-  }
 }
 
 /**@brief Function for application main entry. */
-int main(void) {
-  uint32_t ret_val;
+int main(void)
+{
+    uint32_t ret_val;
 
-  // Must happen before flash protection is applied, since it edits a protected page.
-  nrf_bootloader_mbr_addrs_populate();
+    // Must happen before flash protection is applied, since it edits a protected page.
+    nrf_bootloader_mbr_addrs_populate();
 
-  // Protect MBR and bootloader code from being overwritten.
-  ret_val = nrf_bootloader_flash_protect(0, MBR_SIZE, false);
-  APP_ERROR_CHECK(ret_val);
-  ret_val = nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false);
-  APP_ERROR_CHECK(ret_val);
+    // Protect MBR and bootloader code from being overwritten.
+    ret_val = nrf_bootloader_flash_protect(0, MBR_SIZE, false);
+    APP_ERROR_CHECK(ret_val);
+    ret_val = nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false);
+    APP_ERROR_CHECK(ret_val);
 
-  app_read_protect();
+    app_read_protect();
 
-  (void)NRF_LOG_INIT(nrf_bootloader_dfu_timer_counter_get);
-  NRF_LOG_DEFAULT_BACKENDS_INIT();
+    (void)NRF_LOG_INIT(nrf_bootloader_dfu_timer_counter_get);
+    NRF_LOG_DEFAULT_BACKENDS_INIT();
 
-  NRF_LOG_INFO("Inside main");
+    NRF_LOG_INFO("Inside main");
 
-  ret_val = nrf_bootloader_init(dfu_observer1);
-  APP_ERROR_CHECK(ret_val);
+    ret_val = nrf_bootloader_init(dfu_observer1);
+    APP_ERROR_CHECK(ret_val);
 
-  NRF_LOG_FLUSH();
+    NRF_LOG_FLUSH();
 
-  NRF_LOG_ERROR("After main, should never be reached.");
-  NRF_LOG_FLUSH();
+    NRF_LOG_ERROR("After main, should never be reached.");
+    NRF_LOG_FLUSH();
 
-  APP_ERROR_CHECK_BOOL(false);
+    APP_ERROR_CHECK_BOOL(false);
 }
 
 /**
