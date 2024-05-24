@@ -13,6 +13,7 @@
 #define TWI_SDA_M       14
 #define TWI_SCL_M       15
 
+void nrf_i2c_strong_drive_ctrl(bool enable);
 I2C_t* nrf_i2c_get_instance(void);
 
 #endif //_NRF_I2C_

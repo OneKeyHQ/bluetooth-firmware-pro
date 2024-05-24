@@ -60,7 +60,10 @@
 #include "nrf_bootloader_info.h"
 #include "nrf_mbr.h"
 #include "nrf_gpio.h"
+#include "nrf_sdh.h"
+#include "nrf_power.h"
 
+#include "util_macros.h"
 #include "axp216_config.h"
 
 static void on_error(void)
@@ -125,26 +128,6 @@ static void dfu_observer1(nrf_dfu_evt_type_t evt_type)
     }
 }
 
-// NRF_BL_DEBUG_PORT_DISABLE = 1 already did it
-// void app_read_protect(void)
-// {
-//     uint32_t writedata = 0;
-
-//     writedata = NRF_UICR->APPROTECT;
-//     if ( (writedata & 0x000000FF) != 0 )
-//     {
-//         // enable write
-//         NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
-
-//         while ( NRF_NVMC->READY == NVMC_READY_READY_Busy ) {}
-//         NRF_UICR->APPROTECT = 0xFFFFFF00;
-//         NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
-//         while ( NRF_NVMC->READY == NVMC_READY_READY_Busy ) {}
-//         // after set APPROTECT,need reset
-//         NVIC_SystemReset();
-//     }
-// }
-
 // static char spinner()
 // {
 //     static uint8_t count = 0;
@@ -154,12 +137,39 @@ static void dfu_observer1(nrf_dfu_evt_type_t evt_type)
 // }
 
 /**@brief Function for application main entry. */
+#define PMIC_IRQ_IO   6
+#define PMIC_PWROK_IO 7
+static void enter_low_power_mode(void)
+{
+    PRINT_CURRENT_LOCATION();
+    NRF_LOG_FINAL_FLUSH();
+
+    // enable wakeup
+    nrf_gpio_cfg_sense_input(PMIC_PWROK_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
+
+    // enter sysoff
+#ifdef SOFTDEVICE_PRESENT
+    if ( nrf_sdh_is_enabled() )
+    {
+        ret_code_t ret_code = sd_power_system_off();
+        ASSERT((ret_code == NRF_SUCCESS) || (ret_code == NRF_ERROR_SOFTDEVICE_NOT_ENABLED));
+        UNUSED_VARIABLE(ret_code);
+  #ifdef DEBUG
+        while ( true )
+        {
+            __WFE();
+        }
+  #endif
+    }
+#endif // SOFTDEVICE_PRESENT
+    nrf_power_system_off();
+}
 int main(void)
 {
     NRF_LOG_INIT(NULL);
     NRF_LOG_DEFAULT_BACKENDS_INIT();
 
-    NRF_LOG_INFO("Enter DFU");
+    NRF_LOG_INFO("DFU Enter");
     NRF_LOG_FLUSH();
 
     uint32_t u32Reset_reason = NRF_POWER->RESETREAS;
@@ -167,65 +177,69 @@ int main(void)
     NRF_LOG_INFO("Reset Status -> %x", u32Reset_reason);
     NRF_LOG_FLUSH();
 
-    AXP216_CONF_R_t acr;
-    bool keeptrying = true;
-
-    while ( keeptrying )
-    {
-        acr = axp216_minimum_config();
-        switch ( acr )
+    // try config axp216
+    EXEC_RETRY(
+        3,
         {
-        case AXP216_CONF_BUS_ERR:
-            NRF_LOG_INFO("AXP216_CONF_BUS_ERR");
+            NRF_LOG_INFO("AXP216 Config");
             NRF_LOG_FLUSH();
-            break;
-        case AXP216_CONF_NO_ACK:
-            NRF_LOG_INFO("AXP216_CONF_NO_ACK");
-            NRF_LOG_FLUSH();
-            // keeptrying = false; // try forever if no ack
-            break;
-        case AXP216_CONF_NOT_NEEDED:
-            NRF_LOG_INFO("AXP216_CONF_NOT_NEEDED");
-            NRF_LOG_FLUSH();
-            keeptrying = false;
-            break;
-        case AXP216_CONF_SUCCESS:
-            NRF_LOG_INFO("AXP216_CONF_SUCCESS");
-            NRF_LOG_FLUSH();
-            keeptrying = false;
-            break;
-        case AXP216_CONF_FAILED:
-            NRF_LOG_INFO("AXP216_CONF_FAILED");
-            NRF_LOG_FLUSH();
-            break;
-        case AXP216_CONF_INVALID:
-        default:
-            NRF_LOG_INFO("AXP216_CONF_INVALID");
-            NRF_LOG_FLUSH();
-            break;
+            nrf_gpio_cfg_default(PMIC_IRQ_IO);
+            nrf_gpio_cfg_default(PMIC_PWROK_IO);
+        },
+        {
+            switch ( axp216_minimum_config() )
+            {
+            case AXP216_CONF_BUS_ERR:
+                NRF_LOG_INFO("AXP216_CONF_BUS_ERR");
+                NRF_LOG_FLUSH();
+                return false;
+                break;
+            case AXP216_CONF_NO_ACK:
+                NRF_LOG_INFO("AXP216_CONF_NO_ACK");
+                NRF_LOG_FLUSH();
+                return false;
+                break;
+            case AXP216_CONF_NOT_NEEDED:
+                NRF_LOG_INFO("AXP216_CONF_NOT_NEEDED");
+                NRF_LOG_FLUSH();
+                return true;
+                break;
+            case AXP216_CONF_SUCCESS:
+                NRF_LOG_INFO("AXP216_CONF_SUCCESS");
+                NRF_LOG_FLUSH();
+                return true;
+                break;
+            case AXP216_CONF_FAILED:
+                NRF_LOG_INFO("AXP216_CONF_FAILED");
+                NRF_LOG_FLUSH();
+                return false;
+            case AXP216_CONF_INVALID:
+            default:
+                NRF_LOG_INFO("AXP216_CONF_INVALID");
+                NRF_LOG_FLUSH();
+                return false;
+            }
+        },
+        {
+            // do nothing on success
+        },
+        {
+            // sleep on fail
+            enter_low_power_mode();
         }
-        nrf_delay_ms(1);
-    }
+    );
+    // nrf_bootloader_mbr_addrs_populate(); // we dont use uicr address anymore
 
-    // while ( !keeptrying )
-    // {
-    //     // NRF_LOG_RAW_INFO("DEBUG CATCH \f\f\f[%c]", spinner());
-    //     NRF_LOG_INFO("DEBUG CATCH [%c]", spinner())
-    //     NRF_LOG_FLUSH();
-    //     nrf_delay_ms(1000);
-    // }
+    // Protect MBR and bootloader flash area
+    APP_ERROR_CHECK(nrf_bootloader_flash_protect(0, MBR_SIZE, false));
+    APP_ERROR_CHECK(nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false));
 
-    // Must happen before flash protection is applied, since it edits a protected page.
-    // nrf_bootloader_mbr_addrs_populate(); // not needed, we use mbr instead of uicr
-    // Protect MBR and bootloader code from being overwritten. // not needed as debug turned off, and app is signature checked
-    // APP_ERROR_CHECK(nrf_bootloader_flash_protect(0, MBR_SIZE, false));
-    // APP_ERROR_CHECK(nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false));
+    // app_read_protect(); // NRF_BL_DEBUG_PORT_DISABLE = 1 already did it
 
-    // app_read_protect();
+    // flush log befor enter app
+    NRF_LOG_FINAL_FLUSH();
+
     APP_ERROR_CHECK(nrf_bootloader_init(dfu_observer1));
-    NRF_LOG_FLUSH();
-
-    NRF_LOG_ERROR("Exit DFU");
     NRF_LOG_FLUSH();
 
     APP_ERROR_CHECK_BOOL(false);

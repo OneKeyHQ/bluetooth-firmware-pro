@@ -7,7 +7,6 @@ SelectInterface swd
 speed 8000
 RSetType 0
 r
-erase
 loadbin $(dirname $0)/artifacts_signed/factory.hex 0x00000000
 r
 g

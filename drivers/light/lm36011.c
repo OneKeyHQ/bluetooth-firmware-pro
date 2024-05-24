@@ -1,6 +1,6 @@
 #include "lm36011.h"
 
-#include "util_micros.h"
+#include "util_macros.h"
 #include "nrf_i2c.h"
 
 ret_code_t lm36011_write(const uint8_t writeAddr, const uint8_t writeData)

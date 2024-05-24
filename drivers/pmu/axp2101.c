@@ -27,7 +27,16 @@ static bool axp2101_config_voltage(void)
 
 static bool axp2101_config_battery_param(void)
 {
-    // TODO: how to check if BROM already programed?
+    uint8_t val_temp = 0xff;
+
+    // check if BROM already programed
+    // according to axp support, check reg A2 bit 4
+    EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_CONFIG, &val_temp));
+    if ( (val_temp & (1 << 4)) == (1 << 4) )
+    {
+        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM already configured, skip");
+        return true;
+    }
 
     // battery param
     static const uint8_t batt_cal_data[128] = {
@@ -51,22 +60,23 @@ static bool axp2101_config_battery_param(void)
     for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
     {
         EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_BROM, batt_cal_data[i]));
-        NRF_LOG_FLUSH();
+        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM prog! i=%u, buff=0x%02x", i, batt_cal_data[i]);
         pmu_interface_p->Delay_ms(10);
     }
     // enable BROM access
     EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
     EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
     // verify BROM
-    uint8_t val_temp = 0xff;
     for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
     {
+        val_temp = 0;
         EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_BROM, &val_temp));
         if ( batt_cal_data[i] != val_temp )
         {
             pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "BROM verify failed!");
             pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "i=%u, buff=0x%02x, val=0x%02x", i, batt_cal_data[i], val_temp);
             return false;
+
         }
         pmu_interface_p->Delay_ms(10);
     }
@@ -115,6 +125,17 @@ static bool axp2101_config_battery(void)
     return true;
 }
 
+static bool axp2101_config_adc(void)
+{
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DIE_TEMP_CFG, 0b00000001)); // 115C max, detect enable
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_ADC_CH_EN0, 0b00011111));
+
+    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_TS_CFG, 0b00000001)); // bit 1:0 = 01
+    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_TS_CFG, 0b00000010)); // TS current 40ua
+
+    return true;
+}
+
 static bool axp2101_config_irq(void)
 {
     // disable irq
@@ -135,17 +156,6 @@ static bool axp2101_config_irq(void)
     return true;
 }
 
-static bool axp2101_config_adc(void)
-{
-    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DIE_TEMP_CFG, 0b00000001)); // 115C max, detect enable
-    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_ADC_CH_EN0, 0b00011111));
-
-    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_TS_CFG, 0b00000001)); // bit 1:0 = 01
-    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_TS_CFG, 0b00000010)); // TS current 40ua
-
-    return true;
-}
-
 static bool axp2101_config_common(void)
 {
     EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_COMM_CFG, (1 << 2))); // pwr key hold 16s to resetart
@@ -157,6 +167,7 @@ static bool axp2101_config_common(void)
 
     return true;
 }
+
 // function public
 
 Power_Error_t axp2101_init(void)
@@ -250,10 +261,10 @@ Power_Error_t axp2101_config(void)
 {
     EC_E_BOOL_R_PWR_ERR(axp2101_config_voltage());
     EC_E_BOOL_R_PWR_ERR(axp2101_config_common());
-    // EC_E_BOOL_R_PWR_ERR(axp2101_config_battery_param());
+    EC_E_BOOL_R_PWR_ERR(axp2101_config_battery_param());
     EC_E_BOOL_R_PWR_ERR(axp2101_config_battery());
-    EC_E_BOOL_R_PWR_ERR(axp2101_config_irq());
     EC_E_BOOL_R_PWR_ERR(axp2101_config_adc());
+    EC_E_BOOL_R_PWR_ERR(axp2101_config_irq());
     return PWR_ERROR_NONE;
 }
 
@@ -263,13 +274,14 @@ Power_Error_t axp2101_set_state(const Power_State_t state)
     {
     case PWR_STATE_SOFT_OFF:
         // close output
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));
         EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x40)); // keep cpuldo on
         EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));
         // cpuldo is not used and not connected, keep it on is just for prevent axp "sleep"
         // "close all output means sleep" is a really stupid design, as axp turns off I2C when sleeping
         // there is no way to wake it up if you do't enable wakeup source before close all output
+        // make sure config the "left on" reg first
         break;
     case PWR_STATE_HARD_OFF:
         // close output (not needed as the pmu off will kill all output)
@@ -281,14 +293,15 @@ Power_Error_t axp2101_set_state(const Power_State_t state)
         EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_COMM_CFG, (1 << 0)));
         break;
     case PWR_STATE_ON:
-        // try wakeup anyways
-        // config eveything
-        EC_E_BOOL_R_PWR_ERR(axp2101_config());
+        // strong drive
+        nrf_i2c_strong_drive_ctrl(true);
         // open output
         EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x01)); // aldo1 on, other off
         EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0X00)); // all off
         EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x01));   // dcdc1 on, other off
         EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));   // all off
+        // normal drive
+        nrf_i2c_strong_drive_ctrl(false);
         break;
     case PWR_STATE_SLEEP:
         // allow irq wakeup
@@ -302,8 +315,12 @@ Power_Error_t axp2101_set_state(const Power_State_t state)
         EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00));
         break;
     case PWR_STATE_WAKEUP:
+        // strong drive
+        nrf_i2c_strong_drive_ctrl(true);
         // wakeup via i2c
         EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_SLEEP_CFG, (1 << 1)));
+        // normal drive
+        nrf_i2c_strong_drive_ctrl(false);
         break;
 
     case PWR_STATE_INVALID:
@@ -389,10 +406,11 @@ Power_Error_t axp2101_get_status(Power_Status_t* status)
         {
             // TODO: find a batter way to check GPIO?
             // read gpio
-            bool gpio_high_low;
-            pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_READ_PH);
-            pmu_interface_p->GPIO.Read(8, &gpio_high_low);
-            pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_UNUSED);
+            bool gpio_high_low = true;
+            EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_READ_PH));
+            pmu_interface_p->Delay_ms(5);
+            EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Read(8, &gpio_high_low));
+            EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_UNUSED));
 
             status->wirelessCharge = !gpio_high_low; // low is wireless
             // if not wireless charging then it's wired

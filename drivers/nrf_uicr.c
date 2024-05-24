@@ -2,7 +2,7 @@
 
 #include <memory.h>
 
-#include "util_micros.h"
+#include "util_macros.h"
 #include "nrfx_nvmc.h"
 // #include "nrf_nvmc.h"
 

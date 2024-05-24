@@ -1,6 +1,6 @@
 #include "axp216_config.h"
 
-#include "util_micros.h"
+#include "util_macros.h"
 #include "nrf_i2c.h"
 #include "nrf_delay.h"
 
@@ -21,16 +21,16 @@
 
 // axp2101 defines
 
-#define AXP2101_I2C_ADDR    (0x35)
+#define AXP2101_I2C_ADDR (0x35)
 
 // macro utils
 
-#define EC_E_BOOL_BREAK(expr)      ExecuteCheck_ADV(expr, true, break;)
+#define EC_E_BOOL_BREAK(expr)       ExecuteCheck_ADV(expr, true, break;)
 
-#define axp216_reg_read(reg, val)  nrf_i2c_handle->Reg.Read(AXP216_I2C_ADDR, reg, val)
-#define axp216_reg_write(reg, val) nrf_i2c_handle->Reg.Write(AXP216_I2C_ADDR, reg, val)
-#define axp216_set_bits(reg, mask) nrf_i2c_handle->Reg.SetBits(AXP216_I2C_ADDR, reg, mask)
-#define axp216_clr_bits(reg, mask) nrf_i2c_handle->Reg.ClrBits(AXP216_I2C_ADDR, reg, mask)
+#define axp216_reg_read(reg, val)   nrf_i2c_handle->Reg.Read(AXP216_I2C_ADDR, reg, val)
+#define axp216_reg_write(reg, val)  nrf_i2c_handle->Reg.Write(AXP216_I2C_ADDR, reg, val)
+#define axp216_set_bits(reg, mask)  nrf_i2c_handle->Reg.SetBits(AXP216_I2C_ADDR, reg, mask)
+#define axp216_clr_bits(reg, mask)  nrf_i2c_handle->Reg.ClrBits(AXP216_I2C_ADDR, reg, mask)
 
 #define axp2101_reg_read(reg, val)  nrf_i2c_handle->Reg.Read(AXP2101_I2C_ADDR, reg, val)
 #define axp2101_reg_write(reg, val) nrf_i2c_handle->Reg.Write(AXP2101_I2C_ADDR, reg, val)
@@ -65,22 +65,19 @@ AXP216_CONF_R_t axp216_minimum_config()
             }
 
             // looking for AXP216
+            nrf_i2c_strong_drive_ctrl(true);
             if ( !axp216_reg_read(AXP216_IC_TYPE, &val) )
             {
                 result = AXP216_CONF_NO_ACK;
                 nrf_delay_ms(100);
                 continue;
             }
+            nrf_i2c_strong_drive_ctrl(false);
 
             // check id, as axp different ic may share same i2c addrs
             if ( val == 0x62 )
             {
                 result = AXP216_CONF_FAILED;
-
-                // enable wakeup
-                // EC_E_BOOL_BREAK(axp216_set_bits(AXP216_VOFF_SET, 0b00001000));
-
-                // check buffer marker?
 
                 // voltages
                 // ALDO1 -> LDO_1V8 1.8V
@@ -98,20 +95,43 @@ AXP216_CONF_R_t axp216_minimum_config()
                 EC_E_BOOL_BREAK(axp216_reg_write(AXP216_VOFF_SET, 0x03));
                 EC_E_BOOL_BREAK(axp216_reg_write(AXP216_OFF_CTL, 0x43));
 
-                // power cycle
-                EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN1, 0x00));
-                // EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN2, 0x14));
-                EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN2, 0x15));// keep eldo1 to not go into sleep mode
+                // configure correct power output
+                EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN2, 0x34));
+                EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN1, 0xC2));
 
-                // // try wakeup
-                // EC_E_BOOL_BREAK(axp216_set_bits(AXP216_VOFF_SET, 0b00100000));
                 // shutdown
                 // EC_E_BOOL_BREAK(axp216_set_bits(AXP216_OFF_CTL, 0b10000000));
 
-                nrf_delay_ms(100);
-
-                EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN2, 0x34));
-                EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN1, 0xC2));
+                if ( false )
+                {
+                    // power cycle by sleep and wakeup
+                    // enable wakeup
+                    EC_E_BOOL_BREAK(axp216_reg_read(AXP216_VOFF_SET, &val)); // backup reg
+                    EC_E_BOOL_BREAK(axp216_set_bits(AXP216_VOFF_SET, (1 << 3)));
+                    // turn off output to sleep
+                    EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN2, 0x14));
+                    EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN1, 0x00));
+                    // delay
+                    nrf_delay_ms(50);
+                    // try wakeup
+                    nrf_i2c_strong_drive_ctrl(true);
+                    EC_E_BOOL_BREAK(axp216_reg_write(AXP216_VOFF_SET, (val | (1 << 5))));
+                    nrf_i2c_strong_drive_ctrl(false);
+                }
+                else
+                {
+                    // power cycle by soft off (left an output on)
+                    // soft off
+                    EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN2, 0x15)); // keep eldo1 on
+                    EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN1, 0x00));
+                    // delay
+                    nrf_delay_ms(50);
+                    // back on
+                    nrf_i2c_strong_drive_ctrl(true);
+                    EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN2, 0x34));
+                    EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN1, 0xC2));
+                    nrf_i2c_strong_drive_ctrl(false);
+                }
 
                 result = AXP216_CONF_SUCCESS;
                 break;

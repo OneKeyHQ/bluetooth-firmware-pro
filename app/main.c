@@ -100,6 +100,7 @@
 #include "device_config.h"
 #include "firmware_config.h"
 #include "dfu_upgrade.h"
+#include "util_macros.h"
 // #include "rtc_calendar.h"
 
 #define RX_PIN_NUMBER           11
@@ -574,7 +575,7 @@ static bool app_shutdown_handler(nrf_pwr_mgmt_evt_t event)
         // stop bt adv
         bt_advertising_ctrl(false, false);
         // enable wakeup
-        nrf_gpio_cfg_sense_input(POWER_IC_OK_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
+        nrf_gpio_cfg_sense_input(PMIC_PWROK_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
         return true;
 
     case NRF_PWR_MGMT_EVT_PREPARE_DFU:
@@ -2048,7 +2049,7 @@ void in_gpiote_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
             phone_resp_data();
         }
         break;
-    case POWER_IC_OK_IO:
+    case PMIC_PWROK_IO:
         if ( action == NRF_GPIOTE_POLARITY_HITOLO )
         {
             enter_low_power_mode();
@@ -2080,13 +2081,13 @@ static void gpiote_init(void)
     APP_ERROR_CHECK(err_code);
     nrfx_gpiote_in_event_enable(SLAVE_SPI_RSP_IO, true);
 
-    err_code = nrfx_gpiote_in_init(POWER_IC_OK_IO, &in_config1, in_gpiote_handler);
+    err_code = nrfx_gpiote_in_init(PMIC_PWROK_IO, &in_config1, in_gpiote_handler);
     APP_ERROR_CHECK(err_code);
-    nrfx_gpiote_in_event_enable(POWER_IC_OK_IO, true);
+    nrfx_gpiote_in_event_enable(PMIC_PWROK_IO, true);
 
-    err_code = nrfx_gpiote_in_init(POWER_IC_IRQ_IO, &in_config1, gpio_int_handler_pmu);
+    err_code = nrfx_gpiote_in_init(PMIC_IRQ_IO, &in_config1, gpio_int_handler_pmu);
     APP_ERROR_CHECK(err_code);
-    nrfx_gpiote_in_event_enable(POWER_IC_IRQ_IO, true);
+    nrfx_gpiote_in_event_enable(PMIC_IRQ_IO, true);
 }
 
 static void gpio_init(void)
@@ -2530,7 +2531,7 @@ static void m_wdt_event_handler(void)
 {
     NRF_LOG_INFO("WDT Triggered!");
     NRF_LOG_FLUSH();
-    while ( 1 ) {}
+    // NVIC_SystemReset(); // needed?
 }
 
 static void watch_dog_init(void)
@@ -2547,66 +2548,99 @@ static void watch_dog_init(void)
 
 int main(void)
 {
-    // enable busfault
+    // ###############################
+    // Critical Init Items
+    // ==> Log
+    log_init();
+    NRF_LOG_INFO("Critical Init Seq.");
+    NRF_LOG_FLUSH();
+    // ==> Bus Fault
     // SCB->SHCSR |= SCB_SHCSR_BUSFAULTENA_Msk;
-
+    // ==> Buttonless DFU
 #ifdef BUTTONLESS_ENABLED
     // Initialize the async SVCI interface to bootloader before any interrupts are enabled.
     ret_code_t err_code = ble_dfu_buttonless_async_svci_init();
     APP_ERROR_CHECK(err_code);
 #endif
-    // Initialize.
-    log_init();
+    // ==> NRF Crypto API
+    nrf_crypto_init();
+    // ==> Power Manage IC, LED Driver, and Device Configs
+    CRITICAL_REGION_ENTER();
+    // pmu init
+    EXEC_RETRY(
+        10, { set_send_stm_data_p(send_stm_data); },
+        {
+            nrf_delay_ms(10);
+            NRF_LOG_INFO("Trying...");
+            NRF_LOG_FLUSH();
+            return (power_manage_init() && (pmu_p != NULL && pmu_p->isInitialized));
+        },
+        {
+            NRF_LOG_INFO("PMU Init Success");
+            NRF_LOG_FLUSH();
+        },
+        {
+            NRF_LOG_INFO("PMU Init Fail");
+            NRF_LOG_FLUSH();
+            enter_low_power_mode(); // something wrong, shutdown to prevent battery drain
+        }
+    );
+    // soft power off ST until self init done
+    pmu_p->SetState(PWR_STATE_SOFT_OFF);
+    // device config init
+    EXEC_RETRY(
+        3, {}, { return device_config_init(); },
+        {
+            NRF_LOG_INFO("Config Init Success");
+            NRF_LOG_FLUSH();
+        },
+        {
+            NRF_LOG_INFO("Config Init Fail");
+            NRF_LOG_FLUSH();
+            enter_low_power_mode(); // something wrong, shutdown to prevent battery drain
+        }
+    );
+    CRITICAL_REGION_EXIT();
+
+    // ###############################
+    // DFU Update
+    // TODO: check battery?
+    // TODO: change to on demand
+    NRF_LOG_INFO("DFU Update Seq.");
+    NRF_LOG_FLUSH();
+    NRF_LOG_INFO(try_dfu_upgrade(false) ? "DFU update not needed." : "DFU update failed!");
+    NRF_LOG_FLUSH();
+
+    // ###############################
+    // General Init Items
+    NRF_LOG_INFO("General Init Seq.");
+    NRF_LOG_FLUSH();
     gpio_init();
     usr_uart_init();
     usr_spim_init();
+    timers_init();
+    watch_dog_init();
+    scheduler_init();
+    power_management_init();
+
+    // ###############################
+    // Power Manage Init Items
+    NRF_LOG_INFO("Power Config Seq.");
+    NRF_LOG_FLUSH();
+    // ST power on
+    pmu_p->SetState(PWR_STATE_ON);
+    // make sure light is off
     set_led_brightness(0);
 
-    NRF_LOG_INFO("system start");
+    // ###############################
+    // Bluetooth Init Items
+    NRF_LOG_INFO("Bluetooth Init Seq.");
+    NRF_LOG_FLUSH();
+    ble_stack_init();
+    mac_address_get();
 #ifdef SCHED_ENABLE
     create_ringBuffer(&m_ble_fifo, data_recived_buf, sizeof(data_recived_buf));
 #endif
-
-    NRF_LOG_INFO("PMU initialization");
-    set_send_stm_data_p(send_stm_data);
-
-    for ( uint8_t retry = 0; retry < 10; retry++ )
-    {
-        if ( power_manage_init() )
-        {
-            break;
-        }
-        else
-        {
-            NRF_LOG_INFO("Retrying...");
-            NRF_LOG_FLUSH();
-            nrf_delay_ms(10);
-        }
-    }
-    if ( pmu_p != NULL && pmu_p->isInitialized )
-    {
-        NRF_LOG_INFO("PMU initialization success");
-        NRF_LOG_FLUSH();
-    }
-    else
-    {
-        NRF_LOG_INFO("PMU initialization fail");
-        NRF_LOG_FLUSH();
-        enter_low_power_mode(); // something wrong, shutdown to prevent battery drain
-    }
-
-    pmu_p->SetState(PWR_STATE_ON);
-
-    // try_dfu_upgrade(true);
-
-    scheduler_init();
-    nrf_crypto_init();
-    device_config_init(); // TODO: check return!
-    timers_init();
-    power_management_init();
-
-    ble_stack_init();
-    mac_address_get();
 #ifdef BOND_ENABLE
     peer_manager_init();
 #endif
@@ -2615,8 +2649,6 @@ int main(void)
     services_init();
     advertising_init();
     conn_params_init();
-
-    // bt init
     bt_advertising_ctrl(
         ((deviceConfig_p->settings.flag_initialized == DEVICE_CONFIG_FLAG_MAGIC) && // valid
          (deviceConfig_p->settings.bt_ctrl != DEVICE_CONFIG_FLAG_MAGIC))            // set to flag means turn off
@@ -2624,12 +2656,11 @@ int main(void)
         false
     ); // TODO: check return!
 
-    watch_dog_init();
+    // ###############################
+    // Main Loop
+    NRF_LOG_INFO("Main Loop Enter");
+    NRF_LOG_FLUSH();
     application_timers_start();
-
-    NRF_LOG_INFO("NRF INIT END");
-
-    // Enter main loop.
     for ( ;; )
     {
         main_loop();

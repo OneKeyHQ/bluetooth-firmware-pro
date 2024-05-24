@@ -159,7 +159,7 @@ static bool pmu_if_gpio_read(uint32_t pin_num, bool* const high_low)
     // must already configured as input
     if ( nrf_gpio_pin_dir_get(pin_num) == NRF_GPIO_PIN_DIR_INPUT )
     {
-        *high_low = nrf_gpio_pin_out_read(pin_num);
+        *high_low = (nrf_gpio_pin_read(pin_num) != 0);
         return true;
     }
     return false;
@@ -219,7 +219,7 @@ static void pmu_if_log(Power_LogLevel_t level, const char* fmt, ...)
         NRF_LOG_WARNING("%s", log_buffer);
         break;
     case PWR_LOG_LEVEL_INFO:
-        NRF_LOG_RAW_INFO("%s", log_buffer);
+        NRF_LOG_INFO("%s", log_buffer);
         break;
     case PWR_LOG_LEVEL_DBG:
         NRF_LOG_DEBUG("%s", log_buffer);
@@ -265,12 +265,17 @@ bool power_manage_init()
     pmu_if.Log = pmu_if_log;
 
     // pmu handle
+
     pmu_p = pmu_probe(&pmu_if);
     if ( pmu_p == NULL )
         return false;
 
     // init
     if ( pmu_p->Init() != PWR_ERROR_NONE )
+        return false;
+
+    // config
+    if ( pmu_p->Config() != PWR_ERROR_NONE )
         return false;
 
     return true;
@@ -315,8 +320,8 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
     switch ( pin )
     {
-    case POWER_IC_OK_IO:
-        NRF_LOG_INFO("POWER_IC_OK_IO");
+    case PMIC_PWROK_IO:
+        NRF_LOG_INFO("PMIC_PWROK_IO");
         NRF_LOG_FLUSH();
 
         if ( action == NRF_GPIOTE_POLARITY_TOGGLE )
@@ -359,8 +364,8 @@ void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 
         break;
 
-    case POWER_IC_IRQ_IO:
-        NRF_LOG_INFO("POWER_IC_IRQ_IO");
+    case PMIC_IRQ_IO:
+        NRF_LOG_INFO("PMIC_IRQ_IO");
         NRF_LOG_FLUSH();
         break;
 
@@ -379,16 +384,16 @@ static void gpiote_init(void)
     // power ok
     nrf_drv_gpiote_in_config_t in_config_toggle = NRFX_GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
     in_config_toggle.pull = NRF_GPIO_PIN_NOPULL;
-    err_code = nrf_drv_gpiote_in_init(POWER_IC_OK_IO, &in_config_toggle, in_gpiote_handler);
+    err_code = nrf_drv_gpiote_in_init(PMIC_PWROK_IO, &in_config_toggle, in_gpiote_handler);
     APP_ERROR_CHECK(err_code);
-    nrf_drv_gpiote_in_event_enable(POWER_IC_OK_IO, true);
+    nrf_drv_gpiote_in_event_enable(PMIC_PWROK_IO, true);
 
     // power irq
     nrf_drv_gpiote_in_config_t in_config_hl = NRFX_GPIOTE_CONFIG_IN_SENSE_HITOLO(true);
     in_config_hl.pull = NRF_GPIO_PIN_PULLUP;
-    err_code = nrf_drv_gpiote_in_init(POWER_IC_IRQ_IO, &in_config_hl, in_gpiote_handler);
+    err_code = nrf_drv_gpiote_in_init(PMIC_IRQ_IO, &in_config_hl, in_gpiote_handler);
     APP_ERROR_CHECK(err_code);
-    nrf_drv_gpiote_in_event_enable(POWER_IC_IRQ_IO, true);
+    nrf_drv_gpiote_in_event_enable(PMIC_IRQ_IO, true);
 }
 
 // main
@@ -397,7 +402,7 @@ NRF_LOG_FLUSH();
 gpiote_init();
 
 NRF_LOG_INFO("Check Power Status");
-if ( nrf_gpio_pin_read(POWER_IC_OK_IO) )
+if ( nrf_gpio_pin_read(PMIC_PWROK_IO) )
 {
     i2c_control(true);
 

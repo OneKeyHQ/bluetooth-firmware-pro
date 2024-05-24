@@ -46,18 +46,20 @@ static bool axp216_config_battery(void)
     // CRITICAL -> 5%
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_BAT_WARN, 0x55));
 
+    // charge settings
+    // allow chg, 4.35v, 450ma, 45ma cutoff
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE1, 0xF1));
+    // pre chg 40min timeout, keep chg output, type a, follow, 8hr max
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE2, 0x25));
+
     // temp formula
     // V = reg_val * 0x10 * 0.0008V
-
     // charge temp max
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VHTF_CHG, (uint8_t)(AXP216_VTS_TO_VXTF(196.96)))); // 196.96mv
-
     // charge temp min
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VLTF_CHG, (uint8_t)(AXP216_VTS_TO_VXTF(711.2)))); // 711.2mv
-
     // discharge temp max
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VHTF_DISCHG, (uint8_t)(AXP216_VTS_TO_VXTF(121.28)))); // 121.28mv
-
     // discharge temp min
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VLTF_DISCHG, (uint8_t)(AXP216_VTS_TO_VXTF(2520)))); // 2520mv
 
@@ -98,16 +100,18 @@ static bool axp216_config_irq(void)
     return true;
 }
 
-static bool axp216_config_control_parameter(void)
+static bool axp216_config_common(void)
 {
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE1, 0xF1));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE2, 0x25));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_ADC_CONTROL3, 0x36));
+    // vbus hold at 4.4v, no input current limit
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_IPS_SET, 0x60));
+    // pwr on 1s, long press 2s, force off 4s, no auto reboot on force off
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_POK_SET, 0x68));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_OFF_CTL, 0x4B));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VOFF_SET, 0x13));
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_HOTOVER_CTL, 0xF5));
+    // battery detect enable, pwrok delay 8ms
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_OFF_CTL, 0x48));
+    // 16s key press force reboot, die ovtmp off, no irq turn on
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_HOTOVER_CTL, 0x0f));
+    // voff(ipsout/vsys) 3.3v, no irq wakeup
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VOFF_SET, 0x07));
 
     return true;
 }
@@ -232,10 +236,10 @@ Power_Error_t axp216_irq(void)
 Power_Error_t axp216_config(void)
 {
     EC_E_BOOL_R_PWR_ERR(axp216_config_voltage());
+    EC_E_BOOL_R_PWR_ERR(axp216_config_common());
     EC_E_BOOL_R_PWR_ERR(axp216_config_battery());
-    EC_E_BOOL_R_PWR_ERR(axp216_config_control_parameter());
-    EC_E_BOOL_R_PWR_ERR(axp216_config_irq());
     EC_E_BOOL_R_PWR_ERR(axp216_config_adc());
+    EC_E_BOOL_R_PWR_ERR(axp216_config_irq());
 
     pmu_interface_p->Delay_ms(200);
 
@@ -244,15 +248,17 @@ Power_Error_t axp216_config(void)
 
 Power_Error_t axp216_set_state(const Power_State_t state)
 {
+    static uint8_t reg31_bak = 0x00;
     switch ( state )
     {
     case PWR_STATE_SOFT_OFF:
         // close output
-        EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN1, 0x00));
         EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN2, 0x15)); // keep eldo1 on
+        EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN1, 0x00));
         // eldo1 is not used and not connected, keep it on is just for prevent axp "sleep"
         // "close all output means sleep" is a really stupid design, as axp turns off I2C when sleeping
         // there is no way to wake it up if you do't enable wakeup source before close all output
+        // make sure config the "left on" reg first
         break;
     case PWR_STATE_HARD_OFF:
         // close output (not needed as the pmu off will kill all output)
@@ -262,24 +268,33 @@ Power_Error_t axp216_set_state(const Power_State_t state)
         EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_OFF_CTL, (1 << 7)));
         break;
     case PWR_STATE_ON:
-        // config eveything
-        axp216_config();
+        // strong drive
+        nrf_i2c_strong_drive_ctrl(true);
         // open output
         EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN2, 0x34));
         EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN1, 0xC2));
+        // normal drive
+        nrf_i2c_strong_drive_ctrl(false);
         break;
     case PWR_STATE_SLEEP:
+        // backup reg
+        EC_E_BOOL_R_BOOL(axp216_reg_read(AXP216_VOFF_SET, &reg31_bak));
         // allow irq wakeup
         // EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_VOFF_SET, (1 << 4)));
         // enable wakeup
         EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_VOFF_SET, (1 << 3)));
         // close output to sleep (that's how axp "sleep" works)
-        EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN1, 0x00));
         EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN2, 0x14));
+        EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_LDO_DC_EN1, 0x00));
         break;
     case PWR_STATE_WAKEUP:
+        // strong drive
+        nrf_i2c_strong_drive_ctrl(true);
         // wakeup via i2c
-        EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_VOFF_SET, (1 << 5)));
+        // EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_VOFF_SET, (1 << 5))); // may not work, cant read while sleep
+        EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VOFF_SET, (reg31_bak | (1 << 5))));
+        // normal drive
+        nrf_i2c_strong_drive_ctrl(false);
         break;
 
     case PWR_STATE_INVALID:

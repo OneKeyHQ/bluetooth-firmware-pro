@@ -1,6 +1,6 @@
 #include "nrf_flash.h"
 
-#include "util_micros.h"
+#include "util_macros.h"
 
 #include "nrf_delay.h"
 #include "nrf_fstorage.h"

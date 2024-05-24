@@ -1,6 +1,6 @@
 #include "nrf_i2c.h"
 
-#include "util_micros.h"
+#include "util_macros.h"
 
 #include "nrf_delay.h"
 #include "nrf_gpio.h"
@@ -22,54 +22,47 @@ static const nrfx_twi_config_t twi_config = {
 // functions private
 
 // clang-format off
-#define I2C_PIN_INIT_CONF                                     \
-    ( (GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos) \
-    | (GPIO_PIN_CNF_DRIVE_S0D1     << GPIO_PIN_CNF_DRIVE_Pos) \
-    | (GPIO_PIN_CNF_PULL_Pullup    << GPIO_PIN_CNF_PULL_Pos)  \
-    | (GPIO_PIN_CNF_INPUT_Connect  << GPIO_PIN_CNF_INPUT_Pos) \
-    | (GPIO_PIN_CNF_DIR_Input      << GPIO_PIN_CNF_DIR_Pos))
+#define TWI_PIN_CFG_CLR(_pin) nrf_gpio_cfg((_pin),                  \
+                                        NRF_GPIO_PIN_DIR_OUTPUT,    \
+                                        NRF_GPIO_PIN_INPUT_CONNECT, \
+                                        NRF_GPIO_PIN_PULLUP,        \
+                                        NRF_GPIO_PIN_S0D1,          \
+                                        NRF_GPIO_PIN_NOSENSE)
 
-#define I2C_PIN_UNINIT_CONF                                     \
-    ( (GPIO_PIN_CNF_SENSE_Disabled   << GPIO_PIN_CNF_SENSE_Pos) \
-    | (GPIO_PIN_CNF_DRIVE_H0H1       << GPIO_PIN_CNF_DRIVE_Pos) \
-    | (GPIO_PIN_CNF_PULL_Disabled    << GPIO_PIN_CNF_PULL_Pos)  \
-    | (GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos) \
-    | (GPIO_PIN_CNF_DIR_Input        << GPIO_PIN_CNF_DIR_Pos))
+#define TWI_PIN_CFG_STD(_pin) nrf_gpio_cfg((_pin),                  \
+                                        NRF_GPIO_PIN_DIR_INPUT,     \
+                                        NRF_GPIO_PIN_INPUT_CONNECT, \
+                                        NRF_GPIO_PIN_PULLUP,        \
+                                        NRF_GPIO_PIN_S0D1,          \
+                                        NRF_GPIO_PIN_NOSENSE)
 
-#define I2C_PIN_INIT_CONF_CLR                                 \
-    ( (GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos) \
-    | (GPIO_PIN_CNF_DRIVE_S0D1     << GPIO_PIN_CNF_DRIVE_Pos) \
-    | (GPIO_PIN_CNF_PULL_Pullup    << GPIO_PIN_CNF_PULL_Pos)  \
-    | (GPIO_PIN_CNF_INPUT_Connect  << GPIO_PIN_CNF_INPUT_Pos) \
-    | (GPIO_PIN_CNF_DIR_Output     << GPIO_PIN_CNF_DIR_Pos))
+#define TWI_PIN_CFG_STRONG(_pin) nrf_gpio_cfg((_pin),               \
+                                        NRF_GPIO_PIN_DIR_INPUT,     \
+                                        NRF_GPIO_PIN_INPUT_CONNECT, \
+                                        NRF_GPIO_PIN_PULLUP,        \
+                                        NRF_GPIO_PIN_S0S1,          \
+                                        NRF_GPIO_PIN_NOSENSE)
 
-#define TWI_PIN_INIT_SDA(_pin) nrf_gpio_cfg((_pin),                     \
-                                            NRF_GPIO_PIN_DIR_INPUT,     \
-                                            NRF_GPIO_PIN_INPUT_CONNECT, \
-                                            NRF_GPIO_PIN_PULLUP,        \
-                                            NRF_GPIO_PIN_S0D1,          \
-                                            NRF_GPIO_PIN_NOSENSE)
-
-#define TWI_PIN_INIT_SCL(_pin) nrf_gpio_cfg((_pin),                     \
-                                            NRF_GPIO_PIN_DIR_INPUT,     \
-                                            NRF_GPIO_PIN_INPUT_CONNECT, \
-                                            NRF_GPIO_PIN_PULLUP,        \
-                                            NRF_GPIO_PIN_S0D1,          \
-                                            NRF_GPIO_PIN_NOSENSE)
+#define TWI_PIN_CFG_FORCE(_pin) nrf_gpio_cfg((_pin),                \
+                                        NRF_GPIO_PIN_DIR_OUTPUT,    \
+                                        NRF_GPIO_PIN_INPUT_CONNECT, \
+                                        NRF_GPIO_PIN_PULLUP,        \
+                                        NRF_GPIO_PIN_S0S1,          \
+                                        NRF_GPIO_PIN_NOSENSE)
 // clang-format on
 
 static void nrf_i2c_bus_clear()
 {
     i2c_configured = false;
 
-    NRF_GPIO->PIN_CNF[twi_config.scl] = I2C_PIN_INIT_CONF;
-    NRF_GPIO->PIN_CNF[twi_config.sda] = I2C_PIN_INIT_CONF;
+    TWI_PIN_CFG_STD(twi_config.scl);
+    TWI_PIN_CFG_STD(twi_config.sda);
 
     nrf_gpio_pin_set(twi_config.scl);
     nrf_gpio_pin_set(twi_config.sda);
 
-    NRF_GPIO->PIN_CNF[twi_config.scl] = I2C_PIN_INIT_CONF_CLR;
-    NRF_GPIO->PIN_CNF[twi_config.sda] = I2C_PIN_INIT_CONF_CLR;
+    TWI_PIN_CFG_CLR(twi_config.scl);
+    TWI_PIN_CFG_CLR(twi_config.sda);
 
     nrf_delay_us(4);
 
@@ -94,6 +87,10 @@ static void nrf_i2c_bus_clear()
     nrf_gpio_pin_clear(twi_config.sda);
     nrf_delay_us(4);
     nrf_gpio_pin_set(twi_config.sda);
+
+    nrf_delay_ms(1);
+    TWI_PIN_CFG_STD(twi_config.scl);
+    TWI_PIN_CFG_STD(twi_config.sda);
 }
 
 static bool nrf_i2c_init()
@@ -106,12 +103,6 @@ static bool nrf_i2c_init()
         {
             return false;
         }
-
-        // pin config override
-        // nrf_gpio_pin_clear(twi_config.sda);
-        // nrf_gpio_pin_clear(twi_config.scl);
-        // TWI_PIN_INIT_SDA(twi_config.sda);
-        // TWI_PIN_INIT_SCL(twi_config.scl);
 
         nrfx_twi_enable(&nrf_i2c_handle);
 
@@ -248,6 +239,26 @@ static bool nrf_i2c_reg_clr_bits(const uint8_t device_addr, const uint8_t reg_ad
 
 // ================================
 // functions public
+
+// Note: This is a workaround, only use when required
+void nrf_i2c_strong_drive_ctrl(bool enable)
+{
+    PRINT_CURRENT_LOCATION();
+
+    if ( enable )
+    {
+        TWI_PIN_CFG_STRONG(twi_config.sda);
+        TWI_PIN_CFG_STRONG(twi_config.scl);
+        // TWI_PIN_CFG_FORCE(twi_config.sda);
+        // TWI_PIN_CFG_FORCE(twi_config.scl);
+    }
+    else
+    {
+        TWI_PIN_CFG_STD(twi_config.sda);
+        TWI_PIN_CFG_STD(twi_config.scl);
+    }
+}
+
 I2C_t* nrf_i2c_get_instance()
 {
     PRINT_CURRENT_LOCATION();

@@ -72,7 +72,7 @@ ExternalProject_Add(
 # dfu payload
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_DFU_UPGRADE_PAYLOAD ALL
-  COMMAND ${PYTHON_RUNNER} run ${DIR_UTILS}/bin2array.py -l 16 -i ${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_BL -o ${PROJECT_SOURCE_DIR}/artifacts/dfu_upgrade_payload.h
+  COMMAND ${PYTHON_RUNNER} run ${DIR_UTILS}/bin2array.py -l 16 -i ${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_BL.bin -o ${PROJECT_SOURCE_DIR}/artifacts/dfu_upgrade_payload.h
   DEPENDS dfu ${CMAKE_PROJECT_NAME}_PYENV
 )
 
@@ -122,7 +122,7 @@ add_custom_target(
   ${CMAKE_PROJECT_NAME}_FACTORY_BIN ALL
   COMMAND ${CMAKE_OBJCOPY} -I ihex -O binary --gap-fill=0xFF ${FILE_OUTPUT_FACTORY_HEX} ${FILE_OUTPUT_FACTORY_BIN}.tmp
   COMMAND dd if=${FILE_OUTPUT_FACTORY_BIN}.tmp of=${FILE_OUTPUT_FACTORY_BIN} bs=512K count=1
-  COMMAND rm ${FILE_OUTPUT_FACTORY_BIN}.tmp 
+  COMMAND rm ${FILE_OUTPUT_FACTORY_BIN}.tmp
   DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_FACTORY_HEX
 )
 
@@ -144,7 +144,8 @@ add_custom_target(
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_FLASH_FACTORY
   COMMAND JLINK_SN=$ENV{JLINK_SN} ${PROJECT_SOURCE_DIR}/flash_factory.sh
-  DEPENDS ${CMAKE_PROJECT_NAME}_FACTORY_HEX
+  # DEPENDS ${CMAKE_PROJECT_NAME}_FACTORY_HEX
+  DEPENDS ${CMAKE_PROJECT_NAME}_FACTORY_HEX ${CMAKE_PROJECT_NAME}_FACTORY_BIN # temp patch
 )
 
 ###############################
