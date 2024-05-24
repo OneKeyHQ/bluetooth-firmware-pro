@@ -5,8 +5,8 @@
 #include "pmu.h"
 
 // defines
-#define PMIC_IRQ_IO  6
-#define PMIC_PWROK_IO   7
+#define PMIC_IRQ_IO      6
+#define PMIC_PWROK_IO    7
 #define POWER_IC_CHAG_IO 8
 
 // Charge type
