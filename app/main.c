@@ -595,7 +595,6 @@ static uint32_t get_ringBuffer_length(ringbuffer_t *ringBuf) { return ringBuf->l
  * @retval  True if shutdown is allowed by this power manager handler, otherwise false.
  */
 static bool app_shutdown_handler(nrf_pwr_mgmt_evt_t event) {
-  nrf_gpio_pin_sense_t sense;
   switch (event) {
     case NRF_PWR_MGMT_EVT_PREPARE_DFU:
       NRF_LOG_INFO("Power management wants to reset to DFU mode.");
@@ -622,8 +621,7 @@ static bool app_shutdown_handler(nrf_pwr_mgmt_evt_t event) {
       //}
       break;
     case NRF_PWR_MGMT_EVT_PREPARE_WAKEUP:
-      sense = NRF_GPIO_PIN_SENSE_HIGH;
-      nrf_gpio_cfg_sense_set(POWER_IC_OK_IO, sense);
+        nrf_gpio_cfg_sense_input(POWER_IC_OK_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
       break;
 
     default:
