@@ -123,14 +123,11 @@ int main(void)
 
     uint32_t ret_val;
 
-    // Must happen before flash protection is applied, since it edits a protected page.
-    nrf_bootloader_mbr_addrs_populate();
+    // nrf_bootloader_mbr_addrs_populate(); // we dont use uicr address anymore
 
-    // Protect MBR and bootloader code from being overwritten.
-    ret_val = nrf_bootloader_flash_protect(0, MBR_SIZE, false);
-    APP_ERROR_CHECK(ret_val);
-    ret_val = nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false);
-    APP_ERROR_CHECK(ret_val);
+    // Protect MBR and bootloader flash area
+    APP_ERROR_CHECK(nrf_bootloader_flash_protect(0, MBR_SIZE, false));
+    APP_ERROR_CHECK(nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false));
 
     NRF_LOG_INFO("Inside main");
 

@@ -226,6 +226,7 @@ target_include_directories(
   ${CMAKE_PROJECT_NAME} PRIVATE
   ${PROJECT_SOURCE_DIR}
   ${NRF_SDK_INC}
+  ../drivers
 )
 
 target_compile_options(
