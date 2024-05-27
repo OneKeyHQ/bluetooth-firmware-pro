@@ -5933,14 +5933,14 @@
  
 
 #ifndef NRF_FPRINTF_FLAG_AUTOMATIC_CR_ON_LF_ENABLED
-#define NRF_FPRINTF_FLAG_AUTOMATIC_CR_ON_LF_ENABLED 1
+#define NRF_FPRINTF_FLAG_AUTOMATIC_CR_ON_LF_ENABLED 0
 #endif
 
 // <q> NRF_FPRINTF_DOUBLE_ENABLED  - Enable IEEE-754 double precision formatting.
  
 
 #ifndef NRF_FPRINTF_DOUBLE_ENABLED
-#define NRF_FPRINTF_DOUBLE_ENABLED 0
+#define NRF_FPRINTF_DOUBLE_ENABLED 1
 #endif
 
 // </h> 
@@ -5955,7 +5955,7 @@
 // <e> NRF_LOG_BACKEND_RTT_ENABLED - nrf_log_backend_rtt - Log RTT backend
 //==========================================================
 #ifndef NRF_LOG_BACKEND_RTT_ENABLED
-#define NRF_LOG_BACKEND_RTT_ENABLED 0
+#define NRF_LOG_BACKEND_RTT_ENABLED 1
 #endif
 // <o> NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE - Size of buffer for partially processed strings. 
 // <i> Size of the buffer is a trade-off between RAM usage and processing.
@@ -5964,12 +5964,12 @@
 // <i> longer one will be fragmented.
 
 #ifndef NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE
-#define NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE 64
+#define NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE 2048
 #endif
 
 // <o> NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS - Period before retrying writing to RTT 
 #ifndef NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS
-#define NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS 1
+#define NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS 100
 #endif
 
 // <o> NRF_LOG_BACKEND_RTT_TX_RETRY_CNT - Writing to RTT retries. 
@@ -5980,7 +5980,7 @@
 // <i> and scheme with retry is applied again.
 
 #ifndef NRF_LOG_BACKEND_RTT_TX_RETRY_CNT
-#define NRF_LOG_BACKEND_RTT_TX_RETRY_CNT 3
+#define NRF_LOG_BACKEND_RTT_TX_RETRY_CNT 30
 #endif
 
 // </e>
@@ -6055,7 +6055,7 @@
 // <i> RAM memory usage.
 
 #ifndef NRF_LOG_MSGPOOL_ELEMENT_COUNT
-#define NRF_LOG_MSGPOOL_ELEMENT_COUNT 8
+#define NRF_LOG_MSGPOOL_ELEMENT_COUNT 10
 #endif
 
 // </h> 
@@ -6086,7 +6086,7 @@
 // <16384=> 16384 
 
 #ifndef NRF_LOG_BUFSIZE
-#define NRF_LOG_BUFSIZE 1024
+#define NRF_LOG_BUFSIZE 16384
 #endif
 
 // <q> NRF_LOG_CLI_CMDS  - Enable CLI commands for the module.
@@ -6105,7 +6105,7 @@
 // <4=> Debug 
 
 #ifndef NRF_LOG_DEFAULT_LEVEL
-#define NRF_LOG_DEFAULT_LEVEL 3
+#define NRF_LOG_DEFAULT_LEVEL 4
 #endif
 
 // <q> NRF_LOG_DEFERRED  - Enable deffered logger.
@@ -6132,7 +6132,7 @@
 // <i> but system will spend significant amount of time in critical section
 
 #ifndef NRF_LOG_NON_DEFFERED_CRITICAL_REGION_ENABLED
-#define NRF_LOG_NON_DEFFERED_CRITICAL_REGION_ENABLED 0
+#define NRF_LOG_NON_DEFFERED_CRITICAL_REGION_ENABLED 1
 #endif
 
 // <o> NRF_LOG_STR_PUSH_BUFFER_SIZE  - Size of the buffer dedicated for strings stored using @ref NRF_LOG_PUSH.

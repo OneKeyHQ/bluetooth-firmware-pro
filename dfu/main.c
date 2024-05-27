@@ -121,22 +121,26 @@ int main(void)
     NRF_LOG_INIT(NULL);
     NRF_LOG_DEFAULT_BACKENDS_INIT();
 
-    uint32_t ret_val;
+    NRF_LOG_INFO("DFU Enter");
+    NRF_LOG_FLUSH();
 
+    uint32_t u32Reset_reason = NRF_POWER->RESETREAS;
+    NRF_POWER->RESETREAS = NRF_POWER->RESETREAS; // Clear reset reason by writting 1.
+    NRF_LOG_INFO("Reset Status -> %x", u32Reset_reason);
+    NRF_LOG_FLUSH();
+	
     // nrf_bootloader_mbr_addrs_populate(); // we dont use uicr address anymore
 
     // Protect MBR and bootloader flash area
     APP_ERROR_CHECK(nrf_bootloader_flash_protect(0, MBR_SIZE, false));
     APP_ERROR_CHECK(nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false));
 
-    NRF_LOG_INFO("Inside main");
+    // app_read_protect(); // NRF_BL_DEBUG_PORT_DISABLE = 1 already did it
 
-    ret_val = nrf_bootloader_init(dfu_observer1);
-    APP_ERROR_CHECK(ret_val);
+    // flush log befor enter app
+    NRF_LOG_FINAL_FLUSH();
 
-    NRF_LOG_FLUSH();
-
-    NRF_LOG_ERROR("After main, should never be reached.");
+    APP_ERROR_CHECK(nrf_bootloader_init(dfu_observer1));
     NRF_LOG_FLUSH();
 
     APP_ERROR_CHECK_BOOL(false);

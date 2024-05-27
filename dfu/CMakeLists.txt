@@ -57,6 +57,7 @@ set(
   ${NRF_SDK_ROOT}/components/softdevice/s132/headers/nrf52
   ${NRF_SDK_ROOT}/components/toolchain/cmsis/include
   ${NRF_SDK_ROOT}/external/fprintf
+  ${NRF_SDK_ROOT}/external/segger_rtt
   ${NRF_SDK_ROOT}/external/nano-pb
   ${NRF_SDK_ROOT}/external/nrf_oberon
   ${NRF_SDK_ROOT}/external/nrf_oberon/include
@@ -139,6 +140,14 @@ set(
   ${NRF_SDK_ROOT}/components/softdevice/common/nrf_sdh.c
   ${NRF_SDK_ROOT}/components/softdevice/common/nrf_sdh_ble.c
   ${NRF_SDK_ROOT}/components/softdevice/common/nrf_sdh_soc.c
+  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_rtt.c
+  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_serial.c
+  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_default_backends.c
+  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_frontend.c
+  ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_str_formatter.c
+  ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT.c
+  ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c
+  ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT_printf.c
   ${NRF_SDK_ROOT}/external/fprintf/nrf_fprintf.c
   ${NRF_SDK_ROOT}/external/fprintf/nrf_fprintf_format.c
   ${NRF_SDK_ROOT}/external/nano-pb/pb_common.c
