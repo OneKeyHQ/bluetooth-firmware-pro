@@ -280,7 +280,7 @@ static void on_cmd_obj_write_request(nrf_dfu_request_t * p_req, nrf_dfu_response
 
     NRF_LOG_DEBUG("Handle NRF_DFU_OP_OBJECT_WRITE (command)");
 
-    nrf_dfu_result_t ret_val;    
+    nrf_dfu_result_t ret_val;
 
     ret_val = nrf_dfu_validation_init_cmd_append(p_req->write.p_data, p_req->write.len);
     p_res->result = ext_err_code_handle(ret_val);

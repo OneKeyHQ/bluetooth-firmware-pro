@@ -44,7 +44,7 @@
 #include "nrf_crypto_mem.h"
 #include "app_util.h"
 #include "sdk_macros.h"
-#include "nrf_error.h"
+
 
 #if NRF_CRYPTO_ECC_ENABLED
 

@@ -51,7 +51,6 @@
 #include "peer_id.h"
 #include "nrf_sdh_soc.h"
 #include "nrf_strerror.h"
-#include "nrf_delay.h"
 
 #if (NRF_DFU_BLE_BUTTONLESS_SUPPORTS_BONDS)
 
