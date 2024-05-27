@@ -41,10 +41,10 @@
 #if NRF_MODULE_ENABLED(APP_UART)
 #include "app_uart.h"
 #include "app_fifo.h"
-#include "nrf_drv_uart.h"
+#include "nrfx_uarte.h"
 #include "nrf_assert.h"
 
-static nrf_drv_uart_t app_uart_inst = NRF_DRV_UART_INSTANCE(APP_UART_DRIVER_INSTANCE);
+static nrfx_uarte_t app_uart_inst = NRFX_UARTE_INSTANCE(APP_UART_DRIVER_INSTANCE);
 
 static __INLINE uint32_t fifo_length(app_fifo_t * const fifo)
 {
@@ -63,19 +63,19 @@ static bool m_rx_ovf;
 static app_fifo_t                  m_rx_fifo;                               /**< RX FIFO buffer for storing data received on the UART until the application fetches them using app_uart_get(). */
 static app_fifo_t                  m_tx_fifo;                               /**< TX FIFO buffer for storing data to be transmitted on the UART when TXD is ready. Data is put to the buffer on using app_uart_put(). */
 
-static void uart_event_handler(nrf_drv_uart_event_t * p_event, void* p_context)
+static void uart_event_handler(nrfx_uarte_event_t const * p_event, void* p_context)
 {
     app_uart_evt_t app_uart_event;
     uint32_t err_code;
 
     switch (p_event->type)
     {
-        case NRF_DRV_UART_EVT_RX_DONE:
+        case NRFX_UARTE_EVT_RX_DONE:
             // If 0, then this is a RXTO event with no new bytes.
             if(p_event->data.rxtx.bytes == 0)
             {
                // A new start RX is needed to continue to receive data
-               (void)nrf_drv_uart_rx(&app_uart_inst, rx_buffer, 1);
+               (void)nrfx_uarte_rx(&app_uart_inst, rx_buffer, 1);
                break;
             }
 
@@ -97,7 +97,7 @@ static void uart_event_handler(nrf_drv_uart_event_t * p_event, void* p_context)
             // Start new RX if size in buffer.
             if (FIFO_LENGTH(m_rx_fifo) <= m_rx_fifo.buf_size_mask)
             {
-                (void)nrf_drv_uart_rx(&app_uart_inst, rx_buffer, 1);
+                (void)nrfx_uarte_rx(&app_uart_inst, rx_buffer, 1);
             }
             else
             {
@@ -107,18 +107,18 @@ static void uart_event_handler(nrf_drv_uart_event_t * p_event, void* p_context)
 
             break;
 
-        case NRF_DRV_UART_EVT_ERROR:
+        case NRFX_UARTE_EVT_ERROR:
             app_uart_event.evt_type                 = APP_UART_COMMUNICATION_ERROR;
             app_uart_event.data.error_communication = p_event->data.error.error_mask;
-            (void)nrf_drv_uart_rx(&app_uart_inst, rx_buffer, 1);
+            (void)nrfx_uarte_rx(&app_uart_inst, rx_buffer, 1);
             m_event_handler(&app_uart_event);
             break;
 
-        case NRF_DRV_UART_EVT_TX_DONE:
+        case NRFX_UARTE_EVT_TX_DONE:
             // Get next byte from FIFO.
             if (app_fifo_get(&m_tx_fifo, tx_buffer) == NRF_SUCCESS)
             {
-                (void)nrf_drv_uart_tx(&app_uart_inst, tx_buffer, 1);
+                (void)nrfx_uarte_tx(&app_uart_inst, tx_buffer, 1);
             }
             else
             {
@@ -156,25 +156,25 @@ uint32_t app_uart_init(const app_uart_comm_params_t * p_comm_params,
     err_code = app_fifo_init(&m_tx_fifo, p_buffers->tx_buf, p_buffers->tx_buf_size);
     VERIFY_SUCCESS(err_code);
 
-    nrf_drv_uart_config_t config = NRF_DRV_UART_DEFAULT_CONFIG;
-    config.baudrate = (nrf_uart_baudrate_t)p_comm_params->baud_rate;
+    nrfx_uarte_config_t config = NRFX_UARTE_DEFAULT_CONFIG;
+    config.baudrate = (nrf_uarte_baudrate_t)p_comm_params->baud_rate;
     config.hwfc = (p_comm_params->flow_control == APP_UART_FLOW_CONTROL_DISABLED) ?
-            NRF_UART_HWFC_DISABLED : NRF_UART_HWFC_ENABLED;
+            NRF_UARTE_HWFC_DISABLED : NRF_UARTE_HWFC_ENABLED;
     config.interrupt_priority = irq_priority;
-    config.parity = p_comm_params->use_parity ? NRF_UART_PARITY_INCLUDED : NRF_UART_PARITY_EXCLUDED;
+    config.parity = p_comm_params->use_parity ? NRF_UARTE_PARITY_INCLUDED : NRF_UARTE_PARITY_EXCLUDED;
     config.pselcts = p_comm_params->cts_pin_no;
     config.pselrts = p_comm_params->rts_pin_no;
     config.pselrxd = p_comm_params->rx_pin_no;
     config.pseltxd = p_comm_params->tx_pin_no;
 
-    err_code = nrf_drv_uart_init(&app_uart_inst, &config, uart_event_handler);
+    err_code = nrfx_uarte_init(&app_uart_inst, &config, uart_event_handler);
     VERIFY_SUCCESS(err_code);
     m_rx_ovf = false;
 
     // Turn on receiver if RX pin is connected
     if (p_comm_params->rx_pin_no != UART_PIN_DISCONNECTED)
     {
-        return nrf_drv_uart_rx(&app_uart_inst, rx_buffer,1);
+        return nrfx_uarte_rx(&app_uart_inst, rx_buffer,1);
     }
     else
     {
@@ -208,7 +208,7 @@ uint32_t app_uart_get(uint8_t * p_byte)
     if (rx_ovf)
     {
         m_rx_ovf = false;
-        uint32_t uart_err_code = nrf_drv_uart_rx(&app_uart_inst, rx_buffer, 1);
+        uint32_t uart_err_code = nrfx_uarte_rx(&app_uart_inst, rx_buffer, 1);
 
         // RX resume should never fail.
         APP_ERROR_CHECK(uart_err_code);
@@ -228,7 +228,7 @@ uint32_t app_uart_put(uint8_t byte)
         // (in 'uart_event_handler') when all preceding bytes are transmitted.
         // But if UART is not transmitting anything at the moment, we must start
         // a new transmission here.
-        if (!nrf_drv_uart_tx_in_progress(&app_uart_inst))
+        if (!nrfx_uarte_tx_in_progress(&app_uart_inst))
         {
             // This operation should be almost always successful, since we've
             // just added a byte to FIFO, but if some bigger delay occurred
@@ -236,7 +236,7 @@ uint32_t app_uart_put(uint8_t byte)
             // that time, FIFO might be empty already.
             if (app_fifo_get(&m_tx_fifo, tx_buffer) == NRF_SUCCESS)
             {
-                err_code = nrf_drv_uart_tx(&app_uart_inst, tx_buffer, 1);
+                err_code = nrfx_uarte_tx(&app_uart_inst, tx_buffer, 1);
             }
         }
     }
@@ -246,7 +246,7 @@ uint32_t app_uart_put(uint8_t byte)
 
 uint32_t app_uart_close(void)
 {
-    nrf_drv_uart_uninit(&app_uart_inst);
+    nrfx_uarte_uninit(&app_uart_inst);
     return NRF_SUCCESS;
 }
 #endif //NRF_MODULE_ENABLED(APP_UART)
