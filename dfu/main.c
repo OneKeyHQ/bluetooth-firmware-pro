@@ -215,7 +215,7 @@ int main(void)
     //         enter_low_power_mode();
     //     }
     // );
-	
+
     // nrf_bootloader_mbr_addrs_populate(); // we dont use uicr address anymore
 
     // Protect MBR and bootloader flash area

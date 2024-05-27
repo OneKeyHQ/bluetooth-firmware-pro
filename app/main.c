@@ -162,10 +162,10 @@
 #define BATTERY_LEVEL_MEAS_INTERVAL APP_TIMER_TICKS(1000) /**< Battery level measurement interval (ticks). */
 #define BATTERY_MEAS_LONG_INTERVAL  APP_TIMER_TICKS(5000)
 
-#define MIN_CONN_INTERVAL MSEC_TO_UNITS(30, UNIT_1_25_MS) /**< Minimum acceptable connection interval (10 ms). */
-#define MAX_CONN_INTERVAL MSEC_TO_UNITS(30, UNIT_1_25_MS) /**< Maximum acceptable connection interval (100 ms) */
-#define SLAVE_LATENCY     0                               /**< Slave latency. */
-#define CONN_SUP_TIMEOUT  MSEC_TO_UNITS(300, UNIT_10_MS)  /**< Connection supervisory timeout (4 seconds). */
+#define MIN_CONN_INTERVAL           MSEC_TO_UNITS(30, UNIT_1_25_MS) /**< Minimum acceptable connection interval (10 ms). */
+#define MAX_CONN_INTERVAL           MSEC_TO_UNITS(30, UNIT_1_25_MS) /**< Maximum acceptable connection interval (100 ms) */
+#define SLAVE_LATENCY               0                               /**< Slave latency. */
+#define CONN_SUP_TIMEOUT            MSEC_TO_UNITS(300, UNIT_10_MS) /**< Connection supervisory timeout (4 seconds). */
 #define FIRST_CONN_PARAMS_UPDATE_DELAY                                                                    \
     APP_TIMER_TICKS(100) /**< Time from initiating event (connect or start of notification) to first time \
                             sd_ble_gap_conn_param_update is called (5 seconds). */
