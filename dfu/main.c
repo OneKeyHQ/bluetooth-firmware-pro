@@ -47,19 +47,22 @@
  */
 
 #include <stdint.h>
-#include "app_error.h"
-#include "app_error_weak.h"
-#include "boards.h"
-#include "nrf_bootloader.h"
-#include "nrf_bootloader_app_start.h"
-#include "nrf_bootloader_dfu_timers.h"
-#include "nrf_bootloader_info.h"
 #include "nrf_delay.h"
 #include "nrf_dfu.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
+#include "app_error.h"
+#include "app_error_weak.h"
+#include "nrf_bootloader.h"
+#include "nrf_bootloader_app_start.h"
+#include "nrf_bootloader_info.h"
 #include "nrf_mbr.h"
+#include "nrf_gpio.h"
+#include "nrf_sdh.h"
+#include "nrf_power.h"
+
+#include "util_macros.h"
 
 static void on_error(void)
 {
@@ -103,19 +106,7 @@ static void dfu_observer1(nrf_dfu_evt_type_t evt_type)
     case NRF_DFU_EVT_DFU_FAILED:
     case NRF_DFU_EVT_DFU_ABORTED:
     case NRF_DFU_EVT_DFU_INITIALIZED:
-#ifdef DEV_BOARD
-        bsp_board_init(BSP_INIT_LEDS);
-        bsp_board_led_on(BSP_BOARD_LED_0);
-        bsp_board_led_on(BSP_BOARD_LED_1);
-        bsp_board_led_off(BSP_BOARD_LED_2);
-#endif
-        break;
     case NRF_DFU_EVT_TRANSPORT_ACTIVATED:
-#ifdef DEV_BOARD
-        bsp_board_led_off(BSP_BOARD_LED_1);
-        bsp_board_led_on(BSP_BOARD_LED_2);
-#endif
-        break;
     case NRF_DFU_EVT_DFU_STARTED:
         break;
     default:
@@ -123,28 +114,13 @@ static void dfu_observer1(nrf_dfu_evt_type_t evt_type)
     }
 }
 
-void app_read_protect(void)
-{
-    uint32_t writedata = 0;
-
-    writedata = NRF_UICR->APPROTECT;
-    if ( (writedata & 0x000000FF) != 0 )
-    {
-        // enable write
-        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
-
-        while ( NRF_NVMC->READY == NVMC_READY_READY_Busy ) {}
-        NRF_UICR->APPROTECT = 0xFFFFFF00;
-        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
-        while ( NRF_NVMC->READY == NVMC_READY_READY_Busy ) {}
-        // after set APPROTECT,need reset
-        NVIC_SystemReset();
-    }
-}
 
 /**@brief Function for application main entry. */
 int main(void)
 {
+    NRF_LOG_INIT(NULL);
+    NRF_LOG_DEFAULT_BACKENDS_INIT();
+
     uint32_t ret_val;
 
     // Must happen before flash protection is applied, since it edits a protected page.
@@ -155,11 +131,6 @@ int main(void)
     APP_ERROR_CHECK(ret_val);
     ret_val = nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false);
     APP_ERROR_CHECK(ret_val);
-
-    app_read_protect();
-
-    (void)NRF_LOG_INIT(nrf_bootloader_dfu_timer_counter_get);
-    NRF_LOG_DEFAULT_BACKENDS_INIT();
 
     NRF_LOG_INFO("Inside main");
 

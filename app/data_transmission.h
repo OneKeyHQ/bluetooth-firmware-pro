@@ -5,6 +5,8 @@
 #include "nrf_gpio.h"
 #include "nrf_log.h"
 
+#define TWI_STATUS_GPIO    13
+
 #define STM32_SPI_CS_ON    0
 #define STM32_SPI_CS_OFF   1
 

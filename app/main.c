@@ -61,8 +61,6 @@
 #include "ble_dis.h"
 #include "ble_hci.h"
 #include "ble_nus.h"
-#include "bsp_btn_ble.h"
-#include "fds.h"
 #include "nordic_common.h"
 #include "nrf.h"
 #include "nrf_ble_gatt.h"
@@ -79,34 +77,28 @@
 #include "peer_manager.h"
 #include "peer_manager_handler.h"
 #include "sdk_macros.h"
-// #include "nfc.h"
 #include "app_scheduler.h"
 #include "ble_dfu.h"
-#include "custom_board.h"
-#include "data_transmission.h"
-#include "ecdsa.h"
-#include "fds_internal_defs.h"
-#include "flashled_manage.h"
 #include "nrf_bootloader_info.h"
+#include "nrf_crypto.h"
 #include "nrf_crypto_init.h"
 #include "nrf_delay.h"
-#include "nrf_drv_gpiote.h"
 #include "nrf_drv_wdt.h"
-#include "nrf_fstorage.h"
-#include "nrf_fstorage_sd.h"
 #include "nrf_power.h"
+#include "nrf_uarte.h"
+#include "nrfx_gpiote.h"
+
+#include "util_macros.h"
+#include "ecdsa.h"
 #include "power_manage.h"
-#include "rtc_calendar.h"
-#include "nrf_crypto.h"
-
-#if defined(UART_PRESENT)
-  #include "nrf_uart.h"
-#endif
-#if defined(UARTE_PRESENT)
-  #include "nrf_uarte.h"
-#endif
-
+#include "flashled_manage.h"
+#include "data_transmission.h"
 #include "firmware_config.h"
+
+#define RX_PIN_NUMBER           11
+#define TX_PIN_NUMBER           12
+#define CTS_PIN_NUMBER          UART_PIN_DISCONNECTED
+#define RTS_PIN_NUMBER          UART_PIN_DISCONNECTED
 
 #define APDU_TAG_BLE            0x44
 
@@ -187,13 +179,14 @@
 #define NEXT_CONN_PARAMS_UPDATE_DELAY \
     APP_TIMER_TICKS(30000             \
     ) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */
-#define ONE_SECOND_INTERVAL         APP_TIMER_TICKS(1000)
+#define ONE_SECOND_INTERVAL      APP_TIMER_TICKS(1000)
 
-#define RST_ONE_SECNOD_COUNTER()    one_second_counter = 0;
-#define TWI_TIMEOUT_COUNTER         10
+#define RST_ONE_SECNOD_COUNTER() one_second_counter = 0;
+#define TWI_TIMEOUT_COUNTER      10
 
-#define MAX_CONN_PARAM_UPDATE_COUNT 3 /**< Number of attempts before giving up the connection parameter negotiation. \
-                                       */
+#define MAX_CONN_PARAM_UPDATE_COUNT                                                  \
+    3 /**< Number of attempts before giving up the connection parameter negotiation. \
+       */
 
 #define LESC_DEBUG_MODE           0 /**< Set to 1 to use LESC debug keys, allows you to  use a sniffer to inspect traffic. */
 
@@ -226,158 +219,156 @@
 #define ADC_RESULT_IN_MILLI_VOLTS(ADC_VALUE) \
     ((((ADC_VALUE) * ADC_REF_VOLTAGE_IN_MILLIVOLTS) / ADC_RES_10BIT) * ADC_PRE_SCALING_COMPENSATION)
 
-#ifdef UART_TRANS
-  // UART define
-  #define MAX_TEST_DATA_BYTES (15U) /**< max number of test bytes to be used for tx and rx. */
-  #define UART_TX_BUF_SIZE    256   /**< UART TX buffer size. */
-  #define UART_RX_BUF_SIZE    256   /**< UART RX buffer size. */
-  // BLE send CMD
-  #define BLE_CMD_ADV_NAME 0x01
-  //
-  #define BLE_CMD_CON_STA    0x02
-  #define BLE_CON_STATUS     0x01
-  #define BLE_DISCON_STATUS  0x02
-  #define BLE_ADV_ON_STATUS  0x03
-  #define BLE_ADV_OFF_STATUS 0x04
-  //
-  #define BLE_CMD_PAIR_CODE 0x03
-  //
-  #define BLE_CMD_PAIR_STA 0x04
-  #define BLE_PAIR_SUCCESS 0x01
-  #define BLE_PAIR_FAIL    0x02
-  //
-  #define BLE_FIRMWARE_VER   0x05
-  #define BLE_SOFTDEVICE_VER 0x06
-  #define BLE_BOOTLOADER_VER 0x07
-  //
-  #define BLE_CMD_POWER_STA 0x08
-  #define BLE_INSERT_POWER  0x01
-  #define BLE_REMOVE_POWER  0x02
-  #define BLE_CHARGING_PWR  0x03
-  #define BLE_CHAGE_OVER    0x04
-  //
-  #define BLE_SYSTEM_POWER_PERCENT 0x09
-  //
-  #define BLE_CMD_KEY_STA       0x0A
-  #define BLE_KEY_LONG_PRESS    0x01
-  #define BLE_KEY_SHORT_PRESS   0x02
+// UART define
+#define MAX_TEST_DATA_BYTES (15U) /**< max number of test bytes to be used for tx and rx. */
+#define UART_TX_BUF_SIZE    256   /**< UART TX buffer size. */
+#define UART_RX_BUF_SIZE    256   /**< UART RX buffer size. */
+// BLE send CMD
+#define BLE_CMD_ADV_NAME 0x01
+//
+#define BLE_CMD_CON_STA    0x02
+#define BLE_CON_STATUS     0x01
+#define BLE_DISCON_STATUS  0x02
+#define BLE_ADV_ON_STATUS  0x03
+#define BLE_ADV_OFF_STATUS 0x04
+//
+#define BLE_CMD_PAIR_CODE 0x03
+//
+#define BLE_CMD_PAIR_STA 0x04
+#define BLE_PAIR_SUCCESS 0x01
+#define BLE_PAIR_FAIL    0x02
+//
+#define BLE_FIRMWARE_VER   0x05
+#define BLE_SOFTDEVICE_VER 0x06
+#define BLE_BOOTLOADER_VER 0x07
+//
+#define BLE_CMD_POWER_STA 0x08
+#define BLE_INSERT_POWER  0x01
+#define BLE_REMOVE_POWER  0x02
+#define BLE_CHARGING_PWR  0x03
+#define BLE_CHAGE_OVER    0x04
+//
+#define BLE_SYSTEM_POWER_PERCENT 0x09
+//
+#define BLE_CMD_KEY_STA       0x0A
+#define BLE_KEY_LONG_PRESS    0x01
+#define BLE_KEY_SHORT_PRESS   0x02
 
-  #define BLE_CMD_PWR_STA       0x0B
-  #define BLE_CLOSE_SYSTEM      0x01
-  #define BLE_CLOSE_EMMC        0x02
-  #define BLE_OPEN_EMMC         0x03
-  #define BLE_PWR_PERCENT       0X04
+#define BLE_CMD_PWR_STA       0x0B
+#define BLE_CLOSE_SYSTEM      0x01
+#define BLE_CLOSE_EMMC        0x02
+#define BLE_OPEN_EMMC         0x03
+#define BLE_PWR_PERCENT       0X04
 
-  #define BLE_CMD_FLASH_LED_STA 0x0C
-  #define BLE_CMD_BAT_CV_MSG    0x0D
+#define BLE_CMD_FLASH_LED_STA 0x0C
+#define BLE_CMD_BAT_CV_MSG    0x0D
 
-  #define BLE_CMD_KEY_RESP      0x0E
-  #define BLE_KEY_RESP_SUCCESS  0x00
-  #define BLE_KEY_RESP_FAILED   0x01
-  #define BLE_KEY_RESP_PUBKEY   0x02
-  #define BLE_KEY_RESP_SIGN     0x03
+#define BLE_CMD_KEY_RESP      0x0E
+#define BLE_KEY_RESP_SUCCESS  0x00
+#define BLE_KEY_RESP_FAILED   0x01
+#define BLE_KEY_RESP_PUBKEY   0x02
+#define BLE_KEY_RESP_SIGN     0x03
 
-  #define BLE_CMD_BUILD_ID      0x10
-  #define BLE_CMD_HASH          0x11
+#define BLE_CMD_BUILD_ID      0x10
+#define BLE_CMD_HASH          0x11
 
-  // end BLE send CMD
-  //
-  #define UART_CMD_BLE_CON_STA  0x01
-  #define UART_CMD_BLE_PAIR_STA 0x02
-  #define UART_CMD_PAIR_CODE    0x03
-  #define UART_CMD_ADV_NAME     0x04
-  #define UART_CMD_BAT_PERCENT  0x05
-  #define UART_CMD_BLE_VERSION  0x06
-  #define UART_CMD_CTL_BLE      0x07
+// end BLE send CMD
+//
+#define UART_CMD_BLE_CON_STA  0x01
+#define UART_CMD_BLE_PAIR_STA 0x02
+#define UART_CMD_PAIR_CODE    0x03
+#define UART_CMD_ADV_NAME     0x04
+#define UART_CMD_BAT_PERCENT  0x05
+#define UART_CMD_BLE_VERSION  0x06
+#define UART_CMD_CTL_BLE      0x07
 
-  #define UART_CMD_DFU_STA      0x0a
+#define UART_CMD_DFU_STA      0x0a
 
-  // Receive ST CMD
-  #define ST_CMD_BLE               0x81
-  #define ST_SEND_OPEN_BLE         0x01
-  #define ST_SEND_CLOSE_BLE        0x02
-  #define ST_SEND_DISCON_BLE       0x03
-  #define ST_GET_BLE_SWITCH_STATUS 0x04
-  //
-  #define ST_CMD_POWER           0x82
-  #define ST_SEND_CLOSE_SYS_PWR  0x01
-  #define ST_SEND_CLOSE_EMMC_PWR 0x02
-  #define ST_SEND_OPEN_EMMC_PWR  0x03
-  #define ST_REQ_POWER_PERCENT   0x04
-  #define ST_REQ_USB_STATUS      0x05
-  //
-  #define ST_CMD_BLE_INFO       0x83
-  #define ST_REQ_ADV_NAME       0x01
-  #define ST_REQ_FIRMWARE_VER   0x02
-  #define ST_REQ_SOFTDEVICE_VER 0x03
-  #define ST_REQ_BOOTLOADER_VER 0x04
-  #define ST_REQ_BUILD_ID       0x05
-  #define ST_REQ_HASH           0x06
+// Receive ST CMD
+#define ST_CMD_BLE               0x81
+#define ST_SEND_OPEN_BLE         0x01
+#define ST_SEND_CLOSE_BLE        0x02
+#define ST_SEND_DISCON_BLE       0x03
+#define ST_GET_BLE_SWITCH_STATUS 0x04
+//
+#define ST_CMD_POWER           0x82
+#define ST_SEND_CLOSE_SYS_PWR  0x01
+#define ST_SEND_CLOSE_EMMC_PWR 0x02
+#define ST_SEND_OPEN_EMMC_PWR  0x03
+#define ST_REQ_POWER_PERCENT   0x04
+#define ST_REQ_USB_STATUS      0x05
+//
+#define ST_CMD_BLE_INFO       0x83
+#define ST_REQ_ADV_NAME       0x01
+#define ST_REQ_FIRMWARE_VER   0x02
+#define ST_REQ_SOFTDEVICE_VER 0x03
+#define ST_REQ_BOOTLOADER_VER 0x04
+#define ST_REQ_BUILD_ID       0x05
+#define ST_REQ_HASH           0x06
 
-  //
-  #define ST_CMD_RESET_BLE   0x84
-  #define ST_VALUE_RESET_BLE 0x01
-  //
-  #define ST_CMD_LED                 0X85
-  #define ST_SEND_SET_LED_BRIGHTNESS 0X01
-  #define ST_SEND_GET_LED_BRIGHTNESS 0X02
-  //
-  #define STM_CMD_BAT                0X86
-  #define STM_SEND_BAT_VOL           0X01 // Send battery voltage
-  #define STM_SEND_BAT_CHARGE_CUR    0X02 // Send battery charge current
-  #define STM_SEND_BAT_DISCHARGE_CUR 0X03 // Send battery discharge current
-  #define STM_SEND_BAT_INNER_TEMP    0X04 // Send battery inner temperature
+//
+#define ST_CMD_RESET_BLE   0x84
+#define ST_VALUE_RESET_BLE 0x01
+//
+#define ST_CMD_LED                 0X85
+#define ST_SEND_SET_LED_BRIGHTNESS 0X01
+#define ST_SEND_GET_LED_BRIGHTNESS 0X02
+//
+#define STM_CMD_BAT                0X86
+#define STM_SEND_BAT_VOL           0X01 // Send battery voltage
+#define STM_SEND_BAT_CHARGE_CUR    0X02 // Send battery charge current
+#define STM_SEND_BAT_DISCHARGE_CUR 0X03 // Send battery discharge current
+#define STM_SEND_BAT_INNER_TEMP    0X04 // Send battery inner temperature
 
-  #define STM_CMD_KEY                0x87
-  #define STM_GET_PUBKEY             0x01
-  #define STM_LOCK_PUBKEY            0x02
-  #define STM_REQUEST_SIGN           0x03
+#define STM_CMD_KEY                0x87
+#define STM_GET_PUBKEY             0x01
+#define STM_LOCK_PUBKEY            0x02
+#define STM_REQUEST_SIGN           0x03
 
-  // end Receive ST CMD
-  // VALUE
-  #define VALUE_CONNECT    0x01
-  #define VALUE_DISCONNECT 0x02
-  #define VALUE_SECCESS    0x01
-  #define VALUE_FAILED     0x02
-  // DFU STATUS
-  #define VALUE_PREPARE_DFU  0x01
-  #define VALUE_ENTER_DFU    0x02
-  #define VALUE_ENTER_FAILED 0x03
-  #define VALUE_RSP_FAILED   0x04
-  #define VALUE_UNKNOWN_ERR  0x05
+// end Receive ST CMD
+// VALUE
+#define VALUE_CONNECT    0x01
+#define VALUE_DISCONNECT 0x02
+#define VALUE_SECCESS    0x01
+#define VALUE_FAILED     0x02
+// DFU STATUS
+#define VALUE_PREPARE_DFU  0x01
+#define VALUE_ENTER_DFU    0x02
+#define VALUE_ENTER_FAILED 0x03
+#define VALUE_RSP_FAILED   0x04
+#define VALUE_UNKNOWN_ERR  0x05
 
-  // DATA FLAG
-  #define DATA_INIT 0x00
-  #define DATA_HEAD 0x01
+// DATA FLAG
+#define DATA_INIT 0x00
+#define DATA_HEAD 0x01
 
-  // BLE RSP STATUS
-  #define CTL_SUCCESSS 0x01
-  #define CTL_FAILED   0x02
+// BLE RSP STATUS
+#define CTL_SUCCESSS 0x01
+#define CTL_FAILED   0x02
 
-  // CHANNEL
-  #define BLE_CHANNEL 0x01
-  // #define NFC_CHANNEL                     0x02
-  #define UART_CHANNEL              0x03
+// CHANNEL
+#define BLE_CHANNEL 0x01
+// #define NFC_CHANNEL                     0x02
+#define UART_CHANNEL                0x03
 
-  #define UART_DEF                  0x00
-  #define ACTIVE_SEND_UART          0x01
-  #define RESPONESE_NAME_UART       0x02
-  #define RESPONESE_BAT_UART        0x03
-  #define RESPONESE_VER_UART        0x04
-  #define RESPONESE_SD_VER_UART     0x05
-  #define RESPONESE_BOOT_VER_UART   0x06
-  #define RESPONESE_LED_VER_UART    0x07
-  #define RESPONESE_BLE_PUBKEY      0x08
-  #define RESPONESE_BLE_PUBKEY_LOCK 0x09
-  #define RESPONESE_BLE_SIGN        0x0A
-  #define RESPONESE_BUILD_ID        0x0B
-  #define RESPONESE_HASH            0x0C
-  #define DEF_RESP                  0xFF
+#define UART_DEF                    0x00
+#define ACTIVE_SEND_UART            0x01
+#define RESPONESE_NAME_UART         0x02
+#define RESPONESE_BAT_UART          0x03
+#define RESPONESE_VER_UART          0x04
+#define RESPONESE_SD_VER_UART       0x05
+#define RESPONESE_BOOT_VER_UART     0x06
+#define RESPONESE_LED_VER_UART      0x07
+#define RESPONESE_BLE_PUBKEY        0x08
+#define RESPONESE_BLE_PUBKEY_LOCK   0x09
+#define RESPONESE_BLE_SIGN          0x0A
+#define RESPONESE_BUILD_ID          0x0B
+#define RESPONESE_HASH              0x0C
+#define DEF_RESP                    0xFF
 
-  #define BLE_CTL_ADDR              0x6f000
-  #define BAT_LVL_ADDR              0x70000
-  #define DEVICE_KEY_INFO_ADDR      0x71000
-#endif
+#define BLE_CTL_ADDR                0x6f000
+#define BAT_LVL_ADDR                0x70000
+#define DEVICE_KEY_INFO_ADDR        0x71000
 
 #define TIMER_INIT_FLAG             0
 #define TIMER_RESET_FLAG            1
@@ -414,8 +405,6 @@ static uint8_t mac_ascii[12];
 static uint8_t mac[6] = {0x42, 0x13, 0xc7, 0x98, 0x95, 0x1a}; // Device MAC address
 static char ble_adv_name[ADV_NAME_LENGTH];
 
-extern rtc_date_t rtc_date;
-
 static volatile uint8_t bat_level_to_st = 0x00;
 
 // add  tmp
@@ -439,7 +428,6 @@ static void advertising_start(void);
 static void twi_write_data(void* p_event_data, uint16_t event_size);
 #endif
 void forwarding_to_st_data(void);
-#ifdef UART_TRANS
 static volatile uint8_t flag_uart_trans = 1;
 static uint8_t uart_trans_buff[128];
 static uint8_t bak_buff[128];
@@ -447,7 +435,6 @@ static uint8_t uart_data_array[64];
 static void uart_put_data(uint8_t* pdata, uint8_t lenth);
 static void send_stm_data(uint8_t* pdata, uint8_t lenth);
 static uint8_t calcXor(uint8_t* buf, uint8_t len);
-#endif
 
 static void advertising_start(void);
 static void advertising_stop(void);
@@ -880,7 +867,6 @@ static void pm_evt_handler(const pm_evt_t* p_evt)
 
             if ( conn_sec_status.mitm_protected )
             {
-  #ifdef UART_TRANS
                 if ( ble_conn_nopair_flag == BLE_PAIR )
                 {
                     ble_conn_nopair_flag = BLE_DEF;
@@ -888,7 +874,7 @@ static void pm_evt_handler(const pm_evt_t* p_evt)
                     bak_buff[1] = BLE_PAIR_SUCCESS;
                     send_stm_data(bak_buff, 2);
                 }
-  #endif
+
                 nrf_ble_gatt_data_length_set(&m_gatt, m_conn_handle, BLE_GAP_DATA_LENGTH_MAX);
                 NRF_LOG_INFO(
                     "Link secured. Role: %d. conn_handle: %d, Procedure: %d", ble_conn_state_role(p_evt->conn_handle),
@@ -916,11 +902,11 @@ static void pm_evt_handler(const pm_evt_t* p_evt)
 
     case PM_EVT_CONN_SEC_FAILED:
         m_conn_handle = BLE_CONN_HANDLE_INVALID;
-  #ifdef UART_TRANS
+
         bak_buff[0] = BLE_CMD_PAIR_STA;
         bak_buff[1] = BLE_PAIR_FAIL;
         send_stm_data(bak_buff, 2);
-  #endif
+
         break;
 
     case PM_EVT_PEERS_DELETE_SUCCEEDED:
@@ -1008,8 +994,8 @@ static void gap_params_init(void)
 }
 
 static uint16_t m_ble_nus_max_data_len =
-    BLE_GATT_ATT_MTU_DEFAULT -
-    3; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
+    BLE_GATT_ATT_MTU_DEFAULT - 3; /**< Maximum length of data (in bytes) that can be transmitted to the peer
+                                     by the Nordic UART service module. */
 
 /**@brief Function for handling events from the GATT library. */
 void gatt_evt_handler(nrf_ble_gatt_t* p_gatt, const nrf_ble_gatt_evt_t* p_evt)
@@ -1082,18 +1068,17 @@ static void advertising_config_get(ble_adv_modes_config_t* p_config)
  */
 static void ble_dfu_evt_handler(ble_dfu_buttonless_evt_type_t event)
 {
-  #ifdef UART_TRANS
     bak_buff[0] = UART_CMD_DFU_STA;
     bak_buff[1] = 0x01;
-  #endif
+
     switch ( event )
     {
     case BLE_DFU_EVT_BOOTLOADER_ENTER_PREPARE:
         {
             NRF_LOG_INFO("Device is preparing to enter bootloader mode.");
-  #ifdef UART_TRANS
+
             bak_buff[2] = VALUE_PREPARE_DFU;
-  #endif
+
             // Prevent device from advertising on disconnect.
             ble_adv_modes_config_t config;
             advertising_config_get(&config);
@@ -1109,27 +1094,27 @@ static void ble_dfu_evt_handler(ble_dfu_buttonless_evt_type_t event)
         }
 
     case BLE_DFU_EVT_BOOTLOADER_ENTER:
-  #ifdef UART_TRANS
+
         bak_buff[2] = VALUE_ENTER_DFU;
-  #endif
+
         // YOUR_JOB: Write app-specific unwritten data to FLASH, control finalization of this
         //           by delaying reset by reporting false in app_shutdown_handler
         NRF_LOG_INFO("Device will enter bootloader mode.");
         break;
 
     case BLE_DFU_EVT_BOOTLOADER_ENTER_FAILED:
-  #ifdef UART_TRANS
+
         bak_buff[2] = VALUE_ENTER_FAILED;
-  #endif
+
         NRF_LOG_ERROR("Request to enter bootloader mode failed asynchroneously.");
         // YOUR_JOB: Take corrective measures to resolve the issue
         //           like calling APP_ERROR_CHECK to reset the device.
         break;
 
     case BLE_DFU_EVT_RESPONSE_SEND_ERROR:
-  #ifdef UART_TRANS
+
         bak_buff[2] = VALUE_RSP_FAILED;
-  #endif
+
         NRF_LOG_ERROR("Request to send a response to client failed.");
         // YOUR_JOB: Take corrective measures to resolve the issue
         //           like calling APP_ERROR_CHECK to reset the device.
@@ -1137,9 +1122,9 @@ static void ble_dfu_evt_handler(ble_dfu_buttonless_evt_type_t event)
         break;
 
     default:
-  #ifdef UART_TRANS
+
         bak_buff[2] = VALUE_UNKNOWN_ERR;
-  #endif
+
         NRF_LOG_ERROR("Unknown event from ble_dfu_buttonless.");
         break;
     }
@@ -1482,11 +1467,11 @@ static void ble_evt_handler(const ble_evt_t* p_ble_evt, void* p_context)
             ble_evt_flag = BLE_DISCONNECT;
             bond_check_key_flag = INIT_VALUE;
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
-  #ifdef UART_TRANS
+
             bak_buff[0] = BLE_CMD_CON_STA;
             bak_buff[1] = BLE_DISCON_STATUS;
             send_stm_data(bak_buff, 2);
-  #endif
+
             // Check if the last connected peer had not used MITM, if so, delete its bond information.
             if ( m_peer_to_be_deleted != PM_PEER_ID_INVALID )
             {
@@ -1502,11 +1487,11 @@ static void ble_evt_handler(const ble_evt_t* p_ble_evt, void* p_context)
         {
             NRF_LOG_INFO("Connected");
             ble_evt_flag = BLE_CONNECT;
-  #ifdef UART_TRANS
+
             bak_buff[0] = BLE_CMD_CON_STA;
             bak_buff[1] = BLE_CON_STATUS;
             send_stm_data(bak_buff, 2);
-  #endif
+
             m_peer_to_be_deleted = PM_PEER_ID_INVALID;
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
@@ -1553,12 +1538,12 @@ static void ble_evt_handler(const ble_evt_t* p_ble_evt, void* p_context)
             char passkey[PASSKEY_LENGTH + 1];
             memcpy(passkey, p_ble_evt->evt.gap_evt.params.passkey_display.passkey, PASSKEY_LENGTH);
             passkey[PASSKEY_LENGTH] = 0;
-  #ifdef UART_TRANS
+
             ble_conn_nopair_flag = BLE_PAIR;
             bak_buff[0] = BLE_CMD_PAIR_CODE;
             memcpy(&bak_buff[1], passkey, PASSKEY_LENGTH);
             send_stm_data(bak_buff, 1 + PASSKEY_LENGTH);
-  #endif
+
             NRF_LOG_INFO("Passkey: %s", nrf_log_push(passkey));
         }
         break;
@@ -1708,7 +1693,6 @@ static void peer_manager_init(void)
 }
 #endif
 
-#ifdef UART_TRANS
 /**@brief   Function for handling app_uart events.
  *
  * @details This function will receive a single character from the app_uart module and append it to
@@ -1926,11 +1910,7 @@ static void usr_uart_init(void)
         .cts_pin_no = CTS_PIN_NUMBER,
         .flow_control = APP_UART_FLOW_CONTROL_DISABLED,
         .use_parity = false,
-  #if defined(UART_PRESENT)
-        .baud_rate = NRF_UART_BAUDRATE_115200
-  #else
         .baud_rate = NRF_UARTE_BAUDRATE_115200
-  #endif
     };
 
     APP_UART_FIFO_INIT(
@@ -1938,7 +1918,6 @@ static void usr_uart_init(void)
     );
     APP_ERROR_CHECK(err_code);
 }
-#endif
 
 /**@brief Function for initializing the Advertising functionality.
  *
@@ -2239,7 +2218,7 @@ static void gpio_init(void)
 {
     gpiote_init();
 }
-#ifdef UART_TRANS
+
 static uint8_t calcXor(uint8_t* buf, uint8_t len)
 {
     uint8_t tmp = 0;
@@ -2280,7 +2259,6 @@ static void send_stm_data(uint8_t* pdata, uint8_t lenth)
 
     uart_put_data(uart_trans_buff, uart_trans_buff[3] + 4);
 }
-#endif
 
 static void system_init()
 {
@@ -2291,10 +2269,8 @@ static void system_init()
     usr_spim_init();
     ret_code_t err_code = usr_power_init();
     APP_ERROR_CHECK(err_code);
-#ifdef UART_TRANS
     usr_uart_init();
     NRF_LOG_INFO("uart init ok ......");
-#endif
     gpio_init();
     set_led_brightness(0);
 }
@@ -2596,11 +2572,10 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         ble_adv_switch_flag = BLE_DEF;
         if ( BLE_ON_ALWAYS == ble_status_flag )
         {
-#ifdef UART_TRANS
             bak_buff[0] = BLE_CMD_CON_STA;
             bak_buff[1] = BLE_ADV_OFF_STATUS;
             send_stm_data(bak_buff, 2);
-#endif
+
             flash_data_write(BLE_CTL_ADDR, m_data);
             ble_status_flag = BLE_OFF_ALWAYS;
             NRF_LOG_INFO("1-Ble disconnect.\n");
@@ -2610,11 +2585,9 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         }
         else
         {
-#ifdef UART_TRANS
             bak_buff[0] = BLE_CMD_CON_STA;
             bak_buff[1] = BLE_ADV_OFF_STATUS;
             send_stm_data(bak_buff, 2);
-#endif
         }
     }
     else if ( BLE_ON_ALWAYS == ble_adv_switch_flag )
@@ -2622,11 +2595,9 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         ble_adv_switch_flag = BLE_DEF;
         if ( BLE_OFF_ALWAYS == ble_status_flag )
         {
-#ifdef UART_TRANS
             bak_buff[0] = BLE_CMD_CON_STA;
             bak_buff[1] = BLE_ADV_ON_STATUS;
             send_stm_data(bak_buff, 2);
-#endif
             advertising_start();
             flash_data_write(BLE_CTL_ADDR, m_data2);
             ble_status_flag = BLE_ON_ALWAYS;
@@ -2634,11 +2605,9 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         }
         else
         {
-#ifdef UART_TRANS
             bak_buff[0] = BLE_CMD_CON_STA;
             bak_buff[1] = BLE_ADV_ON_STATUS;
             send_stm_data(bak_buff, 2);
-#endif
         }
     }
     if ( BLE_DISCON == ble_conn_flag )
@@ -2651,11 +2620,9 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
 
             NRF_LOG_INFO("Ctl disconnect.");
         }
-#ifdef UART_TRANS
         bak_buff[0] = BLE_CMD_CON_STA;
         bak_buff[1] = BLE_DISCON_STATUS;
         send_stm_data(bak_buff, 2);
-#endif
     }
     if ( BLE_CON == ble_conn_flag )
     {
@@ -2669,11 +2636,9 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
     {
     case PWR_SHUTDOWN_SYS:
         pwr_status_flag = PWR_DEF;
-#ifdef UART_TRANS
         bak_buff[0] = BLE_CMD_PWR_STA;
         bak_buff[1] = BLE_CLOSE_SYSTEM;
         send_stm_data(bak_buff, 2);
-#endif
         if ( ble_status_flag != BLE_OFF_ALWAYS )
         {
             check_advertising_stop();
@@ -2714,11 +2679,9 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
     }
     if ( (PWR_DEF != pwr_status_flag) && (respons_flag != 0x00) )
     {
-#ifdef UART_TRANS
         bak_buff[0] = BLE_CMD_PWR_STA;
         bak_buff[1] = respons_flag;
         send_stm_data(bak_buff, 2);
-#endif
         pwr_status_flag = PWR_DEF;
     }
 }
@@ -2728,12 +2691,10 @@ static void led_ctl_process(void* p_event_data, uint16_t event_size)
     if ( ST_SEND_SET_LED_BRIGHTNESS == led_brightness_flag )
     {
         set_led_brightness(led_brightness_value);
-#ifdef UART_TRANS
         bak_buff[0] = BLE_CMD_FLASH_LED_STA;
         bak_buff[1] = led_brightness_flag;
         bak_buff[2] = led_brightness_value;
         send_stm_data(bak_buff, 3);
-#endif
 
         led_brightness_flag = LED_DEF;
     }
@@ -2741,12 +2702,10 @@ static void led_ctl_process(void* p_event_data, uint16_t event_size)
     {
         uint8_t current_led_brihtness = 0;
         current_led_brihtness = get_led_brightness();
-#ifdef UART_TRANS
         bak_buff[0] = BLE_CMD_FLASH_LED_STA;
         bak_buff[1] = led_brightness_flag;
         bak_buff[2] = current_led_brihtness;
         send_stm_data(bak_buff, 3);
-#endif
 
         led_brightness_flag = LED_DEF;
     }
@@ -2776,13 +2735,11 @@ static void bat_msg_report_process(void* p_event_data, uint16_t event_size)
     // 获取电池对应信息
     get_battery_cv_msg(axp_reg, bat_values);
 
-#ifdef UART_TRANS
     bak_buff[0] = BLE_CMD_BAT_CV_MSG;
     bak_buff[1] = bat_msg_flag;
     bak_buff[2] = (bat_values[0] & 0xF0) >> 4;
     bak_buff[3] = (bat_values[0] & 0x0F) << 4 | (bat_values[1] & 0x0F);
     send_stm_data(bak_buff, 4);
-#endif
     bat_msg_flag = BAT_DEF;
 }
 

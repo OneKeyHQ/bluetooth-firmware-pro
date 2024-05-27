@@ -2,7 +2,6 @@
 #include "app_error.h"
 #include "app_fifo.h"
 #include "app_uart.h"
-#include "boards.h"
 #include "nrf_delay.h"
 #include "nrf_drv_gpiote.h"
 #include "nrf_drv_spi.h"
