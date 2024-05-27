@@ -1,11 +1,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+
 #include "nrf_crypto.h"
 #include "nrf_crypto_ecc.h"
 #include "nrf_crypto_ecdsa.h"
-#include "nrf_crypto_error.h"
 #include "nrf_crypto_shared.h"
+#include "nrf_crypto_error.h"
 
 ret_code_t generate_ecdsa_keypair(uint8_t* pri_key, uint8_t* pubkey)
 {

@@ -178,6 +178,7 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/balloc/nrf_balloc.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_svci.c
   ${NRF_SDK_ROOT}/components/libraries/crc16/crc16.c
+  ${NRF_SDK_ROOT}/components/libraries/crc32/crc32.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecc.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecdh.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecdsa.c
@@ -253,6 +254,7 @@ set(
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twi.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uarte.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_wdt.c
+  ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_nvmc.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/prs/nrfx_prs.c
   ${NRF_SDK_ROOT}/modules/nrfx/mdk/gcc_startup_nrf52.S
   ${NRF_SDK_ROOT}/modules/nrfx/mdk/system_nrf52.c
@@ -327,22 +329,27 @@ add_executable(
 
 target_sources(
   ${CMAKE_PROJECT_NAME} PRIVATE 
-  driver_3rdparty/axp/axp_config.c
-  driver_3rdparty/axp/axp_supply.c
-  driver_3rdparty/lm/lm_config.c
+  ${NRF_SDK_SRC}
+  ../drivers/nrf_flash.c
   data_transmission.c
   ecdsa.c
   power_manage.c
   flashled_manage.c
+  device_config.c
 
-  ${NRF_SDK_SRC}
+  driver_3rdparty/axp/axp_config.c
+  driver_3rdparty/axp/axp_supply.c
+  driver_3rdparty/lm/lm_config.c
 )
 
 target_include_directories(
   ${CMAKE_PROJECT_NAME} PRIVATE
+  ${NRF_SDK_INC}
+
+  ../drivers
+  
   driver_3rdparty/axp
   driver_3rdparty/lm
-  ${NRF_SDK_INC}
 )
 
 execute_process(
@@ -408,6 +415,7 @@ target_link_libraries(
   ${CMAKE_PROJECT_NAME} PRIVATE
   ${NRF_SDK_LINK}
   MicroECC
+  m # math
 )
 
 ###############################

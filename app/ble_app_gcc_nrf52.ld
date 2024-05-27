@@ -5,12 +5,18 @@ GROUP(-lgcc -lc -lnosys)
 
 MEMORY
 {
-  FLASH (rx) : ORIGIN = 0x26000, LENGTH = 0x51000
   RAM (rwx) :  ORIGIN = 0x20003268, LENGTH = 0xCD98
+  CONFIG (rw) : ORIGIN = 0x6D000, LENGTH = 0x1000
+  FLASH (rx) : ORIGIN = 0x26000, LENGTH = 0x47000
 }
 
 SECTIONS
 {
+  . = ALIGN(4);
+  .device_config :
+  {
+    KEEP(*(.device_config))
+  } > CONFIG
 }
 
 SECTIONS
