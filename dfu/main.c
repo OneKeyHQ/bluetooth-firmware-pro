@@ -63,6 +63,7 @@
 #include "nrf_power.h"
 
 #include "util_macros.h"
+#include "axp216_config.h"
 
 static void on_error(void)
 {
@@ -114,8 +115,42 @@ static void dfu_observer1(nrf_dfu_evt_type_t evt_type)
     }
 }
 
+// static char spinner()
+// {
+//     static uint8_t count = 0;
+//     count++;
+//     char spin_symb[] = {'-', '/', '|', '\\'};
+//     return spin_symb[count % 4];
+// }
 
 /**@brief Function for application main entry. */
+#define PMIC_IRQ_IO   6
+#define PMIC_PWROK_IO 7
+static void enter_low_power_mode(void)
+{
+    PRINT_CURRENT_LOCATION();
+    NRF_LOG_FINAL_FLUSH();
+
+    // enable wakeup
+    nrf_gpio_cfg_sense_input(PMIC_PWROK_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
+
+    // enter sysoff
+#ifdef SOFTDEVICE_PRESENT
+    if ( nrf_sdh_is_enabled() )
+    {
+        ret_code_t ret_code = sd_power_system_off();
+        ASSERT((ret_code == NRF_SUCCESS) || (ret_code == NRF_ERROR_SOFTDEVICE_NOT_ENABLED));
+        UNUSED_VARIABLE(ret_code);
+  #ifdef DEBUG
+        while ( true )
+        {
+            __WFE();
+        }
+  #endif
+    }
+#endif // SOFTDEVICE_PRESENT
+    nrf_power_system_off();
+}
 int main(void)
 {
     NRF_LOG_INIT(NULL);
@@ -128,6 +163,58 @@ int main(void)
     NRF_POWER->RESETREAS = NRF_POWER->RESETREAS; // Clear reset reason by writting 1.
     NRF_LOG_INFO("Reset Status -> %x", u32Reset_reason);
     NRF_LOG_FLUSH();
+
+    // // try config axp216
+    // EXEC_RETRY(
+    //     3,
+    //     {
+    //         NRF_LOG_INFO("AXP216 Config");
+    //         NRF_LOG_FLUSH();
+    //         nrf_gpio_cfg_default(PMIC_IRQ_IO);
+    //         nrf_gpio_cfg_default(PMIC_PWROK_IO);
+    //     },
+    //     {
+    //         switch ( axp216_minimum_config() )
+    //         {
+    //         case AXP216_CONF_BUS_ERR:
+    //             NRF_LOG_INFO("AXP216_CONF_BUS_ERR");
+    //             NRF_LOG_FLUSH();
+    //             return false;
+    //             break;
+    //         case AXP216_CONF_NO_ACK:
+    //             NRF_LOG_INFO("AXP216_CONF_NO_ACK");
+    //             NRF_LOG_FLUSH();
+    //             return false;
+    //             break;
+    //         case AXP216_CONF_NOT_NEEDED:
+    //             NRF_LOG_INFO("AXP216_CONF_NOT_NEEDED");
+    //             NRF_LOG_FLUSH();
+    //             return true;
+    //             break;
+    //         case AXP216_CONF_SUCCESS:
+    //             NRF_LOG_INFO("AXP216_CONF_SUCCESS");
+    //             NRF_LOG_FLUSH();
+    //             return true;
+    //             break;
+    //         case AXP216_CONF_FAILED:
+    //             NRF_LOG_INFO("AXP216_CONF_FAILED");
+    //             NRF_LOG_FLUSH();
+    //             return false;
+    //         case AXP216_CONF_INVALID:
+    //         default:
+    //             NRF_LOG_INFO("AXP216_CONF_INVALID");
+    //             NRF_LOG_FLUSH();
+    //             return false;
+    //         }
+    //     },
+    //     {
+    //         // do nothing on success
+    //     },
+    //     {
+    //         // sleep on fail
+    //         enter_low_power_mode();
+    //     }
+    // );
 	
     // nrf_bootloader_mbr_addrs_populate(); // we dont use uicr address anymore
 

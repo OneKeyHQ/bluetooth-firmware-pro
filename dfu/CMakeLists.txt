@@ -231,6 +231,8 @@ add_executable(
 target_sources(
   ${CMAKE_PROJECT_NAME} PRIVATE 
   ${NRF_SDK_SRC}
+  ../drivers/nrf_i2c.c
+  axp216_config.c
 )
 
 target_include_directories(
