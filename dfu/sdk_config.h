@@ -1822,6 +1822,14 @@
 
 // </e>
 
+
+// <q> HARDFAULT_HANDLER_ENABLED  - hardfault_default - HardFault default handler for debugging and release
+ 
+#ifndef HARDFAULT_HANDLER_ENABLED
+#define HARDFAULT_HANDLER_ENABLED 1
+#endif
+
+
 // <e> NRF_FSTORAGE_ENABLED - nrf_fstorage - Flash abstraction library
 //==========================================================
 #ifndef NRF_FSTORAGE_ENABLED

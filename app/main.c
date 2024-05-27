@@ -303,11 +303,13 @@
 #define STM_REQUEST_SIGN           0x03
 
 // end Receive ST CMD
+
 // VALUE
 #define VALUE_CONNECT    0x01
 #define VALUE_DISCONNECT 0x02
 #define VALUE_SECCESS    0x01
 #define VALUE_FAILED     0x02
+
 // DFU STATUS
 #define VALUE_PREPARE_DFU  0x01
 #define VALUE_ENTER_DFU    0x02
@@ -378,6 +380,11 @@ static uint8_t mac_ascii[12];
 static uint8_t mac[6] = {0x42, 0x13, 0xc7, 0x98, 0x95, 0x1a}; // Device MAC address
 static char ble_adv_name[ADV_NAME_LENGTH];
 
+// void BusFault_Handler(void)
+// {
+//     NRF_LOG_ERROR("BusFault -> 0x08%x", SCB->BFAR);
+//     NRF_LOG_FINAL_FLUSH();
+// }
 
 static Power_Status_t pmu_status;
 static void pmu_status_refresh()
@@ -636,12 +643,12 @@ void battery_level_meas_timeout_handler(void* p_context)
     }
 }
 
-static volatile uint8_t timeout_count = 0;
-static volatile uint16_t timeout_longcnt = 0;
-
 void m_100ms_timeout_hander(void* p_context)
 {
     UNUSED_PARAMETER(p_context);
+
+    static volatile uint8_t timeout_count = 0;
+    static volatile uint16_t timeout_longcnt = 0;
 
     nrf_drv_wdt_channel_feed(m_channel_id);
 
@@ -2116,14 +2123,8 @@ static void send_stm_data(uint8_t* pdata, uint8_t lenth)
     uart_put_data(uart_trans_buff, uart_trans_buff[3] + 4);
 }
 
-static void system_init()
-{
-    usr_spim_init();
-    usr_uart_init();
-    NRF_LOG_INFO("uart init ok ......");
-    gpio_init();
-}
-
+/**@brief Function for starting advertising.
+ */
 static bool bt_advertising_ctrl(bool enable, bool commit)
 {
 
@@ -2494,12 +2495,19 @@ static void main_loop(void)
     app_sched_event_put(NULL, 0, bat_msg_report_process);
 }
 
+static void m_wdt_event_handler(void)
+{
+    NRF_LOG_INFO("WDT Triggered!");
+    NRF_LOG_FLUSH();
+    // NVIC_SystemReset(); // needed?
+}
+
 static void watch_dog_init(void)
 {
     uint32_t err_code = NRF_SUCCESS;
     // Configure WDT.
     nrf_drv_wdt_config_t config = NRF_DRV_WDT_DEAFULT_CONFIG;
-    err_code = nrf_drv_wdt_init(&config, NULL);
+    err_code = nrf_drv_wdt_init(&config, m_wdt_event_handler);
     APP_ERROR_CHECK(err_code);
     err_code = nrf_drv_wdt_channel_alloc(&m_channel_id);
     APP_ERROR_CHECK(err_code);
@@ -2508,16 +2516,21 @@ static void watch_dog_init(void)
 
 int main(void)
 {
+    // ###############################
+    // Critical Init Items
+    // ==> Log
+    log_init();
+    NRF_LOG_INFO("Critical Init Seq.");
+    NRF_LOG_FLUSH();
+    // ==> Bus Fault
+    // SCB->SHCSR |= SCB_SHCSR_BUSFAULTENA_Msk;
+    // ==> Buttonless DFU
 #ifdef BUTTONLESS_ENABLED
     // Initialize the async SVCI interface to bootloader before any interrupts are enabled.
     ret_code_t err_code = ble_dfu_buttonless_async_svci_init();
     APP_ERROR_CHECK(err_code);
 #endif
     // ==> NRF Crypto API
-    log_init();
-    system_init();
-    scheduler_init();
-
     nrf_crypto_init();
     // ==> Power Manage IC, LED Driver, and Device Configs
     CRITICAL_REGION_ENTER();
@@ -2555,15 +2568,31 @@ int main(void)
     );
     CRITICAL_REGION_EXIT();
 
+    // ###############################
+    // General Init Items
+    NRF_LOG_INFO("General Init Seq.");
+    NRF_LOG_FLUSH();
+    gpio_init();
+    usr_uart_init();
+    usr_spim_init();
     timers_init();
-
+    watch_dog_init();
+    scheduler_init();
     power_management_init();
+
+    // ###############################
+    // Power Manage Init Items
     NRF_LOG_INFO("Power Config Seq.");
     NRF_LOG_FLUSH();
     // ST power on
     pmu_p->SetState(PWR_STATE_ON);
     // make sure light is off
     set_led_brightness(0);
+
+    // ###############################
+    // Bluetooth Init Items
+    NRF_LOG_INFO("Bluetooth Init Seq.");
+    NRF_LOG_FLUSH();
     ble_stack_init();
     mac_address_get();
 #ifdef SCHED_ENABLE
@@ -2584,13 +2613,11 @@ int main(void)
         false
     ); // TODO: check return!
 
+    // ###############################
+    // Main Loop
+    NRF_LOG_INFO("Main Loop Enter");
+    NRF_LOG_FLUSH();
     application_timers_start();
-    // Start execution.
-    NRF_LOG_INFO("Debug logging for UART over RTT started.");
-
-    watch_dog_init();
-
-    // Enter main loop.
     for ( ;; )
     {
         main_loop();

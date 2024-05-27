@@ -122,6 +122,8 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/fstorage/nrf_fstorage.c
   ${NRF_SDK_ROOT}/components/libraries/fstorage/nrf_fstorage_nvmc.c
   ${NRF_SDK_ROOT}/components/libraries/fstorage/nrf_fstorage_sd.c
+  ${NRF_SDK_ROOT}/components/libraries/hardfault/nrf52/handler/hardfault_handler_gcc.c
+  ${NRF_SDK_ROOT}/components/libraries/hardfault/hardfault_implementation.c
   ${NRF_SDK_ROOT}/components/libraries/mem_manager/mem_manager.c
   ${NRF_SDK_ROOT}/components/libraries/memobj/nrf_memobj.c
   ${NRF_SDK_ROOT}/components/libraries/queue/nrf_queue.c

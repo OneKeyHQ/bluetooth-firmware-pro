@@ -211,6 +211,7 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/fifo/app_fifo.c
   ${NRF_SDK_ROOT}/components/libraries/fstorage/nrf_fstorage.c
   ${NRF_SDK_ROOT}/components/libraries/fstorage/nrf_fstorage_sd.c
+  ${NRF_SDK_ROOT}/components/libraries/hardfault/nrf52/handler/hardfault_handler_gcc.c
   ${NRF_SDK_ROOT}/components/libraries/hardfault/hardfault_implementation.c
   ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_rtt.c
   ${NRF_SDK_ROOT}/components/libraries/log/src/nrf_log_backend_serial.c
