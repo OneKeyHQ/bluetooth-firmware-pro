@@ -1,263 +1,411 @@
+#include <memory.h>
+#include <stdarg.h>
+
 #include "power_manage.h"
 
-#define DC1SW 0x80
+#include "nrf_i2c.h"
 
-ret_code_t usr_power_init(void)
+#include "nrf_delay.h"
+#include "nrf_gpio.h"
+
+// workarounds to keep this file clean
+static void (*send_stm_data_p)(uint8_t* pdata, uint8_t lenth);
+void set_send_stm_data_p(void (*send_stm_data_p_)(uint8_t* pdata, uint8_t lenth))
 {
-    ret_code_t ret;
-
-    ret = axp216_twi_master_init();
-    nrf_delay_ms(150); // here must delay 800ms at least
-    NRF_LOG_INFO("Init twi master.");
-    axp216_init();
-    NRF_LOG_INFO("Init axp216 chip.");
-    nrf_delay_ms(100);
-    open_all_power();
-    nrf_delay_ms(500);
-    clear_irq_reg();
-    return ret;
+    send_stm_data_p = send_stm_data_p_;
 }
 
-ret_code_t open_all_power(void)
+// ================================
+// vars
+static PMU_Interface_t pmu_if;
+PMU_t* pmu_p = NULL;
+
+// ================================
+// functions private
+
+static void pmu_if_irq(const uint64_t irq)
 {
-    ret_code_t ret;
-    uint8_t val = 0;
 
-    ret = axp216_write(AXP_LDO_DC_EN2, 0xFF);
-    nrf_delay_ms(100);
-    val = 0;
-    ret = axp216_read(AXP_LDO_DC_EN2, 1, &val);
-    NRF_LOG_INFO("1---Read DC-reg val=%d", val);
-    nrf_delay_ms(100);
+    if ( irq == 0 )
+        return;
+    Power_Status_t status;
+    pmu_p->GetStatus(&status);
 
-    // set ALDO3 EMMC Value 3.2V
-    axp216_write(AXP_ALDO3OUT_VOL, 0x1E);
-    // set DCDC1 Value 3.2V
-    axp216_write(AXP_DC1OUT_VOL, 0x10);
-    // set ALDO1 Value 1.8V
-    axp216_write(AXP_ALDO1OUT_VOL, 0x0B);
+    if ( 0 != (irq & (1 << PWR_IRQ_PWR_CONNECTED)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_PWR_DISCONNECTED)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_CHARGING)) )
+    {
+        bak_buff[0] = BLE_CMD_POWER_STA;
+        bak_buff[1] = status.chargerAvailable;
+        if ( status.wiredCharge )
+        {
+            bak_buff[2] = AXP_CHARGE_TYPE_USB;
+        }
+        else
+        {
+            bak_buff[2] = AXP_CHARGE_TYPE_WIRELESS;
+        }
+        send_stm_data_p(bak_buff, 2);
+    }
+    if ( 0 != (irq & (1 << PWR_IRQ_CHARGED)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_BATT_LOW)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_BATT_CRITICAL)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_PB_PRESS)) )
+    {
+        NRF_LOG_INFO("irq PWR_IRQ_PB_PRESS");
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x20;
+        send_stm_data_p(bak_buff, 2);
+    }
+    if ( 0 != (irq & (1 << PWR_IRQ_PB_RELEASE)) )
+    {
+        NRF_LOG_INFO("irq PWR_IRQ_PB_RELEASE");
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x40;
+        send_stm_data_p(bak_buff, 2);
+    }
+    if ( 0 != (irq & (1 << PWR_IRQ_PB_SHORT)) )
+    {
 
-    // ALDO2 -> LDO_FB
-    // set to 3.0V
-    axp216_write(AXP_ALDO2OUT_VOL, 0x1C);
-    // enable output
-    axp216_read(AXP_LDO_DC_EN1, 1, &val);
-    val |= 0x80;
-    axp216_write(AXP_LDO_DC_EN1, val);
+        NRF_LOG_INFO("irq PWR_IRQ_PB_SHORT");
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x01;
+        send_stm_data_p(bak_buff, 2);
+    }
+    if ( 0 != (irq & (1 << PWR_IRQ_PB_LONG)) )
+    {
 
-    nrf_delay_ms(100);
-    return ret;
+        NRF_LOG_INFO("irq PWR_IRQ_PB_LONG");
+        bak_buff[0] = BLE_CMD_KEY_STA;
+        bak_buff[1] = 0x02;
+        send_stm_data_p(bak_buff, 2);
+    }
+    if ( 0 != (irq & (1 << PWR_IRQ_PB_FORCEOFF)) ) {}
 }
 
-void close_all_power(void)
+static bool pmu_if_gpio_config(uint32_t pin_num, const Power_GPIO_Config_t config)
 {
-    uint8_t val;
+    switch ( config )
+    {
+    case PWR_GPIO_Config_DEFAULT:
+        nrf_gpio_cfg_default(pin_num);
+        break;
 
-    /* set  32H bit7 to 1 close all LDO&DCDC except RTC&Charger.*/
-    axp216_read(AXP_OFF_CTL, 1, &val);
-    val &= 0x7F;
-    val |= 0x80;
-    axp216_write(AXP_OFF_CTL, val);
+    case PWR_GPIO_Config_READ_NP:
+        nrf_gpio_cfg_input(pin_num, NRF_GPIO_PIN_NOPULL);
+        break;
+
+    case PWR_GPIO_Config_READ_PH:
+        nrf_gpio_cfg_input(pin_num, NRF_GPIO_PIN_PULLUP);
+        break;
+
+    case PWR_GPIO_Config_READ_PL:
+        nrf_gpio_cfg_input(pin_num, NRF_GPIO_PIN_PULLDOWN);
+        break;
+
+    case PWR_GPIO_Config_WRITE_NP:
+        nrf_gpio_cfg_output(pin_num);
+        break;
+
+    case PWR_GPIO_Config_WRITE_PH:
+        nrf_gpio_cfg(
+            pin_num, NRF_GPIO_PIN_DIR_OUTPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_S0S1,
+            NRF_GPIO_PIN_NOSENSE
+        );
+        break;
+    case PWR_GPIO_Config_WRITE_PL:
+        nrf_gpio_cfg(
+            pin_num, NRF_GPIO_PIN_DIR_OUTPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_PULLDOWN, NRF_GPIO_PIN_S0S1,
+            NRF_GPIO_PIN_NOSENSE
+        );
+        break;
+
+    case PWR_GPIO_Config_UNUSED:
+        nrf_gpio_input_disconnect(pin_num);
+        break;
+
+    default:
+        return false;
+    }
+
+    return true;
 }
 
-// EMMC --- ALDO3(0.7~3.3V) 0x20
-void ctl_emmc_power(uint8_t value)
+static bool pmu_if_gpio_write(uint32_t pin_num, const bool high_low)
 {
-    axp_update(AXP_LDO_DC_EN2, value, 0x20);
+    // must already configured as output
+    if ( nrf_gpio_pin_dir_get(pin_num) == NRF_GPIO_PIN_DIR_OUTPUT )
+    {
+        nrf_gpio_pin_write(pin_num, (high_low ? 1 : 0));
+        return true;
+    }
+    return false;
 }
 
-uint8_t get_battery_percent(void)
+static bool pmu_if_gpio_read(uint32_t pin_num, bool* const high_low)
 {
-    uint8_t percent, mm;
-
-    axp216_read(AXP_CAP, 1, &mm);
-    percent = mm & 0x7F;
-    // NRF_LOG_INFO("nnow_rest_CAP = %d",(percent & 0x7F));
-
-    // axp216_read(0x10,1,&mm);//34h   52
-    // NRF_LOG_INFO("switch_control_mm = %d",(mm & 0x7F) );
-    axp_charging_monitor();
-
-    return percent;
+    // must already configured as input
+    if ( nrf_gpio_pin_dir_get(pin_num) == NRF_GPIO_PIN_DIR_INPUT )
+    {
+        *high_low = (nrf_gpio_pin_read(pin_num) != 0);
+        return true;
+    }
+    return false;
 }
 
-uint8_t get_charge_status(void)
+#ifdef PMU_LOG_NRF_LOG
+static void pmu_if_log(const Power_LogLevel_t level, const char* fmt, ...)
 {
-    uint8_t charge_state = 0;
-    uint8_t val[2];
-    axp216_read(AXP_CHARGE_STATUS, 2, val);
-    if ( (val[0] & AXP_STATUS_USBVA) || (val[1] & AXP_IN_CHARGE) )
-    {
-        charge_state = 0x03;
-    }
-    else
-    {
-        charge_state = 0x02;
-    }
-    return charge_state;
-}
 
-// get the charging type when charging (usb or wireless)
-uint8_t get_charge_type(void)
-{
-    uint8_t charge_type = 0;
-    uint8_t val;
-    axp216_read(AXP_GPIO1_CTL, 1, &val);
-    axp216_write(AXP_GPIO1_CTL, ((val & 0xF8) | 0x02)); // 设置gpio1为通用输入功能
-    axp216_read(AXP_GPIO01_SIGNAL, 2, &val);
-    if ( (val & AXP_IN_CHARGE_TYPE) )
-    {
-        charge_type = AXP_CHARGE_TYPE_USB; // usb
-    }
-    else
-    {
-        charge_type = AXP_CHARGE_TYPE_WIRELESS; // wireless
-    }
-    axp216_write(AXP_GPIO1_CTL, (val | 0x07)); // 为降低功耗，将gpio还原为浮空状态，只在检测时开启
-    return charge_type;
-}
+    // assume SEGGER_RTT_Init() already called
 
-// REG48H
-uint8_t get_irq_vbus_status(void)
-{
-    static uint8_t last_vbus_status = 0;
-    uint8_t vbus_status = 0, reg = 0;
+    char log_buffer[128];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(log_buffer, sizeof(log_buffer), fmt, args);
+    va_end(args);
 
-    axp216_read(AXP_INTSTS1, 1, &reg);
-    NRF_LOG_INFO("vbus status %d ", reg);
-    if ( reg == IRQ_VBUS_INSERT )
+    switch ( level )
     {
-        vbus_status = 0x01;
-    }
-    else if ( reg == IRQ_VBUS_REMOVE )
-    {
-        vbus_status = 0x02;
-    }
-    // compare
-    if ( last_vbus_status != vbus_status )
-    {
-        last_vbus_status = vbus_status;
-        return last_vbus_status;
-    }
-    else
-    {
-        return 0;
+    case PWR_LOG_LEVEL_ERR:
+        SEGGER_RTT_printf(0, "%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_WARN:
+        SEGGER_RTT_printf(0, "%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_INFO:
+        SEGGER_RTT_printf(0, "%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_DBG:
+        SEGGER_RTT_printf(0, "%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_TRACE:
+        // not supported
+        break;
+
+    case PWR_LOG_LEVEL_OFF:
+        break;
+    default:
+        break;
     }
 }
-// REG49H
-uint8_t get_irq_charge_status(void)
+#else
+static void pmu_if_log(Power_LogLevel_t level, const char* fmt, ...)
 {
-    static uint8_t last_charge_stasus = 0;
-    uint8_t charge_status = 0, reg = 0;
+    char log_buffer[128];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(log_buffer, sizeof(log_buffer), fmt, args);
+    va_end(args);
 
-    axp216_read(AXP_INTSTS2, 1, &reg);
-    NRF_LOG_INFO("charge status %d ", reg);
-    if ( (reg & 0x08) == 0x08 )
+    switch ( level )
     {
-        charge_status = IRQ_CHARGING_BAT;
+    case PWR_LOG_LEVEL_ERR:
+        NRF_LOG_ERROR("%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_WARN:
+        NRF_LOG_WARNING("%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_INFO:
+        NRF_LOG_INFO("%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_DBG:
+        NRF_LOG_DEBUG("%s", log_buffer);
+        break;
+    case PWR_LOG_LEVEL_TRACE:
+        // not supported
+        break;
+
+    case PWR_LOG_LEVEL_OFF:
+        break;
+    default:
+        break;
     }
-    else if ( (reg & 0x04) == 0x04 )
-    {
-        charge_status = IRQ_CHARGE_OVER;
-    }
-    // compare
-    if ( last_charge_stasus != charge_status )
-    {
-        last_charge_stasus = charge_status;
-        return last_charge_stasus;
-    }
-    else
-    {
-        return 0;
-    }
+
+    NRF_LOG_FLUSH();
 }
-// REG49H
-uint8_t get_bat_con_status(void)
-{
-    static uint8_t last_bat_con_stasus = 0;
-    uint8_t bat_con_status = 0, reg = 0;
+#endif
 
-    axp216_read(AXP_INTSTS2, 1, &reg);
-    NRF_LOG_INFO("bat connect status %d ", reg);
-    if ( reg == 0x80 )
-    {
-        last_bat_con_stasus = IRQ_CHARGING_BAT;
-    }
-    else if ( reg == 0x40 )
-    {
-        last_bat_con_stasus = IRQ_CHARGE_OVER;
-    }
-    // compare
-    if ( last_bat_con_stasus != bat_con_status )
-    {
-        last_bat_con_stasus = bat_con_status;
-        return last_bat_con_stasus;
-    }
-    else
-    {
-        return 0;
-    }
-}
-// REG4BH
-uint8_t get_irq_battery_status(void)
+// ================================
+// functions public
+bool power_manage_init()
 {
-    static uint8_t last_bat_status = 0;
-    uint8_t bat_status = 0, reg = 0;
+    PRINT_CURRENT_LOCATION();
 
-    axp216_read(AXP_INTSTS4, 1, &reg);
-    NRF_LOG_INFO("battery status %d ", reg);
-    if ( reg == 0x02 )
-    {
-        bat_status = IRQ_LOW_BAT_1;
-    }
-    else if ( reg == 0x01 )
-    {
-        bat_status = IRQ_LOW_BAT_2;
-    }
-    if ( last_bat_status != bat_status )
-    {
-        last_bat_status = bat_status;
-        return last_bat_status;
-    }
-    else
-    {
-        return 0;
-    }
-}
+    I2C_t* i2c_handle = nrf_i2c_get_instance();
 
-// REG 4CH
-uint8_t get_irq_status(void)
-{
-    uint8_t reg = 0;
-    axp216_read(AXP_INTSTS5, 1, &reg);
-    return reg;
+    // interface
+    pmu_if.isInitialized = i2c_handle->isInitialized;
+    pmu_if.Init = i2c_handle->Init;
+    pmu_if.Deinit = i2c_handle->Deinit;
+    pmu_if.Reset = i2c_handle->Reset;
+    pmu_if.HighDriveStrengthCtrl = i2c_handle->HighDriveStrengthCtrl;
+    pmu_if.Send = i2c_handle->Send;
+    pmu_if.Receive = i2c_handle->Receive;
+    pmu_if.Irq = pmu_if_irq;
+    pmu_if.Reg.Write = i2c_handle->Reg.Write;
+    pmu_if.Reg.Read = i2c_handle->Reg.Read;
+    pmu_if.Reg.SetBits = i2c_handle->Reg.SetBits;
+    pmu_if.Reg.ClrBits = i2c_handle->Reg.ClrBits;
+    pmu_if.GPIO.Config = pmu_if_gpio_config;
+    pmu_if.GPIO.Write = pmu_if_gpio_write;
+    pmu_if.GPIO.Read = pmu_if_gpio_read;
+    pmu_if.Delay_ms = nrf_delay_ms;
+    pmu_if.Log = pmu_if_log;
+
+    // pmu handle
+
+    pmu_p = pmu_probe(&pmu_if);
+    if ( pmu_p == NULL )
+        return false;
+
+    // init
+    if ( pmu_p->Init() != PWR_ERROR_NONE )
+        return false;
+
+    // config
+    if ( pmu_p->Config() != PWR_ERROR_NONE )
+        return false;
+
+    return true;
 }
 
-// 获取电池相关信息
-void get_battery_cv_msg(uint8_t bat_reg_addr, uint8_t bat_value[2])
+bool power_manage_deinit()
 {
-    uint8_t val[2] = {0};
-    axp216_read(bat_reg_addr, 2, val);
-    val[1] &= 0x0F; // 不用的位置零
-    bat_value[0] = val[0];
-    bat_value[1] = val[1];
+    PRINT_CURRENT_LOCATION();
+
+    // deinit
+    if ( pmu_p->Deinit() != PWR_ERROR_NONE )
+        return false;
+
+    // pmu handle
+    pmu_p = NULL;
+
+    // interface
+    memset(&pmu_if, 0x00, sizeof(PMU_Interface_t));
+
+    return true;
 }
 
-void set_wakeup_irq(uint8_t set_value)
+void axp_reg_dump(uint8_t pmu_addr)
 {
-    uint8_t reg_val;
+    uint8_t val = 0x99;
 
-    axp216_read(AXP_VOFF_SET, 1, &reg_val);
+    if ( !pmu_if.isInitialized )
+        return;
 
-    reg_val = (reg_val & ~0x10) | set_value;
-    axp216_write(AXP_VOFF_SET, reg_val);
+    pmu_if.Log(PWR_LOG_LEVEL_INFO, "**************** axp_reg_dump ****************\n");
+
+    for ( uint16_t reg = 0; reg <= 0xff; reg++ )
+    {
+        pmu_if.Reg.Read(pmu_addr, reg, &val);
+        pmu_if.Log(PWR_LOG_LEVEL_INFO, "reg 0x%02x = 0x%02x\n", reg, val);
+    }
 }
 
-void clear_irq_reg(void)
+#if notused
+
+void in_gpiote_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-    axp216_write(AXP_INTSTS1, 0xFF);
-    axp216_write(AXP_INTSTS2, 0xFF);
-    axp216_write(AXP_INTSTS3, 0xFF);
-    axp216_write(AXP_INTSTS4, 0xFF);
-    axp216_write(AXP_INTSTS5, 0xFF);
+    switch ( pin )
+    {
+    case PMIC_PWROK_IO:
+        NRF_LOG_INFO("PMIC_PWROK_IO");
+        NRF_LOG_FLUSH();
+
+        if ( action == NRF_GPIOTE_POLARITY_TOGGLE )
+        {
+            NRF_LOG_INFO("NRF_GPIOTE_POLARITY_TOGGLE");
+            NRF_LOG_FLUSH();
+
+            // debounce
+            nrf_delay_ms(1);
+
+            if ( nrf_gpio_pin_read(pin) )
+            {
+                NRF_LOG_INFO("PWR_OK HIGH!");
+                NRF_LOG_FLUSH();
+
+                power_config_aio(true);
+
+                NRF_LOG_INFO("PWR_OK HIGH! exit");
+                NRF_LOG_FLUSH();
+            }
+            else
+            {
+                NRF_LOG_INFO("PWR_OK LOW!");
+                NRF_LOG_FLUSH();
+
+                if ( i2c_configured )
+                    i2c_control(false);
+            }
+        }
+        else if ( action == NRF_GPIOTE_POLARITY_LOTOHI )
+        {
+            NRF_LOG_INFO("NRF_GPIOTE_POLARITY_LOTOHI");
+            NRF_LOG_FLUSH();
+        }
+        else if ( action == NRF_GPIOTE_POLARITY_HITOLO )
+        {
+            NRF_LOG_INFO("NRF_GPIOTE_POLARITY_HITOLO");
+            NRF_LOG_FLUSH();
+        }
+
+        break;
+
+    case PMIC_IRQ_IO:
+        NRF_LOG_INFO("PMIC_IRQ_IO");
+        NRF_LOG_FLUSH();
+        break;
+
+    default:
+        break;
+    }
 }
+
+static void gpiote_init(void)
+{
+    ret_code_t err_code;
+
+    err_code = nrf_drv_gpiote_init();
+    APP_ERROR_CHECK(err_code);
+
+    // power ok
+    nrf_drv_gpiote_in_config_t in_config_toggle = NRFX_GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
+    in_config_toggle.pull = NRF_GPIO_PIN_NOPULL;
+    err_code = nrf_drv_gpiote_in_init(PMIC_PWROK_IO, &in_config_toggle, in_gpiote_handler);
+    APP_ERROR_CHECK(err_code);
+    nrf_drv_gpiote_in_event_enable(PMIC_PWROK_IO, true);
+
+    // power irq
+    nrf_drv_gpiote_in_config_t in_config_hl = NRFX_GPIOTE_CONFIG_IN_SENSE_HITOLO(true);
+    in_config_hl.pull = NRF_GPIO_PIN_PULLUP;
+    err_code = nrf_drv_gpiote_in_init(PMIC_IRQ_IO, &in_config_hl, in_gpiote_handler);
+    APP_ERROR_CHECK(err_code);
+    nrf_drv_gpiote_in_event_enable(PMIC_IRQ_IO, true);
+}
+
+// main
+NRF_LOG_INFO("Configuring GPIO");
+NRF_LOG_FLUSH();
+gpiote_init();
+
+NRF_LOG_INFO("Check Power Status");
+if ( nrf_gpio_pin_read(PMIC_PWROK_IO) )
+{
+    i2c_control(true);
+
+    NRF_LOG_INFO("Power seems on...");
+
+    NRF_LOG_INFO("Configuring Power Initial");
+    NRF_LOG_FLUSH();
+
+    power_config_aio(true);
+
+    NRF_LOG_INFO("Configuring Power Initial Done");
+    NRF_LOG_FLUSH();
+
+    i2c_control(false);
+}
+
+#endif
