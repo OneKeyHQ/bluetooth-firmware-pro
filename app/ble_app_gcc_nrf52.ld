@@ -129,6 +129,12 @@ SECTIONS
     KEEP(*(SORT(.log_backends*)))
     PROVIDE(__stop_log_backends = .);
   } > FLASH
+  .payload :
+  {
+    PROVIDE(__start_payload_ptrs = .);
+    KEEP(*(.payload))
+    PROVIDE(__stop_payload_ptrs = .);
+  } > FLASH
 
 } INSERT AFTER .text
 

@@ -69,6 +69,13 @@ ExternalProject_Add(
   CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${PROJECT_SOURCE_DIR}/artifacts " 
 )
 
+# dfu payload
+add_custom_target(
+  ${CMAKE_PROJECT_NAME}_DFU_UPGRADE_PAYLOAD ALL
+  COMMAND ${PYTHON_RUNNER} run ${DIR_UTILS}/bin2array.py -l 16 -i ${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_BL.bin -o ${PROJECT_SOURCE_DIR}/artifacts/dfu_upgrade_payload.h
+  DEPENDS dfu ${CMAKE_PROJECT_NAME}_PYENV
+)
+
 # mbr and uicr config
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_MBR_UICR ALL
@@ -84,6 +91,7 @@ ExternalProject_Add(
   CMAKE_GENERATOR "Ninja"
   CMAKE_ARGS "-DTOOL_CHAIN_PREFIX=${TOOL_CHAIN_PREFIX} "
   CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${PROJECT_SOURCE_DIR}/artifacts "
+  DEPENDS ${CMAKE_PROJECT_NAME}_DFU_UPGRADE_PAYLOAD
 )
 
 ###############################

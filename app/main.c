@@ -95,6 +95,7 @@
 #include "data_transmission.h"
 #include "device_config.h"
 #include "firmware_config.h"
+#include "dfu_upgrade.h"
 
 #define RX_PIN_NUMBER           11
 #define TX_PIN_NUMBER           12
@@ -2567,6 +2568,15 @@ int main(void)
         }
     );
     CRITICAL_REGION_EXIT();
+
+    // ###############################
+    // DFU Update
+    // TODO: check battery?
+    // TODO: change to on demand
+    // NRF_LOG_INFO("DFU Update Seq.");
+    // NRF_LOG_FLUSH();
+    // NRF_LOG_INFO(try_dfu_upgrade(false) ? "DFU update not needed." : "DFU update failed!");
+    // NRF_LOG_FLUSH();
 
     // ###############################
     // General Init Items
