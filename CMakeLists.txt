@@ -23,7 +23,7 @@ set(FILE_OUTPUT_FACTORY_HEX "${DIR_OUTPUT}/factory.hex")
 set(FILE_OUTPUT_FACTORY_BIN "${DIR_OUTPUT}/factory.bin")
 set(FILE_OUTPUT_ZIP "${DIR_OUTPUT}/ota.zip")
 set(FILE_OUTPUT_OTA_BIN "${DIR_OUTPUT}/ota.bin")
-set(PYTHON_RUNNER poetry -C ${DIR_UTILS})
+set(PYTHON_RUNNER exit -1 && ) # placeholder, will be set later 
 
 ###############################
 # Prerequests and Environments
@@ -47,11 +47,20 @@ add_custom_target(
   COMMAND ${DIR_UTILS}/nrfutil install nrf5sdk-tools
 )
 
-# python env
+# python env (poetry)
+# set(PYTHON_RUNNER poetry -C ${DIR_UTILS} run)
+# add_custom_target(
+#   ${CMAKE_PROJECT_NAME}_PYENV
+#   COMMAND ${PYTHON_RUNNER} install
+#   COMMAND ${PYTHON_RUNNER} env info
+# )
+
+# python env (pip)
+set(PYTHON_RUNNER ${PROJECT_BINARY_DIR}/venv/bin/python)
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_PYENV
-  COMMAND ${PYTHON_RUNNER} install -q
-  # COMMAND ${PYTHON_RUNNER} env info
+  COMMAND python -m venv ${PROJECT_BINARY_DIR}/venv
+  COMMAND ${PROJECT_BINARY_DIR}/venv/bin/pip install -r ${DIR_UTILS}/requirements.txt
 )
 
 ###############################
@@ -72,14 +81,14 @@ ExternalProject_Add(
 # dfu payload
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_DFU_UPGRADE_PAYLOAD ALL
-  COMMAND ${PYTHON_RUNNER} run ${DIR_UTILS}/bin2array.py -l 16 -i ${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_BL.bin -o ${PROJECT_SOURCE_DIR}/artifacts/dfu_upgrade_payload.h
+  COMMAND ${PYTHON_RUNNER} ${DIR_UTILS}/bin2array.py -l 16 -i ${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_BL.bin -o ${PROJECT_SOURCE_DIR}/artifacts/dfu_upgrade_payload.h
   DEPENDS dfu ${CMAKE_PROJECT_NAME}_PYENV
 )
 
 # mbr and uicr config
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_MBR_UICR ALL
-  COMMAND ${PYTHON_RUNNER} run ${DIR_UTILS}/uicr_mbr_hex_gen.py --no-use-uicr -i ${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_BL -o ${FILE_INPUT_MBR_UICR}
+  COMMAND ${PYTHON_RUNNER} ${DIR_UTILS}/uicr_mbr_hex_gen.py --no-use-uicr -i ${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_BL -o ${FILE_INPUT_MBR_UICR}
   DEPENDS dfu ${CMAKE_PROJECT_NAME}_PYENV
 )
 
@@ -133,7 +142,7 @@ add_custom_target(
           --hw-version 52 --sd-req 0xCB 
           --application ${FILE_INPUT_APP} --application-version 3 --app-boot-validation VALIDATE_ECDSA_P256_SHA256
           --key-file ${FILE_KEY} ${FILE_OUTPUT_ZIP}
-  COMMAND ${PYTHON_RUNNER} run ${DIR_UTILS}/ota_to_onekey_bin.py ${FILE_OUTPUT_ZIP} ${FILE_OUTPUT_OTA_BIN}
+  COMMAND ${PYTHON_RUNNER} ${DIR_UTILS}/ota_to_onekey_bin.py ${FILE_OUTPUT_ZIP} ${FILE_OUTPUT_OTA_BIN}
   DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_KEY dfu app
 )
 
