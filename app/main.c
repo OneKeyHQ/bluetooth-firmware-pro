@@ -886,7 +886,7 @@ static void gap_params_init(void)
 #endif
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
 
-    err_code = sd_ble_gap_device_name_set(&sec_mode, (const uint8_t*)ble_adv_name, strlen(ble_adv_name));
+    err_code = sd_ble_gap_device_name_set(&sec_mode, (const uint8_t*)ble_adv_name, sizeof(ble_adv_name));
     APP_ERROR_CHECK(err_code);
 
     memset(&gap_conn_params, 0, sizeof(gap_conn_params));
