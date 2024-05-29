@@ -296,7 +296,14 @@ Power_Error_t axp216_set_state(const Power_State_t state)
         // normal drive
         pmu_interface_p->HighDriveStrengthCtrl(false);
         break;
-
+    case PWR_STATE_ENABLE_CHARGE:
+        // enable charge
+        EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_CHARGE1, (1 << 7)));
+        break;
+    case PWR_STATE_DISABLE_CHARGE:
+        // disable charge
+        EC_E_BOOL_R_PWR_ERR(axp216_clr_bits(AXP216_CHARGE1, (1 << 7)));
+        break;
     case PWR_STATE_INVALID:
     default:
         return PWR_ERROR_USAGE;

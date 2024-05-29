@@ -275,6 +275,9 @@
 #define ST_SEND_OPEN_EMMC_PWR  0x03
 #define ST_REQ_POWER_PERCENT   0x04
 #define ST_REQ_USB_STATUS      0x05
+#define ST_REQ_ENABLE_CHARGE   0x06
+#define ST_REQ_DISABLE_CHARGE  0x07
+
 //
 #define ST_CMD_BLE_INFO       0x83
 #define ST_REQ_ADV_NAME       0x01
@@ -1702,6 +1705,12 @@ void uart_event_handle(app_uart_evt_t* p_event)
                     break;
                 case ST_REQ_USB_STATUS:
                     pwr_status_flag = PWR_USB_STATUS;
+                    break;
+                case ST_REQ_ENABLE_CHARGE:
+                    pmu_p->SetState(PWR_STATE_ENABLE_CHARGE); //enable charge
+                    break;
+                case ST_REQ_DISABLE_CHARGE:
+                    pmu_p->SetState(PWR_STATE_DISABLE_CHARGE);   //disable charge
                     break;
                 default:
                     pwr_status_flag = PWR_DEF;
