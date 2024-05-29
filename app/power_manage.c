@@ -25,29 +25,40 @@ PMU_t* pmu_p = NULL;
 
 static void pmu_if_irq(const uint64_t irq)
 {
-
     if ( irq == 0 )
         return;
     Power_Status_t status;
     pmu_p->GetStatus(&status);
 
-    if ( 0 != (irq & (1 << PWR_IRQ_PWR_CONNECTED)) ) {}
-    if ( 0 != (irq & (1 << PWR_IRQ_PWR_DISCONNECTED)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_PWR_CONNECTED)) )
+    {
+        bak_buff[0] = BLE_CMD_POWER_STA;
+        bak_buff[1] = BLE_INSERT_POWER;
+        bak_buff[2] = (status.wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
+        send_stm_data_p(bak_buff, 3);
+    }
+    if ( 0 != (irq & (1 << PWR_IRQ_PWR_DISCONNECTED)) )
+    {
+        bak_buff[0] = BLE_CMD_POWER_STA;
+        bak_buff[1] = BLE_REMOVE_POWER;
+        bak_buff[2] = 0;
+        send_stm_data_p(bak_buff, 3);
+    }
     if ( 0 != (irq & (1 << PWR_IRQ_CHARGING)) )
     {
         bak_buff[0] = BLE_CMD_POWER_STA;
-        bak_buff[1] = status.chargerAvailable;
-        if ( status.wiredCharge )
-        {
-            bak_buff[2] = AXP_CHARGE_TYPE_USB;
-        }
-        else
-        {
-            bak_buff[2] = AXP_CHARGE_TYPE_WIRELESS;
-        }
-        send_stm_data_p(bak_buff, 2);
+        bak_buff[1] = BLE_CHARGING_PWR;
+        bak_buff[2] = (status.wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
+        send_stm_data_p(bak_buff, 3);
     }
-    if ( 0 != (irq & (1 << PWR_IRQ_CHARGED)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_CHARGED)) )
+    {
+
+        bak_buff[0] = BLE_CMD_POWER_STA;
+        bak_buff[1] = BLE_CHAGE_OVER;
+        bak_buff[2] = (status.wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
+        send_stm_data_p(bak_buff, 3);
+    }
     if ( 0 != (irq & (1 << PWR_IRQ_BATT_LOW)) ) {}
     if ( 0 != (irq & (1 << PWR_IRQ_BATT_CRITICAL)) ) {}
     if ( 0 != (irq & (1 << PWR_IRQ_PB_PRESS)) )

@@ -2395,14 +2395,16 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
     case PWR_USB_STATUS:
         pwr_status_flag = PWR_DEF;
         bak_buff[0] = BLE_CMD_POWER_STA;
-        bak_buff[1] = pmu_status.chargerAvailable;
-        if ( pmu_status.wiredCharge )
+
+        if ( pmu_status.chargerAvailable )
         {
-            bak_buff[2] = AXP_CHARGE_TYPE_USB;
+            bak_buff[1] = ((pmu_status.chargeFinished && pmu_status.chargeAllowed) ? BLE_CHAGE_OVER : BLE_CHARGING_PWR);
+            bak_buff[2] = (pmu_status.wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
         }
         else
         {
-            bak_buff[2] = AXP_CHARGE_TYPE_WIRELESS;
+            bak_buff[1] = BLE_REMOVE_POWER;
+            bak_buff[2] = 0;
         }
         send_stm_data(bak_buff, 3);
         pwr_status_flag = PWR_DEF;
@@ -2554,6 +2556,8 @@ int main(void)
             enter_low_power_mode(); // something wrong, shutdown to prevent battery drain
         }
     );
+    // soft power off ST until self init done
+    // pmu_p->SetState(PWR_STATE_SOFT_OFF);
     // device config init
     EXEC_RETRY(
         3, {}, { return device_config_init(); },
