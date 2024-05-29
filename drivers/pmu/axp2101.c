@@ -12,8 +12,10 @@
 static bool initialized = false;
 static PMU_Interface_t* pmu_interface_p = NULL;
 static Power_State_t state_current = PWR_STATE_INVALID;
+static Power_Status_t status_current = {0};
 
 // functions private
+
 static bool axp2101_config_voltage(void)
 {
     //  voltages
@@ -273,10 +275,10 @@ Power_Error_t axp2101_set_state(const Power_State_t state)
     {
     case PWR_STATE_SOFT_OFF:
         // close output
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x40)); // keep cpuldo on
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00));
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x40)); // keep cpuldo on
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00));
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));
         // cpuldo is not used and not connected, keep it on is just for prevent axp "sleep"
         // "close all output means sleep" is a really stupid design, as axp turns off I2C when sleeping
         // there is no way to wake it up if you do't enable wakeup source before close all output
@@ -284,10 +286,10 @@ Power_Error_t axp2101_set_state(const Power_State_t state)
         break;
     case PWR_STATE_HARD_OFF:
         // close output (not needed as the pmu off will kill all output)
-        // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
-        // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));
-        // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x00));
-        // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00));
+        // EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
+        // EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));
+        // EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x00));
+        // EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00));
         // pmu off
         EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_COMM_CFG, (1 << 0)));
         break;
@@ -295,10 +297,10 @@ Power_Error_t axp2101_set_state(const Power_State_t state)
         // strong drive
         pmu_interface_p->HighDriveStrengthCtrl(true);
         // open output
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x01)); // aldo1 on, other off
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0X00)); // all off
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x01));   // dcdc1 on, other off
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));   // all off
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x01)); // aldo1 on, other off
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0X00)); // all off
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x01));   // dcdc1 on, other off
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));   // all off
         // normal drive
         pmu_interface_p->HighDriveStrengthCtrl(false);
         break;
@@ -308,10 +310,10 @@ Power_Error_t axp2101_set_state(const Power_State_t state)
         // enable wakeup
         EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_SLEEP_CFG, (1 << 3)));
         // close output ("sleep")
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x00));
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00));
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_DCDC_CFG0, 0x00));
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_DCDC_CFG1, 0x00));
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_LDO_EN_CFG0, 0x00));
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_write(AXP2101_LDO_EN_CFG1, 0x00));
         break;
     case PWR_STATE_WAKEUP:
         // strong drive
@@ -339,68 +341,67 @@ Power_Error_t axp2101_get_state(Power_State_t* state)
     return PWR_ERROR_USAGE;
 }
 
-Power_Error_t axp2101_get_status(Power_Status_t* status)
+Power_Error_t axp2101_pull_status(void)
 {
     HL_Buff hlbuff;
 
-    memset(status, 0x00, sizeof(Power_Status_t));
-    status->isValid = false;
+    Power_Status_t status_temp = {0};
 
     // battery present
     hlbuff.u8_high = 0;
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT0, &(hlbuff.u8_low)));
-    status->batteryPresent = ((hlbuff.u8_low & (1 << 3)) == (1 << 3));
+    status_temp.batteryPresent = ((hlbuff.u8_low & (1 << 3)) == (1 << 3));
 
-    if ( status->batteryPresent )
+    if ( status_temp.batteryPresent )
     {
         // battery percent
         hlbuff.u8_high = 0;
         EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_SOC, &(hlbuff.u8_low)));
-        status->batteryPercent = hlbuff.u8_low;
+        status_temp.batteryPercent = hlbuff.u8_low;
 
         // battery voltage
         EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_H, &(hlbuff.u8_high)));
         hlbuff.u8_high &= 0b00111111; // drop bit 7:6
         EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VBAT_L, &(hlbuff.u8_low)));
-        status->batteryVoltage = hlbuff.u16;
+        status_temp.batteryVoltage = hlbuff.u16;
 
         // battery temp
         EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_H, &(hlbuff.u8_high)));
         hlbuff.u8_high &= 0b00111111; // drop bit 7:6
         EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_L, &(hlbuff.u8_low)));
-        status->batteryTemp =
+        status_temp.batteryTemp =
             ntc_temp_cal_cv(NTC_Char_NCP15XH103F03RC_2585, 40, ((hlbuff.u16 * 0.5) * 0.8 + 0) * 1000); // temp_c
     }
     else
     {
-        status->batteryPercent = 0;
-        status->batteryVoltage = 0;
-        status->batteryTemp = -999;
+        status_temp.batteryPercent = 0;
+        status_temp.batteryVoltage = 0;
+        status_temp.batteryTemp = -999;
     }
 
     // pmu temp
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_H, &(hlbuff.u8_high)));
     hlbuff.u8_high &= 0b00111111; // drop bit 7:6
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TDIE_L, &(hlbuff.u8_low)));
-    status->pmuTemp = (7274 - hlbuff.u16) / 20 + 22;
+    status_temp.pmuTemp = (7274 - hlbuff.u16) / 20 + 22;
 
     // charging
     hlbuff.u8_high = 0;
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_MODULE_EN, &(hlbuff.u8_low)));
-    status->chargeAllowed = ((hlbuff.u8_low & (1 << 1)) == (1 << 1));
+    status_temp.chargeAllowed = ((hlbuff.u8_low & (1 << 1)) == (1 << 1));
 
     hlbuff.u8_high = 0;
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT0, &(hlbuff.u8_low)));
-    status->chargerAvailable = ((hlbuff.u8_low & (1 << 5)) == (1 << 5)); // vbus good
+    status_temp.chargerAvailable = ((hlbuff.u8_low & (1 << 5)) == (1 << 5)); // vbus good
 
-    if ( status->chargeAllowed && status->chargerAvailable )
+    if ( status_temp.chargeAllowed && status_temp.chargerAvailable )
     {
         hlbuff.u8_high = 0;
         EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT1, &(hlbuff.u8_low)));
-        status->chargeFinished = ((hlbuff.u8_low & 0b00000111) == 0b00000100); // bit 2:0 = 100 charge done
+        status_temp.chargeFinished = ((hlbuff.u8_low & 0b00000111) == 0b00000100); // bit 2:0 = 100 charge done
 
         if ( (hlbuff.u8_low & 0b01100000) == 0b00100000 || // bit 6:5 = 01 battery current charge
-             status->chargeFinished                        // still try get power source
+             status_temp.chargeFinished                         // still try get power source
         )
         {
             // TODO: find a batter way to check GPIO?
@@ -411,30 +412,30 @@ Power_Error_t axp2101_get_status(Power_Status_t* status)
             EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Read(8, &gpio_high_low));
             EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_UNUSED));
 
-            status->wirelessCharge = !gpio_high_low; // low is wireless
+            status_temp.wirelessCharge = !gpio_high_low; // low is wireless
             // if not wireless charging then it's wired
-            status->wiredCharge = !status->wirelessCharge;
+            status_temp.wiredCharge = !status_temp.wirelessCharge;
         }
         else
         {
-            status->wiredCharge = false;
-            status->wirelessCharge = false;
+            status_temp.wiredCharge = false;
+            status_temp.wirelessCharge = false;
         }
 
         // not supported by AXP2101
-        status->chargeCurrent = 0;
-        status->dischargeCurrent = 0;
+        status_temp.chargeCurrent = 0;
+        status_temp.dischargeCurrent = 0;
     }
     else
     {
-        status->chargeFinished = false;
-        status->wiredCharge = false;
-        status->wirelessCharge = false;
-        status->chargeCurrent = 0;
-        status->dischargeCurrent = 0;
+        status_temp.chargeFinished = false;
+        status_temp.wiredCharge = false;
+        status_temp.wirelessCharge = false;
+        status_temp.chargeCurrent = 0;
+        status_temp.dischargeCurrent = 0;
     }
 
-    status->isValid = true;
+    memcpy(&status_current, &status_temp, sizeof(Power_Status_t));
     return PWR_ERROR_NONE;
 }
 
@@ -487,6 +488,7 @@ void axp2101_setup_interface(PMU_Interface_t* pmu_if_p, PMU_t* pmu_p)
 
     pmu_p->isInitialized = &initialized;
     strncpy(pmu_p->InstanceName, "AXP2101", PMU_INSTANCE_NAME_MAX_LEN);
+    pmu_p->PowerStatus = &status_current;
 
     pmu_p->Init = axp2101_init;
     pmu_p->Deinit = axp2101_deinit;
@@ -495,7 +497,7 @@ void axp2101_setup_interface(PMU_Interface_t* pmu_if_p, PMU_t* pmu_p)
     pmu_p->Irq = axp2101_irq;
     pmu_p->SetState = axp2101_set_state;
     pmu_p->GetState = axp2101_get_state;
-    pmu_p->GetStatus = axp2101_get_status;
+    pmu_p->PullStatus = axp2101_pull_status;
     pmu_p->SetFeature = axp2101_set_feature;
     pmu_p->GetFeature = axp2101_get_feature;
 }

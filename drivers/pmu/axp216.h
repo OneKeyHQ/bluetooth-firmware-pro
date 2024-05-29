@@ -115,7 +115,7 @@ Power_Error_t axp216_config(void);
 Power_Error_t axp216_irq(void);
 Power_Error_t axp216_set_state(const Power_State_t state);
 Power_Error_t axp216_get_state(Power_State_t* state);
-Power_Error_t axp216_get_status(Power_Status_t* status);
+Power_Error_t axp216_pull_status(void);
 Power_Error_t axp216_set_feature(Power_Featrue_t feature, bool enable);
 Power_Error_t axp216_get_feature(Power_Featrue_t feature, bool* enable);
 

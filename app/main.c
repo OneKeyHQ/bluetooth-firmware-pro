@@ -389,25 +389,23 @@ static char ble_adv_name[ADV_NAME_LENGTH];
 //     NRF_LOG_FINAL_FLUSH();
 // }
 
-static Power_Status_t pmu_status;
 static void pmu_status_refresh()
 {
-    pmu_p->GetStatus(&pmu_status);
+    pmu_p->PullStatus();
 
-    NRF_LOG_INFO("=== Power_Status_t ===");
-    NRF_LOG_INFO("isValid=%u", pmu_status.isValid);
-    NRF_LOG_INFO("batteryPresent=%u", pmu_status.batteryPresent);
-    NRF_LOG_INFO("batteryPercent=%u", pmu_status.batteryPercent);
-    NRF_LOG_INFO("batteryVoltage=%lu", pmu_status.batteryVoltage);
-    NRF_LOG_INFO("batteryTemp=%ld", pmu_status.batteryTemp);
-    NRF_LOG_INFO("pmuTemp=%lu", pmu_status.pmuTemp);
-    NRF_LOG_INFO("chargeAllowed=%u", pmu_status.chargeAllowed);
-    NRF_LOG_INFO("chargerAvailable=%u", pmu_status.chargerAvailable);
-    NRF_LOG_INFO("chargeFinished=%u", pmu_status.chargeFinished);
-    NRF_LOG_INFO("wiredCharge=%u", pmu_status.wiredCharge);
-    NRF_LOG_INFO("wirelessCharge=%u", pmu_status.wirelessCharge);
-    NRF_LOG_INFO("chargeCurrent=%lu", pmu_status.chargeCurrent);
-    NRF_LOG_INFO("dischargeCurrent=%lu", pmu_status.dischargeCurrent);
+    NRF_LOG_INFO("=== PowerStatus ===");
+    NRF_LOG_INFO("batteryPresent=%u", pmu_p->PowerStatus->batteryPresent);
+    NRF_LOG_INFO("batteryPercent=%u", pmu_p->PowerStatus->batteryPercent);
+    NRF_LOG_INFO("batteryVoltage=%lu", pmu_p->PowerStatus->batteryVoltage);
+    NRF_LOG_INFO("batteryTemp=%ld", pmu_p->PowerStatus->batteryTemp);
+    NRF_LOG_INFO("pmuTemp=%lu", pmu_p->PowerStatus->pmuTemp);
+    NRF_LOG_INFO("chargeAllowed=%u", pmu_p->PowerStatus->chargeAllowed);
+    NRF_LOG_INFO("chargerAvailable=%u", pmu_p->PowerStatus->chargerAvailable);
+    NRF_LOG_INFO("chargeFinished=%u", pmu_p->PowerStatus->chargeFinished);
+    NRF_LOG_INFO("wiredCharge=%u", pmu_p->PowerStatus->wiredCharge);
+    NRF_LOG_INFO("wirelessCharge=%u", pmu_p->PowerStatus->wirelessCharge);
+    NRF_LOG_INFO("chargeCurrent=%lu", pmu_p->PowerStatus->chargeCurrent);
+    NRF_LOG_INFO("dischargeCurrent=%lu", pmu_p->PowerStatus->dischargeCurrent);
     NRF_LOG_INFO("=== ============== ===");
     NRF_LOG_FLUSH();
 }
@@ -631,9 +629,9 @@ void battery_level_meas_timeout_handler(void* p_context)
     static uint8_t battery_percent = 0;
 
     UNUSED_PARAMETER(p_context);
-    if ( battery_percent != pmu_status.batteryPercent )
+    if ( battery_percent != pmu_p->PowerStatus->batteryPercent )
     {
-        battery_percent = pmu_status.batteryPercent;
+        battery_percent = pmu_p->PowerStatus->batteryPercent;
         if ( g_bas_update_flag == 1 )
         {
             err_code = ble_bas_battery_level_update(&m_bas, battery_percent, BLE_CONN_HANDLE_ALL);
@@ -2285,11 +2283,11 @@ static void manage_bat_level(void* p_event_data, uint16_t event_size)
 {
     static uint8_t bak_bat_persent = 0x00;
 
-    if ( bak_bat_persent != pmu_status.batteryPercent )
+    if ( bak_bat_persent != pmu_p->PowerStatus->batteryPercent )
     {
-        bak_bat_persent = pmu_status.batteryPercent;
+        bak_bat_persent = pmu_p->PowerStatus->batteryPercent;
         bak_buff[0] = BLE_SYSTEM_POWER_PERCENT;
-        bak_buff[1] = pmu_status.batteryPercent;
+        bak_buff[1] = pmu_p->PowerStatus->batteryPercent;
         NRF_LOG_INFO("send_stm_data 018");
         send_stm_data(bak_buff, 2);
     }
@@ -2397,17 +2395,19 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
     case PWR_BAT_PERCENT:
         pwr_status_flag = PWR_DEF;
         bak_buff[0] = BLE_SYSTEM_POWER_PERCENT;
-        bak_buff[1] = pmu_status.batteryPercent;
+        bak_buff[1] = pmu_p->PowerStatus->batteryPercent;
         send_stm_data(bak_buff, 2);
         break;
     case PWR_USB_STATUS:
         pwr_status_flag = PWR_DEF;
         bak_buff[0] = BLE_CMD_POWER_STA;
 
-        if ( pmu_status.chargerAvailable )
+        if ( pmu_p->PowerStatus->chargerAvailable )
         {
-            bak_buff[1] = ((pmu_status.chargeFinished && pmu_status.chargeAllowed) ? BLE_CHAGE_OVER : BLE_CHARGING_PWR);
-            bak_buff[2] = (pmu_status.wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
+            bak_buff[1] =
+                ((pmu_p->PowerStatus->chargeFinished && pmu_p->PowerStatus->chargeAllowed) ? BLE_CHAGE_OVER
+                                                                                           : BLE_CHARGING_PWR);
+            bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
         }
         else
         {
@@ -2415,7 +2415,6 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
             bak_buff[2] = 0;
         }
         send_stm_data(bak_buff, 3);
-        pwr_status_flag = PWR_DEF;
         break;
     default:
         break;
@@ -2465,16 +2464,16 @@ static void bat_msg_report_process(void* p_event_data, uint16_t event_size)
     switch ( bat_msg_flag )
     {
     case SEND_BAT_VOL:
-        val = pmu_status.batteryVoltage;
+        val = pmu_p->PowerStatus->batteryVoltage;
         break;
     case SEND_BAT_CHARGE_CUR:
-        val = pmu_status.chargeCurrent;
+        val = pmu_p->PowerStatus->chargeCurrent;
         break;
     case SEND_BAT_DISCHARGE_CUR:
-        val = pmu_status.dischargeCurrent;
+        val = pmu_p->PowerStatus->dischargeCurrent;
         break;
     case SEND_BAT_INNER_TEMP:
-        val = (uint16_t)(pmu_status.batteryTemp);
+        val = (uint16_t)(pmu_p->PowerStatus->batteryTemp);
         break;
     default:
         return;

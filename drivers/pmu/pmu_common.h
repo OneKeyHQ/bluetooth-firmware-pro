@@ -103,8 +103,6 @@ typedef enum
 
 typedef struct
 {
-    bool isValid;
-
     bool batteryPresent;
     uint8_t batteryPercent;
     uint16_t batteryVoltage;
@@ -158,6 +156,7 @@ typedef struct
 {
     bool* isInitialized;
     char InstanceName[PMU_INSTANCE_NAME_MAX_LEN];
+    Power_Status_t* PowerStatus;
     Power_Error_t (*Init)(void);
     Power_Error_t (*Deinit)(void);
     Power_Error_t (*Reset)(void);
@@ -165,7 +164,7 @@ typedef struct
     Power_Error_t (*Irq)(void); // irq call in
     Power_Error_t (*SetState)(const Power_State_t state);
     Power_Error_t (*GetState)(Power_State_t* state);
-    Power_Error_t (*GetStatus)(Power_Status_t* status);
+    Power_Error_t (*PullStatus)(void);
     Power_Error_t (*SetFeature)(Power_Featrue_t feature, bool enable);
     Power_Error_t (*GetFeature)(Power_Featrue_t feature, bool* enable);
 } PMU_t;

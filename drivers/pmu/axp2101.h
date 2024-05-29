@@ -140,7 +140,7 @@ Power_Error_t axp2101_config(void);
 Power_Error_t axp2101_irq(void);
 Power_Error_t axp2101_set_state(const Power_State_t state);
 Power_Error_t axp2101_get_state(Power_State_t* state);
-Power_Error_t axp2101_get_status(Power_Status_t* status);
+Power_Error_t axp2101_pull_status(void);
 Power_Error_t axp2101_set_feature(Power_Featrue_t feature, bool enable);
 Power_Error_t axp2101_get_feature(Power_Featrue_t feature, bool* enable);
 
