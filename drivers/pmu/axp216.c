@@ -423,6 +423,50 @@ Power_Error_t axp216_get_status(Power_Status_t* status)
     return PWR_ERROR_NONE;
 }
 
+Power_Error_t axp216_set_feature(Power_Featrue_t feature, bool enable)
+{
+    switch ( feature )
+    {
+    case PWR_FEAT_CHARGE:
+        if ( enable )
+        {
+
+            EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_CHARGE1, (1 << 7)));
+        }
+        else
+        {
+            EC_E_BOOL_R_PWR_ERR(axp216_clr_bits(AXP216_CHARGE1, (1 << 7)));
+        }
+        break;
+
+    case PWR_FEAT_INVALID:
+    default:
+        return PWR_ERROR_USAGE;
+        break;
+    }
+
+    return PWR_ERROR_NONE;
+}
+
+Power_Error_t axp216_get_feature(Power_Featrue_t feature, bool* enable)
+{
+    uint8_t reg_val;
+    switch ( feature )
+    {
+    case PWR_FEAT_CHARGE:
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CHARGE1, &reg_val));
+        *enable = ((reg_val & (1 << 7)) == (1 << 7));
+        break;
+
+    case PWR_FEAT_INVALID:
+    default:
+        return PWR_ERROR_USAGE;
+        break;
+    }
+
+    return PWR_ERROR_NONE;
+}
+
 void axp216_setup_interface(PMU_Interface_t* pmu_if_p, PMU_t* pmu_p)
 {
     pmu_interface_p = pmu_if_p;
@@ -439,4 +483,6 @@ void axp216_setup_interface(PMU_Interface_t* pmu_if_p, PMU_t* pmu_p)
     pmu_p->SetState = axp216_set_state;
     pmu_p->GetState = axp216_get_state;
     pmu_p->GetStatus = axp216_get_status;
+    pmu_p->SetFeature = axp216_set_feature;
+    pmu_p->GetFeature = axp216_get_feature;
 }

@@ -41,9 +41,10 @@ typedef union
 
 typedef enum
 {
-    PWR_ENUM_ITEM(ERROR, NONE) = 0, // PWR_ERROR_NONE
-    PWR_ENUM_ITEM(ERROR, FAIL),     // PWR_ERROR_FAIL
-    PWR_ENUM_ITEM(ERROR, USAGE),    // PWR_ERROR_USAGE
+    PWR_ENUM_ITEM(ERROR, NONE) = 0,   // PWR_ERROR_NONE
+    PWR_ENUM_ITEM(ERROR, FAIL),       // PWR_ERROR_FAIL
+    PWR_ENUM_ITEM(ERROR, USAGE),      // PWR_ERROR_USAGE
+    PWR_ENUM_ITEM(ERROR, NO_SUPPORT), // PWR_ERROR_NO_SUPPORT
 } Power_Error_t;
 
 typedef enum
@@ -55,6 +56,12 @@ typedef enum
     PWR_ENUM_ITEM(STATE, SLEEP),        // PWR_STATE_SLEEP
     PWR_ENUM_ITEM(STATE, WAKEUP),       // PWR_STATE_WAKEUP
 } Power_State_t;
+
+typedef enum
+{
+    PWR_ENUM_ITEM(FEAT, INVALID) = -1, // PWR_FEAT_INVALID
+    PWR_ENUM_ITEM(FEAT, CHARGE),       // PWR_FEAT_CHARGE
+} Power_Featrue_t;
 
 typedef enum
 {
@@ -159,6 +166,8 @@ typedef struct
     Power_Error_t (*SetState)(const Power_State_t state);
     Power_Error_t (*GetState)(Power_State_t* state);
     Power_Error_t (*GetStatus)(Power_Status_t* status);
+    Power_Error_t (*SetFeature)(Power_Featrue_t feature, bool enable);
+    Power_Error_t (*GetFeature)(Power_Featrue_t feature, bool* enable);
 } PMU_t;
 
 #if PMU_IF_FUNCTION_TEMPLATES

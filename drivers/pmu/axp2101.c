@@ -76,7 +76,6 @@ static bool axp2101_config_battery_param(void)
             pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "BROM verify failed!");
             pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "i=%u, buff=0x%02x, val=0x%02x", i, batt_cal_data[i], val_temp);
             return false;
-
         }
         pmu_interface_p->Delay_ms(10);
     }
@@ -439,6 +438,49 @@ Power_Error_t axp2101_get_status(Power_Status_t* status)
     return PWR_ERROR_NONE;
 }
 
+Power_Error_t axp2101_set_feature(Power_Featrue_t feature, bool enable)
+{
+    switch ( feature )
+    {
+    case PWR_FEAT_CHARGE:
+        if ( enable )
+        {
+            EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_MODULE_EN, (1 << 1)));
+        }
+        else
+        {
+            EC_E_BOOL_R_PWR_ERR(axp2101_clr_bits(AXP2101_MODULE_EN, (1 << 1)));
+        }
+        break;
+
+    case PWR_FEAT_INVALID:
+    default:
+        return PWR_ERROR_USAGE;
+        break;
+    }
+
+    return PWR_ERROR_NONE;
+}
+
+Power_Error_t axp2101_get_feature(Power_Featrue_t feature, bool* enable)
+{
+    uint8_t reg_val;
+    switch ( feature )
+    {
+    case PWR_FEAT_CHARGE:
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_MODULE_EN, &reg_val));
+        *enable = ((reg_val & (1 << 1)) == (1 << 1));
+        break;
+
+    case PWR_FEAT_INVALID:
+    default:
+        return PWR_ERROR_USAGE;
+        break;
+    }
+
+    return PWR_ERROR_NONE;
+}
+
 void axp2101_setup_interface(PMU_Interface_t* pmu_if_p, PMU_t* pmu_p)
 {
     pmu_interface_p = pmu_if_p;
@@ -454,4 +496,6 @@ void axp2101_setup_interface(PMU_Interface_t* pmu_if_p, PMU_t* pmu_p)
     pmu_p->SetState = axp2101_set_state;
     pmu_p->GetState = axp2101_get_state;
     pmu_p->GetStatus = axp2101_get_status;
+    pmu_p->SetFeature = axp2101_set_feature;
+    pmu_p->GetFeature = axp2101_get_feature;
 }
