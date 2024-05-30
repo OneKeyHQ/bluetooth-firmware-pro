@@ -8,6 +8,9 @@ include("../toolchain.cmake")
 # Project
 project(OnekeyProBTFW_BL LANGUAGES C CXX ASM)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+message(STATUS "${CMAKE_PROJECT_NAME} Build Type: ${CMAKE_BUILD_TYPE}")
+
 ###############################
 # NRF SDK
 set(NRF_SDK_ROOT "${PROJECT_SOURCE_DIR}/../ble-firmware")
@@ -199,7 +202,7 @@ target_compile_options(
   -mthumb -mabi=aapcs
   -mfloat-abi=hard -mfpu=fpv4-sp-d16
   # keep every function in a separate section, this allows linker to discard unused ones
-  -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums 
+  -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums
   # heap and stack (why set them for a library?)
   # -D__HEAP_SIZE=4096
   # -D__STACK_SIZE=4096
@@ -244,9 +247,16 @@ target_include_directories(
 
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
-  # Optimization flags
-  # -Og -ggdb
+
+  # Build type handling
+  $<$<CONFIG:Debug>:
+  -Og -ggdb
+  -DDEBUG
+  >
+  $<$<CONFIG:Release>:
   -Os -g0
+  >
+  
   # Uncomment the line below to enable link time optimization
   # -flto=auto
   # C flags common to all targets
@@ -283,9 +293,15 @@ target_compile_options(
 
 target_link_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
-  # Linker flags
-  # -Og -ggdb
+  # Build type handling
+  $<$<CONFIG:Debug>:
+  -Og -ggdb
+  -DDEBUG
+  >
+  $<$<CONFIG:Release>:
   -Os -g0
+  >
+  # Linker flags
   # let linker dump unused sections
   -Wl,--gc-sections
   -mcpu=cortex-m4

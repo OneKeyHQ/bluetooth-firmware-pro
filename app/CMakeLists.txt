@@ -7,7 +7,11 @@ include("../toolchain.cmake")
 ###############################
 # Project
 project(OnekeyProBTFW_APP LANGUAGES C CXX ASM)
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+message(STATUS "${CMAKE_PROJECT_NAME} Build Type: ${CMAKE_BUILD_TYPE}")
+
 ###############################
 # NRF SDK
 set(NRF_SDK_ROOT "${PROJECT_SOURCE_DIR}/../ble-firmware")
@@ -365,9 +369,16 @@ add_definitions('-DBUILD_ID=\"${GIT_VERSION}\"')
 
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
-  # Optimization flags
-  # -Og -ggdb
+
+  # Build type handling
+  $<$<CONFIG:Debug>:
+  -Og -ggdb
+  -DDEBUG
+  >
+  $<$<CONFIG:Release>:
   -Os -g0
+  >
+  
   # Uncomment the line below to enable link time optimization
   # -flto=auto
   # C flags common to all targets
@@ -402,9 +413,15 @@ target_compile_options(
 
 target_link_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
-  # Linker flags
-  # -Og -ggdb
+  # Build type handling
+  $<$<CONFIG:Debug>:
+  -Og -ggdb
+  -DDEBUG
+  >
+  $<$<CONFIG:Release>:
   -Os -g0
+  >
+  # Linker flags
   # let linker dump unused sections
   -Wl,--gc-sections
   -mcpu=cortex-m4
