@@ -74,7 +74,8 @@ include(ExternalProject)
 # dfu
 ExternalProject_Add(
   dfu
-  SOURCE_DIR ${PROJECT_SOURCE_DIR}/dfu
+  # SOURCE_DIR ${PROJECT_SOURCE_DIR}/dfu # use legacy for now
+  SOURCE_DIR ${PROJECT_SOURCE_DIR}/dfu_legacy
   INSTALL_DIR ${PROJECT_SOURCE_DIR}/artifacts
   CMAKE_GENERATOR "Ninja"
   CMAKE_ARGS "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
