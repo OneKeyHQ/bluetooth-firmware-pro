@@ -32,6 +32,7 @@ static void pmu_if_irq(const uint64_t irq)
 
     if ( 0 != (irq & (1 << PWR_IRQ_PWR_CONNECTED)) )
     {
+        NRF_LOG_INFO("irq PWR_IRQ_PWR_CONNECTED");
         bak_buff[0] = BLE_CMD_POWER_STA;
         bak_buff[1] = BLE_INSERT_POWER;
         bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
@@ -39,6 +40,7 @@ static void pmu_if_irq(const uint64_t irq)
     }
     if ( 0 != (irq & (1 << PWR_IRQ_PWR_DISCONNECTED)) )
     {
+        NRF_LOG_INFO("irq PWR_IRQ_PWR_DISCONNECTED");
         bak_buff[0] = BLE_CMD_POWER_STA;
         bak_buff[1] = BLE_REMOVE_POWER;
         bak_buff[2] = 0;
@@ -46,6 +48,7 @@ static void pmu_if_irq(const uint64_t irq)
     }
     if ( 0 != (irq & (1 << PWR_IRQ_CHARGING)) )
     {
+        NRF_LOG_INFO("irq PWR_IRQ_CHARGING");
         bak_buff[0] = BLE_CMD_POWER_STA;
         bak_buff[1] = BLE_CHARGING_PWR;
         bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);

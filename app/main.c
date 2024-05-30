@@ -616,7 +616,8 @@ static inline void gpio_uninit(void)
 
 static void enter_low_power_mode(void)
 {
-    pmu_p->Deinit();
+    if ( (pmu_p != NULL) && (pmu_p->isInitialized) )
+        pmu_p->Deinit();
     gpio_uninit();
     nrf_gpio_cfg_default(ST_WAKE_IO);
     app_uart_close();
@@ -2029,11 +2030,10 @@ static void idle_state_handle(void)
 
 void in_gpiote_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-    NRF_LOG_INFO("NRF IRQ  in_gpiote_handler  begin  ...");
-    NRF_LOG_FLUSH();
     switch ( pin )
     {
     case SLAVE_SPI_RSP_IO:
+        NRF_LOG_INFO("GPIO IRQ -> SLAVE_SPI_RSP_IO");
         if ( spi_dir_out )
         {
             spi_send_done = true;
@@ -2044,6 +2044,7 @@ void in_gpiote_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
         }
         break;
     case PMIC_PWROK_IO:
+        NRF_LOG_INFO("GPIO IRQ -> PMIC_PWROK_IO");
         if ( action == NRF_GPIOTE_POLARITY_HITOLO )
         {
             enter_low_power_mode();
@@ -2052,6 +2053,7 @@ void in_gpiote_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
     default:
         break;
     }
+    NRF_LOG_FLUSH();
 }
 
 static void gpio_int_handler_pmu(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
@@ -2314,7 +2316,6 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         {
             bak_buff[0] = BLE_CMD_CON_STA;
             bak_buff[1] = BLE_ADV_OFF_STATUS;
-            NRF_LOG_INFO("send_stm_data 019");
             send_stm_data(bak_buff, 2);
 
             bt_disconnect();

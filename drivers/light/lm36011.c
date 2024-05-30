@@ -5,6 +5,7 @@
 
 ret_code_t lm36011_write(const uint8_t writeAddr, const uint8_t writeData)
 {
+    PRINT_CURRENT_LOCATION();
     I2C_t* i2c_handle = nrf_i2c_get_instance();
     if ( !i2c_handle->isInitialized )
         if ( !i2c_handle->Init() )
@@ -15,6 +16,7 @@ ret_code_t lm36011_write(const uint8_t writeAddr, const uint8_t writeData)
 
 ret_code_t lm36011_read(uint8_t readAddr, uint8_t byteNum, uint8_t* readData)
 {
+    PRINT_CURRENT_LOCATION();
     I2C_t* i2c_handle = nrf_i2c_get_instance();
     if ( !i2c_handle->isInitialized )
         if ( !i2c_handle->Init() )

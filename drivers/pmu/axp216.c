@@ -407,7 +407,7 @@ Power_Error_t axp216_pull_status(void)
 
         hlbuff.u8_high = 0;
         EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_MODE_CHGSTATUS, &(hlbuff.u8_low)));
-        status_temp.chargeFinished = ((hlbuff.u8_low & (1 << 6)) == (1 << 6));
+        status_temp.chargeFinished = ((hlbuff.u8_low & (1 << 6)) != (1 << 6));
     }
     else
     {
@@ -429,7 +429,6 @@ Power_Error_t axp216_set_feature(Power_Featrue_t feature, bool enable)
     case PWR_FEAT_CHARGE:
         if ( enable )
         {
-
             EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_CHARGE1, (1 << 7)));
         }
         else
