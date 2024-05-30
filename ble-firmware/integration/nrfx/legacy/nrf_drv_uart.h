@@ -122,7 +122,7 @@
     typedef nrf_uarte_baudrate_t        nrf_uart_baudrate_t;
     #define NRF_UART_ERROR_OVERRUN_MASK NRF_UARTE_ERROR_OVERRUN_MASK
     #define NRF_UART_ERROR_PARITY_MASK  NRF_UARTE_ERROR_PARITY_MASK
-    #define NRF_UART_ERROR_FRAMING_MASK NRF_UARTE_ERROR_PARITY_MASK
+    #define NRF_UART_ERROR_FRAMING_MASK NRF_UARTE_ERROR_FRAMING_MASK
     #define NRF_UART_ERROR_BREAK_MASK   NRF_UARTE_ERROR_BREAK_MASK
     typedef nrf_uarte_error_mask_t      nrf_uart_error_mask_t;
     #define NRF_UART_HWFC_DISABLED      NRF_UARTE_HWFC_DISABLED

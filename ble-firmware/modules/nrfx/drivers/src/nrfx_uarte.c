@@ -438,6 +438,9 @@ nrfx_err_t nrfx_uarte_rx(nrfx_uarte_t const * p_instance,
     }
 
     NRFX_LOG_INFO("Transfer rx_len: %d.", length);
+    NRFX_LOG_DEBUG("Rx data:");
+    NRFX_LOG_HEXDUMP_DEBUG(p_cb->p_rx_buffer,
+                           p_cb->rx_buffer_length * sizeof(p_cb->p_rx_buffer[0]));
 
     err_code = NRFX_SUCCESS;
 
