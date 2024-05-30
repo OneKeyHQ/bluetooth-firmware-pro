@@ -54,14 +54,14 @@ static void pmu_if_irq(const uint64_t irq)
         bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
         send_stm_data_p(bak_buff, 3);
     }
-    if ( 0 != (irq & (1 << PWR_IRQ_CHARGED)) )
-    {
-
-        bak_buff[0] = BLE_CMD_POWER_STA;
-        bak_buff[1] = BLE_CHAGE_OVER;
-        bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
-        send_stm_data_p(bak_buff, 3);
-    }
+    // if ( 0 != (irq & (1 << PWR_IRQ_CHARGED)) )
+    // {
+    //     NRF_LOG_INFO("irq PWR_IRQ_CHARGED");
+    //     bak_buff[0] = BLE_CMD_POWER_STA;
+    //     bak_buff[1] = BLE_CHAGE_OVER;
+    //     bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
+    //     send_stm_data_p(bak_buff, 3);
+    // }
     if ( 0 != (irq & (1 << PWR_IRQ_BATT_LOW)) ) {}
     if ( 0 != (irq & (1 << PWR_IRQ_BATT_CRITICAL)) ) {}
     if ( 0 != (irq & (1 << PWR_IRQ_PB_PRESS)) )

@@ -2405,9 +2405,10 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
 
         if ( pmu_p->PowerStatus->chargerAvailable )
         {
-            bak_buff[1] =
-                ((pmu_p->PowerStatus->chargeFinished && pmu_p->PowerStatus->chargeAllowed) ? BLE_CHAGE_OVER
-                                                                                           : BLE_CHARGING_PWR);
+            // bak_buff[1] =
+            //     ((pmu_p->PowerStatus->chargeFinished && pmu_p->PowerStatus->chargeAllowed) ? BLE_CHAGE_OVER
+            //                                                                                : BLE_CHARGING_PWR);
+            bak_buff[1] = BLE_CHARGING_PWR;
             bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
         }
         else
