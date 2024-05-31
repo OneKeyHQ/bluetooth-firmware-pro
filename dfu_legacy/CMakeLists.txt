@@ -81,7 +81,8 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/atomic_fifo/nrf_atfifo.c
   ${NRF_SDK_ROOT}/components/libraries/balloc/nrf_balloc.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/serial_dfu/nrf_dfu_serial.c
-  ${NRF_SDK_ROOT}/components/libraries/bootloader/serial_dfu/nrf_dfu_serial_uart.c
+  # ${NRF_SDK_ROOT}/components/libraries/bootloader/serial_dfu/nrf_dfu_serial_uart.c
+  ${PROJECT_SOURCE_DIR}/nrf_dfu_serial_uart.c # use old version instead
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/dfu-cc.pb.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_flash.c
