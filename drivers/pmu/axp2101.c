@@ -101,6 +101,10 @@ static bool axp2101_config_battery(void)
     // CRITICAL -> 5%
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_GAUGE_THLD, 0x55));
 
+    // charge setting
+    // normarl charge current 500ma
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_ICC_CFG, 0b00001011));
+
     // voltage
     // bit 7:3 zero
     // bit 2:0 0b100 -> 4.35v
@@ -166,6 +170,16 @@ static bool axp2101_config_common(void)
     // EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_WATCHDOG_CFG, 0b00010011)); // on trigger send irq and reset, 8s timer
     // EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_MODULE_EN, (1 << 0)));       //enable
 
+    return true;
+}
+
+static bool axp2101_charge_current_sel(bool low_current_mode)
+{
+    uint8_t reg_val = 0;
+    EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_ICC_CFG, &reg_val));
+    reg_val &= 0b11100000;                                   // clear current bits [4:0]
+    reg_val |= (low_current_mode ? 0b00001001 : 0b00001011); // set current 300ma or 500ma
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_ICC_CFG, reg_val));
     return true;
 }
 
@@ -401,7 +415,7 @@ Power_Error_t axp2101_pull_status(void)
         status_temp.chargeFinished = ((hlbuff.u8_low & 0b00000111) == 0b00000100); // bit 2:0 = 100 charge done
 
         if ( (hlbuff.u8_low & 0b01100000) == 0b00100000 || // bit 6:5 = 01 battery current charge
-             status_temp.chargeFinished                         // still try get power source
+             status_temp.chargeFinished                    // still try get power source
         )
         {
             // TODO: find a batter way to check GPIO?
@@ -413,8 +427,12 @@ Power_Error_t axp2101_pull_status(void)
             EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_UNUSED));
 
             status_temp.wirelessCharge = !gpio_high_low; // low is wireless
+
             // if not wireless charging then it's wired
             status_temp.wiredCharge = !status_temp.wirelessCharge;
+
+            // wireless charge current limit to 300ma
+            EC_E_BOOL_R_PWR_ERR(axp2101_charge_current_sel(status_temp.wirelessCharge));
         }
         else
         {

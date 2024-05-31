@@ -31,8 +31,7 @@ static bool axp216_config_voltage(void)
     return true;
 }
 
-#define AXP216_VTS_TO_VXTF(mv) (mv / 0.8 / 0x10 / 1000)
-static bool axp216_config_battery(void)
+static bool axp216_config_battery_param(void)
 {
     // cap
     uint16_t value = (float)(530 / 1.456);
@@ -41,6 +40,12 @@ static bool axp216_config_battery(void)
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_BAT_CAP0, (uint8_t)(value >> 8)));
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_BAT_CAP1, (uint8_t)value));
 
+    return true;
+}
+
+#define AXP216_VTS_TO_VXTF(mv) (mv / 0.8 / 0x10 / 1000)
+static bool axp216_config_battery(void)
+{
     // warn level
     // WARN -> 10%
     // CRITICAL -> 5%
@@ -84,11 +89,11 @@ static bool axp216_config_irq(void)
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN5, 0x00));
 
     // clear irq
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS1, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS2, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS3, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS4, 0xFF));
-    EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_INTSTS5, 0xFF));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTSTS1, 0xFF));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTSTS2, 0xFF));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTSTS3, 0xFF));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTSTS4, 0xFF));
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTSTS5, 0xFF));
 
     // enable irq (only needed)
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_INTEN1, 0xFC));
@@ -113,6 +118,16 @@ static bool axp216_config_common(void)
     // voff(ipsout/vsys) 3.3v, no irq wakeup
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VOFF_SET, 0x07));
 
+    return true;
+}
+
+static bool axp216_charge_current_sel(bool low_current_mode)
+{
+    uint8_t reg_val = 0;
+    EC_E_BOOL_R_BOOL(axp216_reg_read(AXP216_CHARGE1, &reg_val));
+    reg_val &= 0b11110000;                                   // clear current bits [3:0]
+    reg_val |= (low_current_mode ? 0b00000000 : 0b00000001); // set current 300ma or 450ma
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_CHARGE1, reg_val));
     return true;
 }
 
@@ -237,6 +252,7 @@ Power_Error_t axp216_config(void)
 {
     EC_E_BOOL_R_PWR_ERR(axp216_config_voltage());
     EC_E_BOOL_R_PWR_ERR(axp216_config_common());
+    EC_E_BOOL_R_PWR_ERR(axp216_config_battery_param());
     EC_E_BOOL_R_PWR_ERR(axp216_config_battery());
     EC_E_BOOL_R_PWR_ERR(axp216_config_adc());
     EC_E_BOOL_R_PWR_ERR(axp216_config_irq());
@@ -333,7 +349,7 @@ Power_Error_t axp216_pull_status(void)
         if ( (hlbuff.u8_low & 0x80) == 0x80 ) // is data valid
             status_temp.batteryPercent = hlbuff.u8_low & 0x7f;
         else
-            status_temp.batteryPercent = 100;
+            status_temp.batteryPercent = 0;
 
         // battery voltage
         EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_VBATH_RES, &(hlbuff.u8_high)));
@@ -379,10 +395,13 @@ Power_Error_t axp216_pull_status(void)
             hlbuff.u8_high = 0;
             EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_GPIO01_SIGNAL, &(hlbuff.u8_low))); // gpio1 read
             EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000111));          // gpio1 float
-            status_temp.wirelessCharge = ((hlbuff.u8_low & (1 << 1)) != (1 << 1));            // low when wireless charging
+            status_temp.wirelessCharge = ((hlbuff.u8_low & (1 << 1)) != (1 << 1));        // low when wireless charging
 
             // if not wireless charging then it's wired
             status_temp.wiredCharge = !status_temp.wirelessCharge;
+
+            // wireless charge current limit to 300ma
+            EC_E_BOOL_R_PWR_ERR(axp216_charge_current_sel(status_temp.wirelessCharge));
         }
         else
         {
