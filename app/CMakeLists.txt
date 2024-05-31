@@ -29,7 +29,7 @@ set(
   ${NRF_SDK_ROOT}/components/ble/ble_services/ble_bas_c
   ${NRF_SDK_ROOT}/components/ble/ble_services/ble_cscs
   ${NRF_SDK_ROOT}/components/ble/ble_services/ble_cts_c
-  ${NRF_SDK_ROOT}/components/ble/ble_services/ble_dfu
+  # ${NRF_SDK_ROOT}/components/ble/ble_services/ble_dfu
   ${NRF_SDK_ROOT}/components/ble/ble_services/ble_dis
   ${NRF_SDK_ROOT}/components/ble/ble_services/ble_gls
   ${NRF_SDK_ROOT}/components/ble/ble_services/ble_hids
@@ -51,17 +51,17 @@ set(
   ${NRF_SDK_ROOT}/components/ble/nrf_ble_gq
   ${NRF_SDK_ROOT}/components/ble/nrf_ble_qwr
   ${NRF_SDK_ROOT}/components/ble/peer_manager
-  ${NRF_SDK_ROOT}/components/boards
+  # ${NRF_SDK_ROOT}/components/boards
   ${NRF_SDK_ROOT}/components/libraries/atomic
   ${NRF_SDK_ROOT}/components/libraries/atomic_fifo
   ${NRF_SDK_ROOT}/components/libraries/atomic_flags
   ${NRF_SDK_ROOT}/components/libraries/balloc
   ${NRF_SDK_ROOT}/components/libraries/bootloader
-  ${NRF_SDK_ROOT}/components/libraries/bootloader/ble_dfu
+  # ${NRF_SDK_ROOT}/components/libraries/bootloader/ble_dfu
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu
-  ${NRF_SDK_ROOT}/components/libraries/bsp
-  ${NRF_SDK_ROOT}/components/libraries/button
-  ${NRF_SDK_ROOT}/components/libraries/cli
+  # ${NRF_SDK_ROOT}/components/libraries/bsp
+  # ${NRF_SDK_ROOT}/components/libraries/button
+  # ${NRF_SDK_ROOT}/components/libraries/cli
   ${NRF_SDK_ROOT}/components/libraries/crc16
   ${NRF_SDK_ROOT}/components/libraries/crc32
   ${NRF_SDK_ROOT}/components/libraries/crypto
@@ -74,23 +74,23 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/nrf_sw
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/oberon
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/optiga
-  ${NRF_SDK_ROOT}/components/libraries/csense
-  ${NRF_SDK_ROOT}/components/libraries/csense_drv
+  # ${NRF_SDK_ROOT}/components/libraries/csense
+  # ${NRF_SDK_ROOT}/components/libraries/csense_drv
   ${NRF_SDK_ROOT}/components/libraries/delay
   ${NRF_SDK_ROOT}/components/libraries/ecc
   ${NRF_SDK_ROOT}/components/libraries/experimental_section_vars
-  ${NRF_SDK_ROOT}/components/libraries/experimental_task_manager
+  # ${NRF_SDK_ROOT}/components/libraries/experimental_task_manager
   ${NRF_SDK_ROOT}/components/libraries/fds
   ${NRF_SDK_ROOT}/components/libraries/fifo
   ${NRF_SDK_ROOT}/components/libraries/fstorage
-  ${NRF_SDK_ROOT}/components/libraries/gfx
+  # ${NRF_SDK_ROOT}/components/libraries/gfx
   ${NRF_SDK_ROOT}/components/libraries/gpiote
   ${NRF_SDK_ROOT}/components/libraries/hardfault
   ${NRF_SDK_ROOT}/components/libraries/hci
-  ${NRF_SDK_ROOT}/components/libraries/led_softblink
+  # ${NRF_SDK_ROOT}/components/libraries/led_softblink
   ${NRF_SDK_ROOT}/components/libraries/log
   ${NRF_SDK_ROOT}/components/libraries/log/src
-  ${NRF_SDK_ROOT}/components/libraries/low_power_pwm
+  # ${NRF_SDK_ROOT}/components/libraries/low_power_pwm
   ${NRF_SDK_ROOT}/components/libraries/mem_manager
   ${NRF_SDK_ROOT}/components/libraries/memobj
   ${NRF_SDK_ROOT}/components/libraries/mpu
@@ -100,8 +100,8 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/queue
   ${NRF_SDK_ROOT}/components/libraries/ringbuf
   ${NRF_SDK_ROOT}/components/libraries/scheduler
-  ${NRF_SDK_ROOT}/components/libraries/sdcard
-  ${NRF_SDK_ROOT}/components/libraries/sensorsim
+  # ${NRF_SDK_ROOT}/components/libraries/sdcard
+  # ${NRF_SDK_ROOT}/components/libraries/sensorsim
   ${NRF_SDK_ROOT}/components/libraries/slip
   ${NRF_SDK_ROOT}/components/libraries/sortlist
   ${NRF_SDK_ROOT}/components/libraries/spi_mngr
@@ -111,17 +111,17 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/svc
   ${NRF_SDK_ROOT}/components/libraries/timer
   ${NRF_SDK_ROOT}/components/libraries/twi_mngr
-  ${NRF_SDK_ROOT}/components/libraries/twi_sensor
+  # ${NRF_SDK_ROOT}/components/libraries/twi_sensor
   ${NRF_SDK_ROOT}/components/libraries/uart
-  ${NRF_SDK_ROOT}/components/libraries/usbd
-  ${NRF_SDK_ROOT}/components/libraries/usbd/class/audio
-  ${NRF_SDK_ROOT}/components/libraries/usbd/class/cdc
-  ${NRF_SDK_ROOT}/components/libraries/usbd/class/cdc/acm
-  ${NRF_SDK_ROOT}/components/libraries/usbd/class/hid
-  ${NRF_SDK_ROOT}/components/libraries/usbd/class/hid/generic
-  ${NRF_SDK_ROOT}/components/libraries/usbd/class/hid/kbd
-  ${NRF_SDK_ROOT}/components/libraries/usbd/class/hid/mouse
-  ${NRF_SDK_ROOT}/components/libraries/usbd/class/msc
+  # ${NRF_SDK_ROOT}/components/libraries/usbd
+  # ${NRF_SDK_ROOT}/components/libraries/usbd/class/audio
+  # ${NRF_SDK_ROOT}/components/libraries/usbd/class/cdc
+  # ${NRF_SDK_ROOT}/components/libraries/usbd/class/cdc/acm
+  # ${NRF_SDK_ROOT}/components/libraries/usbd/class/hid
+  # ${NRF_SDK_ROOT}/components/libraries/usbd/class/hid/generic
+  # ${NRF_SDK_ROOT}/components/libraries/usbd/class/hid/kbd
+  # ${NRF_SDK_ROOT}/components/libraries/usbd/class/hid/mouse
+  # ${NRF_SDK_ROOT}/components/libraries/usbd/class/msc
   ${NRF_SDK_ROOT}/components/libraries/util
   ${NRF_SDK_ROOT}/components/softdevice/common
   ${NRF_SDK_ROOT}/components/softdevice/s132/headers
@@ -130,7 +130,7 @@ set(
   ${NRF_SDK_ROOT}/external/fprintf
   ${NRF_SDK_ROOT}/external/mbedtls/include
   ${NRF_SDK_ROOT}/external/micro-ecc/micro-ecc
-  ${NRF_SDK_ROOT}/external/nrf_cc310/include
+  # ${NRF_SDK_ROOT}/external/nrf_cc310/include
   ${NRF_SDK_ROOT}/external/nrf_oberon
   ${NRF_SDK_ROOT}/external/nrf_oberon/include
   ${NRF_SDK_ROOT}/external/nrf_tls/mbedtls/nrf_crypto/config
@@ -150,9 +150,9 @@ set(
   ${NRF_SDK_ROOT}/components/ble/ble_link_ctx_manager/ble_link_ctx_manager.c
   ${NRF_SDK_ROOT}/components/ble/ble_racp/ble_racp.c
   ${NRF_SDK_ROOT}/components/ble/ble_services/ble_bas/ble_bas.c
-  ${NRF_SDK_ROOT}/components/ble/ble_services/ble_dfu/ble_dfu.c
-  ${NRF_SDK_ROOT}/components/ble/ble_services/ble_dfu/ble_dfu_bonded.c
-  ${NRF_SDK_ROOT}/components/ble/ble_services/ble_dfu/ble_dfu_unbonded.c
+  # ${NRF_SDK_ROOT}/components/ble/ble_services/ble_dfu/ble_dfu.c
+  # ${NRF_SDK_ROOT}/components/ble/ble_services/ble_dfu/ble_dfu_bonded.c
+  # ${NRF_SDK_ROOT}/components/ble/ble_services/ble_dfu/ble_dfu_unbonded.c
   ${NRF_SDK_ROOT}/components/ble/ble_services/ble_dis/ble_dis.c
   ${NRF_SDK_ROOT}/components/ble/ble_services/ble_lbs/ble_lbs.c
   ${NRF_SDK_ROOT}/components/ble/ble_services/ble_nus/ble_nus.c
@@ -392,9 +392,7 @@ target_compile_options(
   -DS132
   -DSOFTDEVICE_PRESENT
   # project flags
-  -DBUTTONLESS_ENABLED
   -DBOND_ENABLE
-  -DNRF_DFU_TRANSPORT_BLE
   -DMBEDTLS_CONFIG_FILE="nrf_crypto_mbedtls_config.h"
   -DNRF_APP_VERSION=0x00000001
   -DNRF_APP_VERSION_ADDR=0x1D000

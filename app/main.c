@@ -78,7 +78,7 @@
 #include "peer_manager_handler.h"
 #include "sdk_macros.h"
 #include "app_scheduler.h"
-#include "ble_dfu.h"
+// #include "ble_dfu.h"
 #include "nrf_bootloader_info.h"
 #include "nrf_crypto.h"
 #include "nrf_crypto_init.h"
@@ -947,21 +947,6 @@ static void gatt_init(void)
 static void nrf_qwr_error_handler(uint32_t nrf_error)
 {
     APP_ERROR_HANDLER(nrf_error);
-}
-
-static void disconnect(uint16_t conn_handle, void* p_context)
-{
-    UNUSED_PARAMETER(p_context);
-
-    ret_code_t err_code = sd_ble_gap_disconnect(conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-    if ( err_code != NRF_SUCCESS )
-    {
-        NRF_LOG_WARNING("Failed to disconnect connection. Connection handle: %d Error: %d", conn_handle, err_code);
-    }
-    else
-    {
-        NRF_LOG_DEBUG("Disconnected connection handle %d", conn_handle);
-    }
 }
 
 #ifdef BUTTONLESS_ENABLED
