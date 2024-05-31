@@ -368,13 +368,40 @@ execute_process(
 )
 add_definitions('-DBUILD_ID=\"${GIT_VERSION}\"')
 
+target_compile_definitions(
+  ${CMAKE_PROJECT_NAME} PRIVATE
+  # debug handling
+  $<$<CONFIG:Debug>:
+  DEBUG
+  >
+  # project flags
+  APP_TIMER_V2
+  APP_TIMER_V2_RTC1_ENABLED
+  CONFIG_GPIO_AS_PINRESET
+  FLOAT_ABI_HARD
+  NRF52
+  NRF52832_XXAA
+  NRF_SD_BLE_API_VERSION=7
+  S132
+  SOFTDEVICE_PRESENT
+  # BUTTONLESS_ENABLED
+  BOND_ENABLE
+  # NRF_DFU_TRANSPORT_BLE
+  MBEDTLS_CONFIG_FILE="nrf_crypto_mbedtls_config.h"
+  NRF_APP_VERSION=0x00000001
+  NRF_APP_VERSION_ADDR=0x1D000
+  NRF_CRYPTO_MAX_INSTANCE_COUNT=1
+  # heap and stack
+  __HEAP_SIZE=8192
+  __STACK_SIZE=8192
+)
+
 target_compile_options(
   ${CMAKE_PROJECT_NAME} PRIVATE
 
   # Build type handling
   $<$<CONFIG:Debug>:
   -Og -ggdb
-  -DDEBUG
   >
   $<$<CONFIG:Release>:
   -Os -g0
@@ -382,22 +409,6 @@ target_compile_options(
   
   # Uncomment the line below to enable link time optimization
   # -flto=auto
-  # C flags common to all targets
-  -DAPP_TIMER_V2
-  -DAPP_TIMER_V2_RTC1_ENABLED
-  -DCONFIG_GPIO_AS_PINRESET
-  -DFLOAT_ABI_HARD
-  -DNRF52
-  -DNRF52832_XXAA
-  -DNRF_SD_BLE_API_VERSION=7
-  -DS132
-  -DSOFTDEVICE_PRESENT
-  # project flags
-  -DBOND_ENABLE
-  -DMBEDTLS_CONFIG_FILE="nrf_crypto_mbedtls_config.h"
-  -DNRF_APP_VERSION=0x00000001
-  -DNRF_APP_VERSION_ADDR=0x1D000
-  -DNRF_CRYPTO_MAX_INSTANCE_COUNT=1
   #  -Wall -Werror
   -Wall -Wno-comment -Wno-array-bounds
   -mcpu=cortex-m4
@@ -405,9 +416,6 @@ target_compile_options(
   -mfloat-abi=hard -mfpu=fpv4-sp-d16
   # keep every function in a separate section, this allows linker to discard unused ones
   -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums
-  # heap and stack
-  -D__HEAP_SIZE=8192
-  -D__STACK_SIZE=8192
 )
 
 target_link_options(
