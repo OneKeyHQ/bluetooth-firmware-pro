@@ -250,6 +250,7 @@ set(
   ${NRF_SDK_ROOT}/external/segger_rtt/SEGGER_RTT_printf.c
   ${NRF_SDK_ROOT}/external/utf_converter/utf.c
   ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_rng.c
+  ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_uart.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_clock.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_gpiote.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_rng.c
