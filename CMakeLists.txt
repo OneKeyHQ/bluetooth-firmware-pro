@@ -17,6 +17,8 @@ set(CMAKE_INCLUDE_CURRENT_DIR OFF)
 
 # populate vars
 set(DIR_UTILS "${PROJECT_SOURCE_DIR}/utils")
+# set(DIR_NRFUTIL_REPO "${PROJECT_BINARY_DIR}/nrfutil_repo")
+set(DIR_NRFUTIL_REPO "${DIR_UTILS}/nrfutil_repo")
 set(FILE_KEY "${PROJECT_BINARY_DIR}/temp.pk")
 set(FILE_INPUT_BL_CONFIG "bl_config.hex")
 set(FILE_INPUT_MBR_UICR "${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_MBR_UICR.hex")
@@ -49,7 +51,7 @@ add_custom_target(
 # nrf tools
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_UTIL
-  COMMAND ${DIR_UTILS}/nrfutil install nrf5sdk-tools
+  COMMAND ${DIR_UTILS}/nrfutil_prepare.sh "${DIR_NRFUTIL_REPO}"
 )
 
 # python env (poetry)
@@ -162,7 +164,7 @@ add_custom_target(
 # flash
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_FLASH_FACTORY
-  COMMAND JLINK_SN=$ENV{JLINK_SN} ${PROJECT_SOURCE_DIR}/flash_factory.sh
+  COMMAND JLINK_SN=$ENV{JLINK_SN} ${DIR_UTILS}/jlink_flash.sh ${FILE_OUTPUT_FACTORY_HEX}
   DEPENDS ${CMAKE_PROJECT_NAME}_FACTORY_HEX
 )
 
