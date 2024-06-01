@@ -28,6 +28,8 @@ static void pmu_if_irq(const uint64_t irq)
     if ( irq == 0 )
         return;
 
+    nrf_delay_ms(15); // wait regs update
+
     pmu_p->PullStatus();
 
     if ( 0 != (irq & (1 << PWR_IRQ_PWR_CONNECTED)) )
