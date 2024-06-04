@@ -542,14 +542,9 @@ uint32_t ble_advertising_stop(ble_advertising_t * const p_advertising)
 {
     uint32_t err_code;
 
-    // no adv on disconnect
-    p_advertising->adv_modes_config.ble_adv_on_disconnect_disabled = false;
-
-    // no recuring
-    p_advertising->adv_evt = BLE_ADV_EVT_IDLE;
-
     // stop adv
     err_code = sd_ble_gap_adv_stop(p_advertising->adv_handle);
+    p_advertising->evt_handler(BLE_ADV_EVT_IDLE);
     if(err_code != NRF_SUCCESS)
     {
         return err_code;
