@@ -549,22 +549,12 @@ static bool app_shutdown_handler(nrf_pwr_mgmt_evt_t event)
     switch ( event )
     {
     case NRF_PWR_MGMT_EVT_PREPARE_WAKEUP:
-
-        // disconnect (if connected)
-        if ( m_conn_handle != BLE_CONN_HANDLE_INVALID )
-        {
-            // ret_code_t err_code;
-            // if ( sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION) != NRF_SUCCESS )
-            //     return false;
-            // only try disconnect, as the connection will be dropped anyways after shutdown
-            sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-            m_conn_handle = BLE_CONN_HANDLE_INVALID;
-            ble_evt_flag = BLE_DISCONNECT;
-        }
         // stop bt adv
-        bt_advertising_ctrl(false, false);
+        if ( !bt_advertising_ctrl(false, false) )
+            return false;
         // enable wakeup
         nrf_gpio_cfg_sense_input(PMIC_PWROK_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
+        nrf_gpio_cfg_sense_input(PMIC_IRQ_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
         return true;
 
     case NRF_PWR_MGMT_EVT_PREPARE_DFU:
@@ -1324,21 +1314,14 @@ static void conn_params_init(void)
  */
 static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
 {
-#ifdef DEV_BSP
-    ret_code_t err_code;
-#endif
     switch ( ble_adv_evt )
     {
+    case BLE_ADV_EVT_IDLE:
+        NRF_LOG_INFO("ble_adv_evt_t -> BLE_ADV_EVT_IDLE");
+        break;
     case BLE_ADV_EVT_FAST:
-        NRF_LOG_INFO("Fast advertising");
-#ifdef DEV_BSP
-        err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
-        APP_ERROR_CHECK(err_code);
-#endif
-        break; // BLE_ADV_EVT_FAST
-
-    case BLE_ADV_EVT_IDLE: // 协议栈上抛这个事件就回进入睡眠模式
-        break;             // BLE_ADV_EVT_IDLE
+        NRF_LOG_INFO("ble_adv_evt_t -> BLE_ADV_EVT_FAST");
+        break;
 
     default:
         break;
@@ -2117,11 +2100,24 @@ static void send_stm_data(uint8_t* pdata, uint8_t lenth)
     uart_put_data(uart_trans_buff, uart_trans_buff[3] + 4);
 }
 
-/**@brief Function for starting advertising.
- */
+static bool bt_disconnect()
+{
+    if ( m_conn_handle != BLE_CONN_HANDLE_INVALID )
+    {
+        if ( NRF_SUCCESS != sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION) )
+            return false;
+        m_conn_handle = BLE_CONN_HANDLE_INVALID;
+        ble_evt_flag = BLE_DISCONNECT;
+        NRF_LOG_INFO("bt_disconnect");
+    }
+
+    nrf_delay_ms(1000);
+
+    return true;
+}
+
 static bool bt_advertising_ctrl(bool enable, bool commit)
 {
-
     if ( enable )
     {
         ble_status_flag = BLE_ON_ALWAYS;
@@ -2131,8 +2127,13 @@ static bool bt_advertising_ctrl(bool enable, bool commit)
     }
     else
     {
+        // disconnect (if connected)
+        if ( !bt_disconnect() )
+            return false;
+
+        // turn off
         ble_status_flag = BLE_OFF_ALWAYS;
-        deviceConfig_p->settings.bt_ctrl = DEVICE_CONFIG_FLAG_MAGIC; // turn off
+        deviceConfig_p->settings.bt_ctrl = DEVICE_CONFIG_FLAG_MAGIC;
         if ( NRF_SUCCESS != ble_advertising_stop(&m_advertising) )
             return false;
     }
@@ -2279,17 +2280,6 @@ static void manage_bat_level(void* p_event_data, uint16_t event_size)
         send_stm_data(bak_buff, 2);
     }
 }
-static void bt_disconnect()
-{
-    if ( ble_evt_flag != BLE_DISCONNECT || ble_evt_flag != BLE_DEFAULT )
-    {
-        sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-        m_conn_handle = BLE_CONN_HANDLE_INVALID;
-        ble_evt_flag = BLE_DISCONNECT;
-        NRF_LOG_INFO("Ctl disconnect.");
-    }
-    nrf_delay_ms(1000);
-}
 static void ble_ctl_process(void* p_event_data, uint16_t event_size)
 {
     uint8_t respons_flag = 0;
@@ -2299,53 +2289,41 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         ble_adv_switch_flag = BLE_DEF;
         if ( BLE_ON_ALWAYS == ble_status_flag )
         {
-            bak_buff[0] = BLE_CMD_CON_STA;
-            bak_buff[1] = BLE_ADV_OFF_STATUS;
-            send_stm_data(bak_buff, 2);
-
-            bt_disconnect();
+            // delete peer
+            if ( m_peer_to_be_deleted != PM_PEER_ID_INVALID )
+            {
+                pm_peer_delete(m_peer_to_be_deleted);
+                m_peer_to_be_deleted = PM_PEER_ID_INVALID;
+            }
+            // disconnect, stop adv, commit
             bt_advertising_ctrl(false, true);
         }
-        else
-        {
-            bak_buff[0] = BLE_CMD_CON_STA;
-            bak_buff[1] = BLE_ADV_OFF_STATUS;
-            send_stm_data(bak_buff, 2);
-        }
+        bak_buff[0] = BLE_CMD_CON_STA;
+        bak_buff[1] = BLE_ADV_OFF_STATUS;
+        send_stm_data(bak_buff, 2);
     }
     else if ( BLE_ON_ALWAYS == ble_adv_switch_flag )
     {
         ble_adv_switch_flag = BLE_DEF;
         if ( BLE_OFF_ALWAYS == ble_status_flag )
         {
-            bak_buff[0] = BLE_CMD_CON_STA;
-            bak_buff[1] = BLE_ADV_ON_STATUS;
-            send_stm_data(bak_buff, 2);
-
             bt_advertising_ctrl(true, true);
             NRF_LOG_INFO("2-Start advertisement.\n");
         }
-        else
-        {
-            bak_buff[0] = BLE_CMD_CON_STA;
-            bak_buff[1] = BLE_ADV_ON_STATUS;
-            send_stm_data(bak_buff, 2);
-        }
+
+        bak_buff[0] = BLE_CMD_CON_STA;
+        bak_buff[1] = BLE_ADV_ON_STATUS;
+        send_stm_data(bak_buff, 2);
     }
+
     if ( BLE_DISCON == ble_conn_flag )
     {
         ble_conn_flag = BLE_DEF;
-        if ( ble_evt_flag != BLE_DISCONNECT || ble_evt_flag != BLE_DEFAULT )
-        {
-            sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-            ble_evt_flag = BLE_DISCONNECT;
-
-            NRF_LOG_INFO("Ctl disconnect.");
-        }
-
         bak_buff[0] = BLE_CMD_CON_STA;
         bak_buff[1] = BLE_DISCON_STATUS;
         send_stm_data(bak_buff, 2);
+
+        bt_disconnect();
     }
     if ( BLE_CON == ble_conn_flag )
     {
@@ -2366,7 +2344,7 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
 
         if ( ble_status_flag != BLE_OFF_ALWAYS )
         {
-            bt_disconnect();
+            bt_advertising_ctrl(false, true);
         }
         pmu_p->SetState(PWR_STATE_HARD_OFF);
         break;
@@ -2496,7 +2474,6 @@ static void m_wdt_event_handler(void)
 {
     NRF_LOG_INFO("WDT Triggered!");
     NRF_LOG_FLUSH();
-    // NVIC_SystemReset(); // needed?
 }
 
 static void watch_dog_init(void)
