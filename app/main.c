@@ -1908,6 +1908,12 @@ static void ble_resp_data(void* p_event_data, uint16_t event_size)
 
     if ( !ble_send_ready )
         return;
+    if ( m_conn_handle == BLE_CONN_HANDLE_INVALID )
+    {
+        ble_send_ready = false;
+        return;
+    }
+
     ble_send_ready = false;
 
     while ( data_recived_len > m_ble_nus_max_data_len )
