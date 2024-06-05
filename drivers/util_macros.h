@@ -38,6 +38,7 @@
             (ON_FALSE);                                               \
     }
 
+#if DEBUG
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
@@ -46,5 +47,8 @@
         NRF_LOG_INFO("%s:%d:%s", __FILE__, __LINE__, __FUNCTION__); \
         NRF_LOG_FLUSH();                                            \
     }
+#else
+#define PRINT_CURRENT_LOCATION()
+#endif
 
 #endif //_util_macros_

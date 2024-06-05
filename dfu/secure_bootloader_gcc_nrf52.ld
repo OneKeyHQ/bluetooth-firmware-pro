@@ -119,7 +119,7 @@ SECTIONS
     KEEP(*(SORT(.dfu_trans*)))
     PROVIDE(__stop_dfu_trans = .);
   } > FLASH
-    .svc_data :
+  .svc_data :
   {
     PROVIDE(__start_svc_data = .);
     KEEP(*(.svc_data))

@@ -6,6 +6,8 @@
 #include "nrf_i2c.h"
 
 #include "nrf_delay.h"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
 #include "nrf_gpio.h"
 
 // workarounds to keep this file clean

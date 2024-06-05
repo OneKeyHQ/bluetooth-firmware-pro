@@ -3,6 +3,8 @@
 #include "util_macros.h"
 
 #include "nrf_delay.h"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
 #include "nrf_fstorage.h"
 #include "nrf_fstorage_sd.h"
 

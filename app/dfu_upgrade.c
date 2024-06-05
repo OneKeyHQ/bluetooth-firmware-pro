@@ -8,6 +8,7 @@
 #include "dfu_upgrade_payload.h"
 
 #include "nrf_log.h"
+#include "nrf_log_ctrl.h"
 #include "nrfx_nvmc.h"
 #include "nrf_mbr.h"
 #include "app_util_platform.h"

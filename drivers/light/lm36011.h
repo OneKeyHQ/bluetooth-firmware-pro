@@ -2,6 +2,7 @@
 #define _LM36011_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "nrf_delay.h"
 
 // ================================

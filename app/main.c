@@ -2289,12 +2289,6 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         ble_adv_switch_flag = BLE_DEF;
         if ( BLE_ON_ALWAYS == ble_status_flag )
         {
-            // delete peer
-            if ( m_peer_to_be_deleted != PM_PEER_ID_INVALID )
-            {
-                pm_peer_delete(m_peer_to_be_deleted);
-                m_peer_to_be_deleted = PM_PEER_ID_INVALID;
-            }
             // disconnect, stop adv, commit
             bt_advertising_ctrl(false, true);
         }
