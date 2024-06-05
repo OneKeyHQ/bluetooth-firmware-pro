@@ -2112,12 +2112,16 @@ static bool bt_disconnect()
     {
         if ( NRF_SUCCESS != sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION) )
             return false;
-        m_conn_handle = BLE_CONN_HANDLE_INVALID;
         ble_evt_flag = BLE_DISCONNECT;
         NRF_LOG_INFO("bt_disconnect");
     }
-
-    nrf_delay_ms(1000);
+    int i = 0;
+    while( m_conn_handle != BLE_CONN_HANDLE_INVALID )
+    {
+        nrf_delay_ms(10);
+        if ( i++ > 100 )
+            return false;
+    }
 
     return true;
 }
