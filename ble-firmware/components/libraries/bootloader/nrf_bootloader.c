@@ -41,8 +41,9 @@
 
 #include "compiler_abstraction.h"
 #include "nrf.h"
-#include "boards.h"
+// #include "boards.h"
 #include "sdk_config.h"
+#include "nrf_gpio.h"
 #include "nrf_power.h"
 #include "nrf_delay.h"
 #include "nrf_log.h"
@@ -504,7 +505,7 @@ ret_code_t nrf_bootloader_init(nrf_dfu_observer_t observer)
             return NRF_ERROR_INTERNAL;
         }
 
-        NRF_LOG_DEBUG("Enter main loop");
+        NRF_LOG_DEBUG("Enter DFU main loop");
         loop_forever(); // This function will never return.
         NRF_LOG_ERROR("Unreachable");
     }
