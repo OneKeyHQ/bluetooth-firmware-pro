@@ -389,28 +389,7 @@ static char ble_adv_name[ADV_NAME_LENGTH];
 //     NRF_LOG_FINAL_FLUSH();
 // }
 
-static void pmu_status_refresh()
-{
-    pmu_p->PullStatus();
-
-    NRF_LOG_INFO("=== PowerStatus ===");
-    NRF_LOG_INFO("batteryPresent=%u", pmu_p->PowerStatus->batteryPresent);
-    NRF_LOG_INFO("batteryPercent=%u", pmu_p->PowerStatus->batteryPercent);
-    NRF_LOG_INFO("batteryVoltage=%lu", pmu_p->PowerStatus->batteryVoltage);
-    NRF_LOG_INFO("batteryTemp=%ld", pmu_p->PowerStatus->batteryTemp);
-    NRF_LOG_INFO("pmuTemp=%lu", pmu_p->PowerStatus->pmuTemp);
-    NRF_LOG_INFO("chargeAllowed=%u", pmu_p->PowerStatus->chargeAllowed);
-    NRF_LOG_INFO("chargerAvailable=%u", pmu_p->PowerStatus->chargerAvailable);
-    NRF_LOG_INFO("chargeFinished=%u", pmu_p->PowerStatus->chargeFinished);
-    NRF_LOG_INFO("wiredCharge=%u", pmu_p->PowerStatus->wiredCharge);
-    NRF_LOG_INFO("wirelessCharge=%u", pmu_p->PowerStatus->wirelessCharge);
-    NRF_LOG_INFO("chargeCurrent=%lu", pmu_p->PowerStatus->chargeCurrent);
-    NRF_LOG_INFO("dischargeCurrent=%lu", pmu_p->PowerStatus->dischargeCurrent);
-    NRF_LOG_INFO("=== ============== ===");
-    NRF_LOG_FLUSH();
-}
-
-// add  tmp
+// add tmp
 unsigned char cfg;
 unsigned char write;
 
@@ -450,7 +429,13 @@ static bool ble_send_ready = false;
 // global vars
 static uint8_t g_bas_update_flag = 0;
 
-// LM global status
+// PMU global status
+static volatile bool pmu_status_synced = false;
+static volatile bool pmu_feat_synced = false;
+static volatile bool pmu_feat_charge_enable = false;
+
+// FLASH LED global status
+static volatile bool led_brightness_synced = false;
 static volatile uint8_t led_brightness_value = 0;
 
 #ifdef SCHED_ENABLE
@@ -691,7 +676,7 @@ void m_1s_timeout_hander(void* p_context)
 
     if ( (one_second_counter % 5) == 0 )
     {
-        pmu_status_refresh();
+        pmu_status_synced = false;
     }
 
     if ( one_second_counter > 59 )
@@ -1243,12 +1228,12 @@ static void application_timers_start(void)
 {
     ret_code_t err_code;
 
-    // Start application timers.
-    err_code = app_timer_start(m_1s_timer_id, ONE_SECOND_INTERVAL, NULL);
-    APP_ERROR_CHECK(err_code);
-
     // Start battery timer
     err_code = app_timer_start(m_battery_timer_id, BATTERY_MEAS_LONG_INTERVAL, NULL);
+    APP_ERROR_CHECK(err_code);
+
+    // Start application timers.
+    err_code = app_timer_start(m_1s_timer_id, ONE_SECOND_INTERVAL, NULL);
     APP_ERROR_CHECK(err_code);
 
     // Start 100ms timer
@@ -1673,10 +1658,12 @@ void uart_event_handle(app_uart_evt_t* p_event)
                     pwr_status_flag = PWR_USB_STATUS;
                     break;
                 case ST_REQ_ENABLE_CHARGE:
-                    pmu_p->SetFeature(PWR_FEAT_CHARGE, true); // enable charge
+                    pmu_feat_charge_enable = true;
+                    pmu_feat_synced = false;
                     break;
                 case ST_REQ_DISABLE_CHARGE:
-                    pmu_p->SetFeature(PWR_FEAT_CHARGE, false); // disable charge
+                    pmu_feat_charge_enable = false;
+                    pmu_feat_synced = false;
                     break;
                 default:
                     pwr_status_flag = PWR_DEF;
@@ -1724,6 +1711,7 @@ void uart_event_handle(app_uart_evt_t* p_event)
                 {
                     led_brightness_flag = LED_SET_BRIHTNESS;
                     led_brightness_value = uart_data_array[6];
+                    led_brightness_synced = false;
                 }
                 break;
 
@@ -2024,12 +2012,7 @@ void in_gpiote_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
     NRF_LOG_FLUSH();
 }
 
-static void gpio_int_handler_pmu(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
-{
-    pmu_p->Irq();
-}
-
-static void gpiote_init(void)
+static void gpio_init(void)
 {
     ret_code_t err_code;
 
@@ -2049,14 +2032,7 @@ static void gpiote_init(void)
     APP_ERROR_CHECK(err_code);
     nrfx_gpiote_in_event_enable(PMIC_PWROK_IO, true);
 
-    err_code = nrfx_gpiote_in_init(PMIC_IRQ_IO, &in_config1, gpio_int_handler_pmu);
-    APP_ERROR_CHECK(err_code);
-    nrfx_gpiote_in_event_enable(PMIC_IRQ_IO, true);
-}
-
-static void gpio_init(void)
-{
-    gpiote_init();
+    nrf_gpio_cfg_input(PMIC_IRQ_IO, NRF_GPIO_PIN_PULLUP);
 }
 
 static uint8_t calcXor(uint8_t* buf, uint8_t len)
@@ -2338,7 +2314,7 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
 
         if ( ble_status_flag != BLE_OFF_ALWAYS )
         {
-            bt_advertising_ctrl(false, true);
+            bt_disconnect();
         }
         pmu_p->SetState(PWR_STATE_HARD_OFF);
         break;
@@ -2388,30 +2364,85 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
     }
 }
 
+static void pmu_req_process(void* p_event_data, uint16_t event_size)
+{
+    // features control
+    if ( !pmu_feat_synced )
+    {
+        PRINT_CURRENT_LOCATION();
+        if ( pmu_feat_charge_enable )
+            pmu_p->SetFeature(PWR_FEAT_CHARGE, true); // enable charge
+        else
+            pmu_p->SetFeature(PWR_FEAT_CHARGE, false); // disable charge
+
+        pmu_feat_synced = true;
+    }
+}
+
+static void pmu_status_refresh(void* p_event_data, uint16_t event_size)
+{
+    if ( pmu_status_synced )
+        return;
+
+    PRINT_CURRENT_LOCATION();
+
+    pmu_p->PullStatus();
+    pmu_status_synced = true;
+
+    // NRF_LOG_INFO("=== PowerStatus ===");
+    // NRF_LOG_INFO("PMIC_IRQ_IO -> %s", (nrf_gpio_pin_read(PMIC_IRQ_IO) ? "HIGH" : "LOW"));
+    // NRF_LOG_INFO("batteryPresent=%u", pmu_p->PowerStatus->batteryPresent);
+    // NRF_LOG_INFO("batteryPercent=%u", pmu_p->PowerStatus->batteryPercent);
+    // NRF_LOG_INFO("batteryVoltage=%lu", pmu_p->PowerStatus->batteryVoltage);
+    // NRF_LOG_INFO("batteryTemp=%ld", pmu_p->PowerStatus->batteryTemp);
+    // NRF_LOG_INFO("pmuTemp=%lu", pmu_p->PowerStatus->pmuTemp);
+    // NRF_LOG_INFO("chargeAllowed=%u", pmu_p->PowerStatus->chargeAllowed);
+    // NRF_LOG_INFO("chargerAvailable=%u", pmu_p->PowerStatus->chargerAvailable);
+    // NRF_LOG_INFO("chargeFinished=%u", pmu_p->PowerStatus->chargeFinished);
+    // NRF_LOG_INFO("wiredCharge=%u", pmu_p->PowerStatus->wiredCharge);
+    // NRF_LOG_INFO("wirelessCharge=%u", pmu_p->PowerStatus->wirelessCharge);
+    // NRF_LOG_INFO("chargeCurrent=%lu", pmu_p->PowerStatus->chargeCurrent);
+    // NRF_LOG_INFO("dischargeCurrent=%lu", pmu_p->PowerStatus->dischargeCurrent);
+    // NRF_LOG_INFO("=== ============== ===");
+    // NRF_LOG_FLUSH();
+}
+
+static void pmu_irq_pull(void* p_event_data, uint16_t event_size)
+{
+    if ( !nrf_gpio_pin_read(PMIC_IRQ_IO) )
+    {
+        PRINT_CURRENT_LOCATION();
+        pmu_p->PullStatus();
+        pmu_p->Irq();
+        pmu_status_synced = true;
+    }
+}
+
 static void led_ctl_process(void* p_event_data, uint16_t event_size)
 {
+    // handle commands
     if ( ST_SEND_SET_LED_BRIGHTNESS == led_brightness_flag )
     {
-        set_led_brightness(led_brightness_value);
-
         bak_buff[0] = BLE_CMD_FLASH_LED_STA;
         bak_buff[1] = led_brightness_flag;
         bak_buff[2] = led_brightness_value;
         send_stm_data(bak_buff, 3);
-
         led_brightness_flag = LED_DEF;
     }
     else if ( ST_SEND_GET_LED_BRIGHTNESS == led_brightness_flag )
     {
-        uint8_t current_led_brihtness = 0;
-        current_led_brihtness = get_led_brightness();
-
         bak_buff[0] = BLE_CMD_FLASH_LED_STA;
         bak_buff[1] = led_brightness_flag;
-        bak_buff[2] = current_led_brihtness;
+        bak_buff[2] = led_brightness_value;
         send_stm_data(bak_buff, 3);
-
         led_brightness_flag = LED_DEF;
+    }
+
+    // keep controller in sync
+    if ( !led_brightness_synced )
+    {
+        if ( set_led_brightness(led_brightness_value) == NRF_SUCCESS )
+            led_brightness_synced = true;
     }
 }
 
@@ -2452,16 +2483,6 @@ static void bat_msg_report_process(void* p_event_data, uint16_t event_size)
 static void scheduler_init(void)
 {
     APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
-}
-static void main_loop(void)
-{
-    app_sched_event_put(NULL, 0, ble_ctl_process);
-    app_sched_event_put(NULL, 0, rsp_st_uart_cmd);
-    app_sched_event_put(NULL, 0, manage_bat_level);
-    // app_sched_event_put(NULL,NULL,nfc_poll);
-    app_sched_event_put(NULL, 0, ble_resp_data);
-    app_sched_event_put(NULL, 0, led_ctl_process);
-    app_sched_event_put(NULL, 0, bat_msg_report_process);
 }
 
 static void m_wdt_event_handler(void)
@@ -2599,8 +2620,19 @@ int main(void)
     application_timers_start();
     for ( ;; )
     {
-        main_loop();
+        // event trigger
+        app_sched_event_put(NULL, 0, ble_ctl_process);
+        app_sched_event_put(NULL, 0, rsp_st_uart_cmd);
+        app_sched_event_put(NULL, 0, manage_bat_level);
+        app_sched_event_put(NULL, 0, ble_resp_data);
+        app_sched_event_put(NULL, 0, led_ctl_process);
+        app_sched_event_put(NULL, 0, bat_msg_report_process);
+        app_sched_event_put(NULL, 0, pmu_irq_pull);
+        app_sched_event_put(NULL, 0, pmu_status_refresh);
+        app_sched_event_put(NULL, 0, pmu_req_process);
+        // event exec
         app_sched_execute();
+        // idle
         idle_state_handle();
     }
 }
