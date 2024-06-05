@@ -189,48 +189,35 @@ Power_Error_t axp2101_init(void)
 {
     if ( initialized )
     {
-        return PWR_ERROR_NONE;
-    }
-
-    do
-    {
         // interface init
         if ( !pmu_interface_p->Init() )
-            break;
+            return PWR_ERROR_FAIL;
 
         // get id
         uint8_t val = 0;
         if ( !axp2101_reg_read(AXP2101_CHIP_ID, &val) )
-            break;
+            return PWR_ERROR_FAIL;
 
         // compare id
         if ( val != 0x4a )
-            break;
+            return PWR_ERROR_FAIL;
 
         initialized = true;
-        return PWR_ERROR_NONE;
     }
-    while ( false );
 
-    return PWR_ERROR_FAIL;
+    return PWR_ERROR_NONE;
 }
 
 Power_Error_t axp2101_deinit(void)
 {
-    do
+    if ( !initialized )
     {
-        // interface init()
         if ( !pmu_interface_p->Deinit() )
-            break;
-
-        // nothing left
+            return PWR_ERROR_FAIL;
 
         initialized = false;
-        return PWR_ERROR_NONE;
     }
-    while ( false );
-
-    return PWR_ERROR_FAIL;
+    return PWR_ERROR_NONE;
 }
 
 Power_Error_t axp2101_reset(void)

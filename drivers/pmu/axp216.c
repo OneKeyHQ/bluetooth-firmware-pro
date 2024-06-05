@@ -135,62 +135,37 @@ static bool axp216_charge_current_sel(bool low_current_mode)
 
 Power_Error_t axp216_init(void)
 {
-    if ( initialized )
-    {
-        return PWR_ERROR_NONE;
-    }
-
-    do
+    if ( !initialized )
     {
         // interface init
-        if ( !*(pmu_interface_p->isInitialized) )
-        {
-            if ( !pmu_interface_p->Init() )
-            {
-                break;
-            }
-        }
+        if ( !pmu_interface_p->Init() )
+            return PWR_ERROR_FAIL;
 
         // get id
         uint8_t val = 0;
         if ( !axp216_reg_read(AXP216_IC_TYPE, &val) )
-        {
-            break;
-        }
+            return PWR_ERROR_FAIL;
 
         // compare id
         if ( val != 0x62 )
-            break;
+            return PWR_ERROR_FAIL;
 
         initialized = true;
-        return PWR_ERROR_NONE;
     }
-    while ( false );
 
-    return PWR_ERROR_FAIL;
+    return PWR_ERROR_NONE;
 }
 
 Power_Error_t axp216_deinit(void)
 {
-
     if ( !initialized )
-        return PWR_ERROR_NONE;
-
-    do
     {
-        // interface deinit()
-        if ( *(pmu_interface_p->isInitialized) )
-            if ( !pmu_interface_p->Deinit() )
-                break;
-
-        // nothing left
+        if ( !pmu_interface_p->Deinit() )
+            return PWR_ERROR_FAIL;
 
         initialized = false;
-        return PWR_ERROR_NONE;
     }
-    while ( false );
-
-    return PWR_ERROR_FAIL;
+    return PWR_ERROR_NONE;
 }
 
 Power_Error_t axp216_reset(void)
