@@ -1,7 +1,11 @@
 #include "flashled_manage.h"
 
+#include "util_macros.h"
+
 ret_code_t set_led_brightness(uint8_t brightness)
 {
+    PRINT_CURRENT_LOCATION();
+
     uint8_t brightness_regist_value = 0;
     ret_code_t ret;
 
@@ -24,7 +28,7 @@ ret_code_t set_led_brightness(uint8_t brightness)
     }
     // set brightness value
     ret = lm36011_write(LM36011_LED_BRIGHTNESS, brightness_regist_value);
-    if ( ret != LED_CONTROL_SUCCESS )
+    if ( ret != NRF_SUCCESS )
     {
         return ret;
     }
@@ -39,7 +43,7 @@ uint8_t get_led_brightness(void)
     ret_code_t ret;
     ret = lm36011_read(LM36011_LED_STATUS, 1, &brightness);
 
-    if ( ret != LED_CONTROL_SUCCESS )
+    if ( ret != NRF_SUCCESS )
     {
         return ret;
     }
@@ -50,7 +54,7 @@ uint8_t get_led_brightness(void)
     }
 
     ret = lm36011_read(LM36011_LED_BRIGHTNESS, 1, &brightness);
-    if ( ret != LED_CONTROL_SUCCESS )
+    if ( ret != NRF_SUCCESS )
     {
 
         return ret;

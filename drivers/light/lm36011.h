@@ -17,7 +17,6 @@
 #define LED_FLASHLIGHT_MODE     2
 #define LED_FLASHLIGHT_OFF      0
 #define LED_BRIGHTNESS_VALUE    0x15 // LED brightness value
-#define LED_CONTROL_SUCCESS     0
 
 ret_code_t lm36011_write(const uint8_t writeAddr, const uint8_t writeData);
 ret_code_t lm36011_read(uint8_t readAddr, uint8_t byteNum, uint8_t* readData);
