@@ -65,6 +65,11 @@
 #include "util_macros.h"
 #include "axp216_config.h"
 
+#if ( NRF_LOG_ENABLED == 1 ) && (NRF_LOG_DEFERRED == 1) && (NRF_LOG_DEFAULT_LEVEL > 2)
+  #error "Log deffering must be disabled when default log level above warning (2)"
+// This is due to crappy design of the NRFSDK, deffered log may refer to pointer that no longer valid
+#endif
+
 static void on_error(void)
 {
     NRF_LOG_FINAL_FLUSH();
@@ -81,7 +86,7 @@ static void on_error(void)
 
 void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t* p_file_name)
 {
-    NRF_LOG_ERROR("%s:%d", p_file_name, line_num);
+    NRF_LOG_ERROR("APP_ERR 0x%08x AT %s:%d", error_code, p_file_name, line_num);
     on_error();
 }
 
@@ -224,11 +229,10 @@ int main(void)
 
     // app_read_protect(); // NRF_BL_DEBUG_PORT_DISABLE = 1 already did it
 
-    // flush log befor enter app
+    // flush log befor enter loop
     NRF_LOG_FINAL_FLUSH();
 
     APP_ERROR_CHECK(nrf_bootloader_init(dfu_observer1));
-    NRF_LOG_FLUSH();
 
     APP_ERROR_CHECK_BOOL(false);
 }

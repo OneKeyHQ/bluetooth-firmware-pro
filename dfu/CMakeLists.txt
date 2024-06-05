@@ -75,13 +75,13 @@ set(
 set(
   NRF_SDK_SRC
   ${NRF_SDK_ROOT}/components/ble/common/ble_srv_common.c
-  ${NRF_SDK_ROOT}/components/boards/boards.c
   ${NRF_SDK_ROOT}/components/drivers_nrf/nrf_soc_nosd/nrf_nvic.c
   ${NRF_SDK_ROOT}/components/drivers_nrf/nrf_soc_nosd/nrf_soc.c
   ${NRF_SDK_ROOT}/components/libraries/atomic/nrf_atomic.c
   ${NRF_SDK_ROOT}/components/libraries/atomic_fifo/nrf_atfifo.c
   ${NRF_SDK_ROOT}/components/libraries/balloc/nrf_balloc.c
-  ${NRF_SDK_ROOT}/components/libraries/bootloader/ble_dfu/nrf_dfu_ble.c
+  ${NRF_SDK_ROOT}/components/libraries/bootloader/serial_dfu/nrf_dfu_serial.c
+  ${NRF_SDK_ROOT}/components/libraries/bootloader/serial_dfu/nrf_dfu_serial_uart.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/dfu-cc.pb.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_flash.c
@@ -89,7 +89,7 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_mbr.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_req_handler.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_settings.c
-  ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_settings_svci.c
+  # ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_settings_svci.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_svci.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_svci_handler.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_transport.c
@@ -103,8 +103,6 @@ set(
   ${NRF_SDK_ROOT}/components/libraries/bootloader/nrf_bootloader_fw_activation.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/nrf_bootloader_info.c
   ${NRF_SDK_ROOT}/components/libraries/bootloader/nrf_bootloader_wdt.c
-  ${NRF_SDK_ROOT}/components/libraries/bootloader/serial_dfu/nrf_dfu_serial.c
-  ${NRF_SDK_ROOT}/components/libraries/bootloader/serial_dfu/nrf_dfu_serial_uart.c
   ${NRF_SDK_ROOT}/components/libraries/crc32/crc32.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecc.c
   ${NRF_SDK_ROOT}/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecdh.c
@@ -155,6 +153,7 @@ set(
   ${NRF_SDK_ROOT}/external/fprintf/nrf_fprintf_format.c
   ${NRF_SDK_ROOT}/external/nano-pb/pb_common.c
   ${NRF_SDK_ROOT}/external/nano-pb/pb_decode.c
+  ${NRF_SDK_ROOT}/integration/nrfx/legacy/nrf_drv_uart.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uarte.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/nrfx_twi.c
   ${NRF_SDK_ROOT}/modules/nrfx/drivers/src/prs/nrfx_prs.c
@@ -260,7 +259,6 @@ target_compile_options(
   # Uncomment the line below to enable link time optimization
   # -flto=auto
   # C flags common to all targets
-  -DBLE_STACK_SUPPORT_REQD
   -DCONFIG_GPIO_AS_PINRESET
   -DFLOAT_ABI_HARD
   -DMBR_PRESENT
@@ -273,7 +271,7 @@ target_compile_options(
   -DS132
   -DSOFTDEVICE_PRESENT
   # project flags
-  -DBOARD_PCA10040
+  # -DBOARD_PCA10040
   -DSVC_INTERFACE_CALL_AS_NORMAL_FUNCTION
   -DuECC_ENABLE_VLI_API=0
   -DuECC_OPTIMIZATION_LEVEL=3
