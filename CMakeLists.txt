@@ -122,7 +122,7 @@ add_custom_target(
   ${CMAKE_PROJECT_NAME}_BL_CONF ALL
   COMMAND ${DIR_UTILS}/nrfutil 
           settings generate --family NRF52 --bootloader-version 2 --bl-settings-version 2 
-          --app-boot-validation VALIDATE_ECDSA_P256_SHA256 --application ${FILE_INPUT_APP} --application-version 3 
+          --app-boot-validation VALIDATE_ECDSA_P256_SHA256 --application ${FILE_INPUT_APP} --application-version 4 
           --sd-boot-validation VALIDATE_ECDSA_P256_SHA256 --softdevice ${FILE_INPUT_SD} 
           --key-file ${FILE_KEY}  ${FILE_INPUT_BL_CONFIG}
   DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_KEY app
@@ -151,7 +151,7 @@ add_custom_target(
   ${CMAKE_PROJECT_NAME}_OTA_BIN ALL
   COMMAND ${DIR_UTILS}/nrfutil pkg generate 
           --hw-version 52 --sd-req 0xCB 
-          --application ${FILE_INPUT_APP} --application-version 3 --app-boot-validation VALIDATE_ECDSA_P256_SHA256
+          --application ${FILE_INPUT_APP} --application-version 4 --app-boot-validation VALIDATE_ECDSA_P256_SHA256
           --key-file ${FILE_KEY} ${FILE_OUTPUT_ZIP}
   COMMAND ${PYTHON_RUNNER} ${DIR_UTILS}/ota_to_onekey_bin.py ${FILE_OUTPUT_ZIP} ${FILE_OUTPUT_OTA_BIN}
   DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_KEY dfu app
