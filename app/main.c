@@ -1896,6 +1896,12 @@ static void ble_resp_data(void* p_event_data, uint16_t event_size)
 
     if ( !ble_send_ready )
         return;
+    if ( m_conn_handle == BLE_CONN_HANDLE_INVALID )
+    {
+        ble_send_ready = false;
+        return;
+    }
+
     ble_send_ready = false;
 
     while ( data_recived_len > m_ble_nus_max_data_len )
@@ -2082,12 +2088,16 @@ static bool bt_disconnect()
     {
         if ( NRF_SUCCESS != sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION) )
             return false;
-        m_conn_handle = BLE_CONN_HANDLE_INVALID;
         ble_evt_flag = BLE_DISCONNECT;
         NRF_LOG_INFO("bt_disconnect");
     }
-
-    nrf_delay_ms(1000);
+    int i = 0;
+    while( m_conn_handle != BLE_CONN_HANDLE_INVALID )
+    {
+        nrf_delay_ms(10);
+        if ( i++ > 100 )
+            return false;
+    }
 
     return true;
 }
