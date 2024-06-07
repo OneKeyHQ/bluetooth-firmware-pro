@@ -171,6 +171,7 @@ Power_Error_t axp216_deinit(void)
 Power_Error_t axp216_reset(void)
 {
     EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_VOFF_SET, (1 << 6)));
+
     return PWR_ERROR_NONE;
 }
 
@@ -361,31 +362,29 @@ Power_Error_t axp216_pull_status(void)
          ((hlbuff.u8_low & ((1 << 5) | (1 << 4))) == ((1 << 5) | (1 << 4)))    // vbus
         );
 
-    if ( status_temp.chargeAllowed && status_temp.chargerAvailable )
+    if ( status_temp.chargerAvailable )
     {
-        if ( ((hlbuff.u8_low & (1 << 2)) == (1 << 2)) ) // check if charging
-        {
-            // read gpio
-            EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000010)); // gpio1 input
-            hlbuff.u8_high = 0;
-            EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_GPIO01_SIGNAL, &(hlbuff.u8_low))); // gpio1 read
-            EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000111));          // gpio1 float
-            status_temp.wirelessCharge = ((hlbuff.u8_low & (1 << 1)) != (1 << 1));        // low when wireless charging
+        // read gpio
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000010)); // gpio1 input
+        hlbuff.u8_high = 0;
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_GPIO01_SIGNAL, &(hlbuff.u8_low))); // gpio1 read
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000111));          // gpio1 float
+        status_temp.wirelessCharge = ((hlbuff.u8_low & (1 << 1)) != (1 << 1));        // low when wireless charging
 
-            // if not wireless charging then it's wired
-            status_temp.wiredCharge = !status_temp.wirelessCharge;
+        // if not wireless charging then it's wired
+        status_temp.wiredCharge = !status_temp.wirelessCharge;
 
-            // wireless charge current limit to 300ma
-            EC_E_BOOL_R_PWR_ERR(axp216_charge_current_sel(status_temp.wirelessCharge));
-        }
-        else
-        {
-            status_temp.wiredCharge = false;
-            status_temp.wirelessCharge = false;
-        }
+        // wireless charge current limit to 300ma
+        EC_E_BOOL_R_PWR_ERR(axp216_charge_current_sel(status_temp.wirelessCharge));
 
-        if ( status_temp.wiredCharge || status_temp.wirelessCharge )
+        hlbuff.u8_high = 0;
+        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_MODE_CHGSTATUS, &(hlbuff.u8_low)));
+        status_temp.chargeFinished = ((hlbuff.u8_low & (1 << 6)) != (1 << 6));
+
+        // if charging allowd, check charging status
+        if ( status_temp.chargeAllowed && !status_temp.chargeFinished )
         {
+            // charging current
             EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CCBATH_RES, &(hlbuff.u8_high)));
             EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_CCBATL_RES, &(hlbuff.u8_low)));
             status_temp.chargeCurrent = (hlbuff.u16 >> 4);
@@ -393,15 +392,12 @@ Power_Error_t axp216_pull_status(void)
         }
         else
         {
+            // discharging current
             EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_DCBATH_RES, &(hlbuff.u8_high)));
             EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_DCBATL_RES, &(hlbuff.u8_low)));
             status_temp.dischargeCurrent = (hlbuff.u16 >> 4);
             status_temp.chargeCurrent = 0;
         }
-
-        hlbuff.u8_high = 0;
-        EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_MODE_CHGSTATUS, &(hlbuff.u8_low)));
-        status_temp.chargeFinished = ((hlbuff.u8_low & (1 << 6)) != (1 << 6));
     }
     else
     {

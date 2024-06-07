@@ -2374,6 +2374,26 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
     }
 }
 
+static inline void pmu_status_print()
+{
+    NRF_LOG_INFO("=== PowerStatus ===");
+    NRF_LOG_INFO("PMIC_IRQ_IO -> %s", (nrf_gpio_pin_read(PMIC_IRQ_IO) ? "HIGH" : "LOW"));
+    NRF_LOG_INFO("batteryPresent=%u", pmu_p->PowerStatus->batteryPresent);
+    NRF_LOG_INFO("batteryPercent=%u", pmu_p->PowerStatus->batteryPercent);
+    NRF_LOG_INFO("batteryVoltage=%lu", pmu_p->PowerStatus->batteryVoltage);
+    NRF_LOG_INFO("batteryTemp=%ld", pmu_p->PowerStatus->batteryTemp);
+    NRF_LOG_INFO("pmuTemp=%lu", pmu_p->PowerStatus->pmuTemp);
+    NRF_LOG_INFO("chargeAllowed=%u", pmu_p->PowerStatus->chargeAllowed);
+    NRF_LOG_INFO("chargerAvailable=%u", pmu_p->PowerStatus->chargerAvailable);
+    NRF_LOG_INFO("chargeFinished=%u", pmu_p->PowerStatus->chargeFinished);
+    NRF_LOG_INFO("wiredCharge=%u", pmu_p->PowerStatus->wiredCharge);
+    NRF_LOG_INFO("wirelessCharge=%u", pmu_p->PowerStatus->wirelessCharge);
+    NRF_LOG_INFO("chargeCurrent=%lu", pmu_p->PowerStatus->chargeCurrent);
+    NRF_LOG_INFO("dischargeCurrent=%lu", pmu_p->PowerStatus->dischargeCurrent);
+    NRF_LOG_INFO("=== ============== ===");
+    NRF_LOG_FLUSH();
+}
+
 static void pmu_req_process(void* p_event_data, uint16_t event_size)
 {
     // features control
@@ -2398,23 +2418,7 @@ static void pmu_status_refresh(void* p_event_data, uint16_t event_size)
 
     pmu_p->PullStatus();
     pmu_status_synced = true;
-
-    // NRF_LOG_INFO("=== PowerStatus ===");
-    // NRF_LOG_INFO("PMIC_IRQ_IO -> %s", (nrf_gpio_pin_read(PMIC_IRQ_IO) ? "HIGH" : "LOW"));
-    // NRF_LOG_INFO("batteryPresent=%u", pmu_p->PowerStatus->batteryPresent);
-    // NRF_LOG_INFO("batteryPercent=%u", pmu_p->PowerStatus->batteryPercent);
-    // NRF_LOG_INFO("batteryVoltage=%lu", pmu_p->PowerStatus->batteryVoltage);
-    // NRF_LOG_INFO("batteryTemp=%ld", pmu_p->PowerStatus->batteryTemp);
-    // NRF_LOG_INFO("pmuTemp=%lu", pmu_p->PowerStatus->pmuTemp);
-    // NRF_LOG_INFO("chargeAllowed=%u", pmu_p->PowerStatus->chargeAllowed);
-    // NRF_LOG_INFO("chargerAvailable=%u", pmu_p->PowerStatus->chargerAvailable);
-    // NRF_LOG_INFO("chargeFinished=%u", pmu_p->PowerStatus->chargeFinished);
-    // NRF_LOG_INFO("wiredCharge=%u", pmu_p->PowerStatus->wiredCharge);
-    // NRF_LOG_INFO("wirelessCharge=%u", pmu_p->PowerStatus->wirelessCharge);
-    // NRF_LOG_INFO("chargeCurrent=%lu", pmu_p->PowerStatus->chargeCurrent);
-    // NRF_LOG_INFO("dischargeCurrent=%lu", pmu_p->PowerStatus->dischargeCurrent);
-    // NRF_LOG_INFO("=== ============== ===");
-    // NRF_LOG_FLUSH();
+    pmu_status_print();
 }
 
 static void pmu_irq_pull(void* p_event_data, uint16_t event_size)
@@ -2423,8 +2427,9 @@ static void pmu_irq_pull(void* p_event_data, uint16_t event_size)
     {
         PRINT_CURRENT_LOCATION();
         pmu_p->PullStatus();
-        pmu_p->Irq();
         pmu_status_synced = true;
+        pmu_status_print();
+        pmu_p->Irq();
     }
 }
 
@@ -2631,15 +2636,15 @@ int main(void)
     for ( ;; )
     {
         // event trigger
+        app_sched_event_put(NULL, 0, pmu_irq_pull);
+        app_sched_event_put(NULL, 0, pmu_status_refresh);
+        app_sched_event_put(NULL, 0, pmu_req_process);
         app_sched_event_put(NULL, 0, ble_ctl_process);
         app_sched_event_put(NULL, 0, rsp_st_uart_cmd);
         app_sched_event_put(NULL, 0, manage_bat_level);
         app_sched_event_put(NULL, 0, ble_resp_data);
         app_sched_event_put(NULL, 0, led_ctl_process);
         app_sched_event_put(NULL, 0, bat_msg_report_process);
-        app_sched_event_put(NULL, 0, pmu_irq_pull);
-        app_sched_event_put(NULL, 0, pmu_status_refresh);
-        app_sched_event_put(NULL, 0, pmu_req_process);
         // event exec
         app_sched_execute();
         // idle

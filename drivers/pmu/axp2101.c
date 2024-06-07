@@ -395,41 +395,44 @@ Power_Error_t axp2101_pull_status(void)
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT0, &(hlbuff.u8_low)));
     status_temp.chargerAvailable = ((hlbuff.u8_low & (1 << 5)) == (1 << 5)); // vbus good
 
-    if ( status_temp.chargeAllowed && status_temp.chargerAvailable )
+    // Note: some redundant code here is to keep the logic clear
+    if ( status_temp.chargerAvailable )
     {
+        // read gpio
+        bool gpio_high_low = true;
+        EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_READ_PH));
+        pmu_interface_p->Delay_ms(5);
+        EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Read(8, &gpio_high_low));
+        EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_UNUSED));
+
+        status_temp.wirelessCharge = !gpio_high_low; // low is wireless
+
+        // if not wireless charging then it's wired
+        status_temp.wiredCharge = !status_temp.wirelessCharge;
+
+        // wireless charge current limit to 300ma
+        EC_E_BOOL_R_PWR_ERR(axp2101_charge_current_sel(status_temp.wirelessCharge));
+
         hlbuff.u8_high = 0;
         EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_COMM_STAT1, &(hlbuff.u8_low)));
         status_temp.chargeFinished = ((hlbuff.u8_low & 0b00000111) == 0b00000100); // bit 2:0 = 100 charge done
 
-        if ( (hlbuff.u8_low & 0b01100000) == 0b00100000 || // bit 6:5 = 01 battery current charge
-             status_temp.chargeFinished                    // still try get power source
-        )
+        // if charging allowd, check charging status
+        // Note: some redundant code for keep the logic clear
+        if ( status_temp.chargeAllowed && !status_temp.chargeFinished )
         {
-            // TODO: find a batter way to check GPIO?
-            // read gpio
-            bool gpio_high_low = true;
-            EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_READ_PH));
-            pmu_interface_p->Delay_ms(5);
-            EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Read(8, &gpio_high_low));
-            EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_UNUSED));
-
-            status_temp.wirelessCharge = !gpio_high_low; // low is wireless
-
-            // if not wireless charging then it's wired
-            status_temp.wiredCharge = !status_temp.wirelessCharge;
-
-            // wireless charge current limit to 300ma
-            EC_E_BOOL_R_PWR_ERR(axp2101_charge_current_sel(status_temp.wirelessCharge));
+            // charging current
+            // not supported by AXP2101
+            status_temp.chargeCurrent = 0;
+            status_temp.dischargeCurrent = 0;
         }
         else
         {
-            status_temp.wiredCharge = false;
-            status_temp.wirelessCharge = false;
+            // discharging current
+            // not supported by AXP2101
+            status_temp.chargeCurrent = 0;
+            status_temp.dischargeCurrent = 0;
         }
-
-        // not supported by AXP2101
-        status_temp.chargeCurrent = 0;
-        status_temp.dischargeCurrent = 0;
     }
     else
     {
