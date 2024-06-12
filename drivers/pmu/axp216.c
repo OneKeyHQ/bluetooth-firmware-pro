@@ -365,14 +365,15 @@ Power_Error_t axp216_pull_status(void)
     if ( status_temp.chargerAvailable )
     {
         // read gpio
+        bool gpio_high_low = true;
         EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000010)); // gpio1 input
         hlbuff.u8_high = 0;
         EC_E_BOOL_R_PWR_ERR(axp216_reg_read(AXP216_GPIO01_SIGNAL, &(hlbuff.u8_low))); // gpio1 read
         EC_E_BOOL_R_PWR_ERR(axp216_reg_write(AXP216_GPIO1_CTL, 0b00000111));          // gpio1 float
-        status_temp.wirelessCharge = ((hlbuff.u8_low & (1 << 1)) != (1 << 1));        // low when wireless charging
+        gpio_high_low = ((hlbuff.u8_low & (1 << 1)) == (1 << 1));
 
-        // if not wireless charging then it's wired
-        status_temp.wiredCharge = !status_temp.wirelessCharge;
+        status_temp.wiredCharge = gpio_high_low;
+        status_temp.wirelessCharge = !gpio_high_low; // low is wireless
 
         // wireless charge current limit to 300ma
         EC_E_BOOL_R_PWR_ERR(axp216_charge_current_sel(status_temp.wirelessCharge));

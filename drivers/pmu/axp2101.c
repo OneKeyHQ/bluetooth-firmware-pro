@@ -401,14 +401,12 @@ Power_Error_t axp2101_pull_status(void)
         // read gpio
         bool gpio_high_low = true;
         EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_READ_PH));
-        pmu_interface_p->Delay_ms(5);
+        pmu_interface_p->Delay_ms(10);
         EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Read(8, &gpio_high_low));
         EC_E_BOOL_R_PWR_ERR(pmu_interface_p->GPIO.Config(8, PWR_GPIO_Config_UNUSED));
 
+        status_temp.wiredCharge = gpio_high_low;
         status_temp.wirelessCharge = !gpio_high_low; // low is wireless
-
-        // if not wireless charging then it's wired
-        status_temp.wiredCharge = !status_temp.wirelessCharge;
 
         // wireless charge current limit to 300ma
         EC_E_BOOL_R_PWR_ERR(axp2101_charge_current_sel(status_temp.wirelessCharge));

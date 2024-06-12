@@ -1660,10 +1660,12 @@ void uart_event_handle(app_uart_evt_t* p_event)
                 case ST_REQ_ENABLE_CHARGE:
                     pmu_feat_charge_enable = true;
                     pmu_feat_synced = false;
+                    NRF_LOG_INFO("RCV pwr charge enable");
                     break;
                 case ST_REQ_DISABLE_CHARGE:
                     pmu_feat_charge_enable = false;
                     pmu_feat_synced = false;
+                    NRF_LOG_INFO("RCV pwr charge disable");
                     break;
                 default:
                     pwr_status_flag = PWR_DEF;
@@ -1769,6 +1771,7 @@ void uart_event_handle(app_uart_evt_t* p_event)
     default:
         break;
     }
+    NRF_LOG_FLUSH();
 }
 /**@snippet [Handling the data received over UART] */
 
@@ -2092,7 +2095,7 @@ static bool bt_disconnect()
         NRF_LOG_INFO("bt_disconnect");
     }
     int i = 0;
-    while( m_conn_handle != BLE_CONN_HANDLE_INVALID )
+    while ( m_conn_handle != BLE_CONN_HANDLE_INVALID )
     {
         nrf_delay_ms(10);
         if ( i++ > 100 )
@@ -2415,7 +2418,6 @@ static void pmu_status_refresh(void* p_event_data, uint16_t event_size)
         return;
 
     PRINT_CURRENT_LOCATION();
-
     pmu_p->PullStatus();
     pmu_status_synced = true;
     pmu_status_print();
@@ -2426,7 +2428,37 @@ static void pmu_irq_pull(void* p_event_data, uint16_t event_size)
     if ( !nrf_gpio_pin_read(PMIC_IRQ_IO) )
     {
         PRINT_CURRENT_LOCATION();
-        pmu_p->PullStatus();
+
+        // wait charger status stabilize before process irq
+        // chargerAvailable may take few ms to be set in some case
+
+        Power_Status_t pwr_status_temp = {0};
+        uint8_t match_count = 0;
+        const uint8_t match_required = 3;
+        while ( match_count < match_required )
+        {
+            pmu_p->PullStatus();
+
+            if ( (pwr_status_temp.chargerAvailable == pmu_p->PowerStatus->chargerAvailable) &&
+                 (pwr_status_temp.wiredCharge == pmu_p->PowerStatus->wiredCharge) &&
+                 (pwr_status_temp.wirelessCharge == pmu_p->PowerStatus->wirelessCharge) )
+            {
+                match_count++;
+                NRF_LOG_INFO("PowerStatus debounce, match %u/%u", match_count, match_required);
+
+                continue;
+            }
+            else
+            {
+                match_count = 0;
+                NRF_LOG_INFO("PowerStatus debounce, match reset");
+
+                pwr_status_temp.chargerAvailable = pmu_p->PowerStatus->chargerAvailable;
+                pwr_status_temp.wiredCharge = pmu_p->PowerStatus->wiredCharge;
+                pwr_status_temp.wirelessCharge = pmu_p->PowerStatus->wirelessCharge;
+                nrf_delay_ms(10);
+            }
+        }
         pmu_status_synced = true;
         pmu_status_print();
         pmu_p->Irq();
