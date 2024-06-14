@@ -6,8 +6,12 @@ GROUP(-lgcc -lc -lnosys)
 MEMORY
 {
   RAM (rwx) :  ORIGIN = 0x20003268, LENGTH = 0xCD98
-  CONFIG (rw) : ORIGIN = 0x6D000, LENGTH = 0x1000
-  FLASH (rx) : ORIGIN = 0x26000, LENGTH = 0x47000
+  CONFIG (rw) : ORIGIN = 0x6A000, LENGTH = 0x1000
+  FLASH (rx) : ORIGIN = 0x26000, LENGTH = 0x44000
+  /* Note: FDS from SDK using few pages of flash without mention in this file! */
+  /* size depends on sdk_config.h settings for FDS_VIRTUAL_PAGE_SIZE and FDS_VIRTUAL_PAGES */
+  /* the spcace counts down from the end of flash or bootloader, towards app space */
+  /* this unexpected and hidden flash allocation is really odd to see in a commercial SDK */
 }
 
 SECTIONS

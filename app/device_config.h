@@ -35,10 +35,11 @@ void deviceCfg_settings_setup(deviceCfg_settings_t* settings);
 
 // ======================
 // Device Configs
+#define DEVICE_CONFIG_HANDLE_LEGACY 1
 
 #define DEVICE_CONFIG_HEADER_MAGIC 0xAAAAAAAAU
 #define DEVICE_CONFIG_FLAG_MAGIC   0xa55aa55aU
-#define DEVICE_CONFIG_ADDR         0x6D000U
+#define DEVICE_CONFIG_ADDR         0x6A000U
 #define DEVICE_CONFIG_SIZE         0x1000U
 #define DEVICE_CONFIG_VERSION      1U
 

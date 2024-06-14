@@ -138,6 +138,26 @@ void deviceCfg_settings_setup(deviceCfg_settings_t* settings)
 // ======================
 // Device Configs
 
+#if DEVICE_CONFIG_HANDLE_LEGACY
+  #define DEVICE_CONFIG_LEGACY_ADDR 0x6D000U
+
+static bool device_config_convert_legacy()
+{
+    deviceCfg_t devcfg_legacy;
+
+    EC_E_BOOL_R_BOOL(flash_read(DEVICE_CONFIG_LEGACY_ADDR, (uint8_t*)(&devcfg_legacy), sizeof(deviceCfg_t)));
+
+    if ( devcfg_legacy.header != DEVICE_CONFIG_HEADER_MAGIC || devcfg_legacy.version != DEVICE_CONFIG_VERSION )
+        return false;
+
+    memcpy(&deviceConfig, &devcfg_legacy, sizeof(deviceCfg_t));
+
+    EC_E_BOOL_R_BOOL(flash_erase(DEVICE_CONFIG_LEGACY_ADDR, DEVICE_CONFIG_SIZE));
+
+    return true;
+}
+#endif
+
 bool device_config_commit(void)
 {
     EC_E_BOOL_R_BOOL(sizeof(deviceCfg_t) < DEVICE_CONFIG_SIZE);
@@ -155,6 +175,13 @@ bool device_config_init(void)
 
     // flash init
     EC_E_BOOL_R_BOOL(flash_init());
+
+    // try convert legacy
+    if ( device_config_convert_legacy() )
+    {
+        // legacy found, commit
+        EC_E_BOOL_R_BOOL(device_config_commit());
+    }
 
     // read
     EC_E_BOOL_R_BOOL(flash_read(DEVICE_CONFIG_ADDR, (uint8_t*)(&deviceConfig), sizeof(deviceCfg_t)))
