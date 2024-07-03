@@ -337,6 +337,7 @@ target_sources(
   ${CMAKE_PROJECT_NAME} PRIVATE 
   ${NRF_SDK_SRC}
   ../drivers/nrf_i2c.c
+  ../drivers/nrf_uicr.c
   ../drivers/nrf_flash.c
   ../drivers/pmu/pmu.c
   ../drivers/pmu/ntc_util.c

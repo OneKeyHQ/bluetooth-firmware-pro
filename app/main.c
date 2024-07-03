@@ -2193,7 +2193,8 @@ static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
         // please note, deviceCfg_keystore_lock will fail if already locked
         bak_buff[0] = BLE_CMD_KEY_RESP;
         bak_buff[1] =
-            (deviceCfg_keystore_lock(&(deviceConfig_p->keystore)) ? BLE_KEY_RESP_SUCCESS : BLE_KEY_RESP_FAILED);
+            ((deviceCfg_keystore_lock(&(deviceConfig_p->keystore)) && device_config_commit()) ? BLE_KEY_RESP_SUCCESS
+                                                                                              : BLE_KEY_RESP_FAILED);
         send_stm_data(bak_buff, 2);
         trans_info_flag = DEF_RESP;
     }
@@ -2210,6 +2211,12 @@ static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
         else
         {
             bak_buff[1] = BLE_KEY_RESP_SIGN;
+            if(deviceConfig_p->keystore.flag_locked != DEVICE_CONFIG_FLAG_MAGIC)
+            {
+                // if keystore not locked, lock it now
+                deviceCfg_keystore_lock(&(deviceConfig_p->keystore));
+                device_config_commit();
+            }
             sign_ecdsa_msg(deviceConfig_p->keystore.private_key, uart_data_array + 6, msg_len, bak_buff + 2);
             send_stm_data(bak_buff, 64 + 2);
         }

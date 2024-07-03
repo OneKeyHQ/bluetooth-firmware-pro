@@ -16,8 +16,12 @@ typedef struct
     uint8_t private_key[32]; // 8*UINT32
     uint8_t public_key[64];  // 16*UINT32
 } deviceCfg_keystore_t;
+uint32_t deviceCfg_keystore_crc32(deviceCfg_keystore_t* keystore);
 bool deviceCfg_keystore_validate(deviceCfg_keystore_t* keystore);
-void deviceCfg_keystore_setup(deviceCfg_keystore_t* keystore);
+bool deviceCfg_keystore_restore_from_uicr(deviceCfg_keystore_t* keystore);
+bool deviceCfg_keystore_backup_to_uicr(deviceCfg_keystore_t* keystore);
+bool deviceCfg_keystore_backup_compare(deviceCfg_keystore_t* keystore);
+bool deviceCfg_keystore_setup_new(deviceCfg_keystore_t* keystore);
 bool deviceCfg_keystore_lock(deviceCfg_keystore_t* keystore);
 
 // *** general settings ***
@@ -37,11 +41,11 @@ void deviceCfg_settings_setup(deviceCfg_settings_t* settings);
 // Device Configs
 #define DEVICE_CONFIG_HANDLE_LEGACY 1
 
-#define DEVICE_CONFIG_HEADER_MAGIC 0xAAAAAAAAU
-#define DEVICE_CONFIG_FLAG_MAGIC   0xa55aa55aU
-#define DEVICE_CONFIG_ADDR         0x6A000U
-#define DEVICE_CONFIG_SIZE         0x1000U
-#define DEVICE_CONFIG_VERSION      1U
+#define DEVICE_CONFIG_HEADER_MAGIC  0xAAAAAAAAU
+#define DEVICE_CONFIG_FLAG_MAGIC    0xa55aa55aU
+#define DEVICE_CONFIG_ADDR          0x6A000U
+#define DEVICE_CONFIG_SIZE          0x1000U
+#define DEVICE_CONFIG_VERSION       1U
 
 typedef struct
 {
