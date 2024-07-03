@@ -371,7 +371,7 @@ Power_Error_t axp2101_pull_status(void)
         hlbuff.u8_high &= 0b00111111; // drop bit 7:6
         EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_TS_L, &(hlbuff.u8_low)));
         status_temp.batteryTemp =
-            ntc_temp_cal_cv(NTC_Char_NCP15XH103F03RC_2585, 40, ((hlbuff.u16 * 0.5) * 0.8 + 0) * 1000); // temp_c
+            ntc_temp_cal_cv(NTC_Char_NCP15XH103F03RC_2585, 40, (hlbuff.u16 * 0.5) * 1000); // temp_c
     }
     else
     {
