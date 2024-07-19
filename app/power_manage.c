@@ -82,7 +82,6 @@ static void pmu_if_irq(const uint64_t irq)
     }
     if ( 0 != (irq & (1 << PWR_IRQ_PB_SHORT)) )
     {
-
         NRF_LOG_INFO("irq PWR_IRQ_PB_SHORT");
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x01;
@@ -90,7 +89,6 @@ static void pmu_if_irq(const uint64_t irq)
     }
     if ( 0 != (irq & (1 << PWR_IRQ_PB_LONG)) )
     {
-
         NRF_LOG_INFO("irq PWR_IRQ_PB_LONG");
         bak_buff[0] = BLE_CMD_KEY_STA;
         bak_buff[1] = 0x02;
