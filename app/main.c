@@ -2008,13 +2008,6 @@ void in_gpiote_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
             phone_resp_data();
         }
         break;
-    case PMIC_PWROK_IO:
-        NRF_LOG_INFO("GPIO IRQ -> PMIC_PWROK_IO");
-        if ( action == NRF_GPIOTE_POLARITY_HITOLO )
-        {
-            enter_low_power_mode();
-        }
-        break;
     default:
         break;
     }
@@ -2028,19 +2021,13 @@ static void gpio_init(void)
     err_code = nrfx_gpiote_init();
     APP_ERROR_CHECK(err_code);
 
-    // nrfx_gpiote_in_config_t in_config = NRFX_GPIOTE_CONFIG_IN_SENSE_TOGGLE(false);
-    // in_config.pull = NRF_GPIO_PIN_PULLUP;
-
-    nrfx_gpiote_in_config_t in_config1 = NRFX_GPIOTE_CONFIG_IN_SENSE_HITOLO(true);
-    in_config1.pull = NRF_GPIO_PIN_PULLUP;
-    err_code = nrfx_gpiote_in_init(SLAVE_SPI_RSP_IO, &in_config1, in_gpiote_handler);
+    nrfx_gpiote_in_config_t in_config = NRFX_GPIOTE_CONFIG_IN_SENSE_HITOLO(true);
+    in_config.pull = NRF_GPIO_PIN_PULLUP;
+    err_code = nrfx_gpiote_in_init(SLAVE_SPI_RSP_IO, &in_config, in_gpiote_handler);
     APP_ERROR_CHECK(err_code);
     nrfx_gpiote_in_event_enable(SLAVE_SPI_RSP_IO, true);
 
-    err_code = nrfx_gpiote_in_init(PMIC_PWROK_IO, &in_config1, in_gpiote_handler);
-    APP_ERROR_CHECK(err_code);
-    nrfx_gpiote_in_event_enable(PMIC_PWROK_IO, true);
-
+    nrf_gpio_cfg_input(PMIC_PWROK_IO, NRF_GPIO_PIN_NOPULL);
     nrf_gpio_cfg_input(PMIC_IRQ_IO, NRF_GPIO_PIN_PULLUP);
 }
 
@@ -2430,6 +2417,34 @@ static void pmu_status_refresh(void* p_event_data, uint16_t event_size)
     pmu_status_print();
 }
 
+static void pmu_pwrok_pull(void* p_event_data, uint16_t event_size)
+{
+    static uint8_t match_count = 0;
+    const uint8_t match_required = 10;
+
+    if ( !nrf_gpio_pin_read(PMIC_PWROK_IO) )
+    {
+        match_count++;
+        NRF_LOG_INFO("PowerOK debounce, match %u/%u", match_count, match_required);
+    }
+    else
+    {
+        if ( match_count > 0 )
+        {
+            match_count = 0;
+            NRF_LOG_INFO("PowerOK debounce, match reset");
+            NRF_LOG_FLUSH();
+        }
+    }
+
+    if ( (match_count >= match_required) )
+    {
+        NRF_LOG_INFO("PowerOK debounce, match fulfilled, entering low power mode");
+        NRF_LOG_FLUSH();
+        enter_low_power_mode();
+    }
+}
+
 static void pmu_irq_pull(void* p_event_data, uint16_t event_size)
 {
     if ( !nrf_gpio_pin_read(PMIC_IRQ_IO) )
@@ -2675,6 +2690,7 @@ int main(void)
     for ( ;; )
     {
         // event trigger
+        app_sched_event_put(NULL, 0, pmu_pwrok_pull);
         app_sched_event_put(NULL, 0, pmu_irq_pull);
         app_sched_event_put(NULL, 0, pmu_status_refresh);
         app_sched_event_put(NULL, 0, pmu_req_process);
