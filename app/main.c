@@ -665,16 +665,16 @@ static void pm_evt_handler(const pm_evt_t* p_evt)
     {
 
     case PM_EVT_CONN_SEC_CONFIG_REQ:
+        NRF_LOG_INFO("%s ---> PM_EVT_CONN_SEC_CONFIG_REQ", __func__);
         {
-            NRF_LOG_INFO("%s ---> PM_EVT_CONN_SEC_CONFIG_REQ", __func__);
             pm_conn_sec_config_t conn_sec_config = {.allow_repairing = true};
             pm_conn_sec_config_reply(p_evt->conn_handle, &conn_sec_config);
         }
         break;
 
     case PM_EVT_CONN_SEC_SUCCEEDED:
+        NRF_LOG_INFO("%s ---> PM_EVT_CONN_SEC_SUCCEEDED", __func__);
         {
-            NRF_LOG_INFO("%s ---> PM_EVT_CONN_SEC_SUCCEEDED", __func__);
             pm_conn_sec_status_t conn_sec_status;
 
             // Check if the link is authenticated (meaning at least MITM).
@@ -714,13 +714,19 @@ static void pm_evt_handler(const pm_evt_t* p_evt)
         NRF_LOG_INFO(
             "conn_sec_failed: procedure=0x%x, error=0x%x, error_src=0x%x", p_evt->params.conn_sec_failed.procedure,
             p_evt->params.conn_sec_failed.error, p_evt->params.conn_sec_failed.error_src
-        ); // error -> 0x0(PM_CONN_SEC_PROCEDURE_ENCRYPTION), 0x1006(PM_CONN_SEC_ERROR_PIN_OR_KEY_MISSING),
-           // 0x0(BLE_GAP_SEC_STATUS_SOURCE_LOCAL)
+        );
         m_conn_handle = BLE_CONN_HANDLE_INVALID;
 
         bak_buff[0] = BLE_CMD_PAIR_STA;
         bak_buff[1] = BLE_PAIR_FAIL;
         send_stm_data(bak_buff, 2);
+        break;
+
+    case PM_EVT_LOCAL_DB_CACHE_APPLIED:
+        NRF_LOG_INFO("%s ---> PM_EVT_LOCAL_DB_CACHE_APPLIED", __func__);
+        break;
+    case PM_EVT_LOCAL_DB_CACHE_APPLY_FAILED:
+        NRF_LOG_INFO("%s ---> PM_EVT_LOCAL_DB_CACHE_APPLY_FAILED", __func__);
         break;
 
     case PM_EVT_PEER_DATA_UPDATE_SUCCEEDED:
@@ -856,85 +862,6 @@ static void nrf_qwr_error_handler(uint32_t nrf_error)
     APP_ERROR_HANDLER(nrf_error);
 }
 
-#ifdef BUTTONLESS_ENABLED
-static void advertising_config_get(ble_adv_modes_config_t* p_config)
-{
-    memset(p_config, 0, sizeof(ble_adv_modes_config_t));
-
-    p_config->ble_adv_fast_enabled = true;
-    p_config->ble_adv_fast_interval = APP_ADV_INTERVAL;
-    p_config->ble_adv_fast_timeout = APP_ADV_DURATION;
-}
-
-// YOUR_JOB: Update this code if you want to do anything given a DFU event (optional).
-/**@brief Function for handling dfu events from the Buttonless Secure DFU service
- *
- * @param[in]   event   Event from the Buttonless Secure DFU service.
- */
-static void ble_dfu_evt_handler(ble_dfu_buttonless_evt_type_t event)
-{
-    bak_buff[0] = UART_CMD_DFU_STA;
-    bak_buff[1] = 0x01;
-
-    switch ( event )
-    {
-    case BLE_DFU_EVT_BOOTLOADER_ENTER_PREPARE:
-        {
-            NRF_LOG_INFO("Device is preparing to enter bootloader mode.");
-
-            bak_buff[2] = VALUE_PREPARE_DFU;
-
-            // Prevent device from advertising on disconnect.
-            ble_adv_modes_config_t config;
-            advertising_config_get(&config);
-            config.ble_adv_on_disconnect_disabled = true;
-            ble_advertising_modes_config_set(&m_advertising, &config);
-
-            // Disconnect all other bonded devices that currently are connected.
-            // This is required to receive a service changed indication
-            // on bootup after a successful (or aborted) Device Firmware Update.
-            uint32_t conn_count = ble_conn_state_for_each_connected(disconnect, NULL);
-            NRF_LOG_INFO("Disconnected %d links.", conn_count);
-            break;
-        }
-
-    case BLE_DFU_EVT_BOOTLOADER_ENTER:
-
-        bak_buff[2] = VALUE_ENTER_DFU;
-
-        // YOUR_JOB: Write app-specific unwritten data to FLASH, control finalization of this
-        //           by delaying reset by reporting false in app_shutdown_handler
-        NRF_LOG_INFO("Device will enter bootloader mode.");
-        break;
-
-    case BLE_DFU_EVT_BOOTLOADER_ENTER_FAILED:
-
-        bak_buff[2] = VALUE_ENTER_FAILED;
-
-        NRF_LOG_ERROR("Request to enter bootloader mode failed asynchroneously.");
-        // YOUR_JOB: Take corrective measures to resolve the issue
-        //           like calling APP_ERROR_CHECK to reset the device.
-        break;
-
-    case BLE_DFU_EVT_RESPONSE_SEND_ERROR:
-
-        bak_buff[2] = VALUE_RSP_FAILED;
-
-        NRF_LOG_ERROR("Request to send a response to client failed.");
-        // YOUR_JOB: Take corrective measures to resolve the issue
-        //           like calling APP_ERROR_CHECK to reset the device.
-        APP_ERROR_CHECK(false);
-        break;
-
-    default:
-
-        bak_buff[2] = VALUE_UNKNOWN_ERR;
-
-        NRF_LOG_ERROR("Unknown event from ble_dfu_buttonless.");
-        break;
-    }
-}
-#endif
 /**@brief Function for handling the data from the Nordic UART Service.
  *
  * @details This function will process the data received from the Nordic UART BLE Service and send
@@ -945,6 +872,7 @@ static void ble_dfu_evt_handler(ble_dfu_buttonless_evt_type_t event)
 /**@snippet [Handling the data received over BLE] */
 static void nus_data_handler(ble_nus_evt_t* p_evt)
 {
+    NRF_LOG_INFO("----> nus_data_handler CALLED");
     static uint32_t msg_len;
     uint32_t pad;
     // uint8_t *rcv_data=(uint8_t *)p_evt->params.rx_data.p_data;
@@ -952,8 +880,8 @@ static void nus_data_handler(ble_nus_evt_t* p_evt)
 
     if ( p_evt->type == BLE_NUS_EVT_RX_DATA )
     {
-        // NRF_LOG_INFO("Received data from BLE NUS.");
-        // NRF_LOG_HEXDUMP_DEBUG(p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
+        NRF_LOG_INFO("Received data from BLE NUS.");
+        NRF_LOG_HEXDUMP_DEBUG(p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
         data_recived_len = p_evt->params.rx_data.length;
         memcpy(data_recived_buf, (uint8_t*)p_evt->params.rx_data.p_data, data_recived_len);
 
@@ -1029,24 +957,16 @@ static void nus_data_handler(ble_nus_evt_t* p_evt)
 static void services_init(void)
 {
     ret_code_t err_code;
+    nrf_ble_qwr_init_t qwr_init = {0};
     ble_dis_init_t dis_init;
     ble_nus_init_t nus_init;
-    nrf_ble_qwr_init_t qwr_init = {0};
-#ifdef BUTTONLESS_ENABLED
-    ble_dfu_buttonless_init_t dfus_init = {0};
-#endif
 
     // Initialize Queued Write Module.
     qwr_init.error_handler = nrf_qwr_error_handler;
 
     err_code = nrf_ble_qwr_init(&m_qwr, &qwr_init);
     APP_ERROR_CHECK(err_code);
-#ifdef BUTTONLESS_ENABLED
-    dfus_init.evt_handler = ble_dfu_evt_handler;
 
-    err_code = ble_dfu_buttonless_init(&dfus_init);
-    APP_ERROR_CHECK(err_code);
-#endif
     // Initialize Battery Service.
     sys_bas_init();
 
@@ -1070,11 +990,10 @@ static void services_init(void)
     err_code = ble_dis_init(&dis_init);
     APP_ERROR_CHECK(err_code);
 #endif
+
     // Initialize NUS.
     memset(&nus_init, 0, sizeof(nus_init));
-
     nus_init.data_handler = nus_data_handler;
-
     err_code = ble_nus_init(&m_nus, &nus_init);
     APP_ERROR_CHECK(err_code);
 }
@@ -1206,9 +1125,30 @@ static void ble_evt_handler(const ble_evt_t* p_ble_evt, void* p_context)
 
     switch ( p_ble_evt->header.evt_id )
     {
-    case BLE_GAP_EVT_DISCONNECTED:
+
+        // GAP
+
+    case BLE_GAP_EVT_CONNECTED:
+        NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_CONNECTED", __func__);
         {
-            NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_DISCONNECTED", __func__);
+            ble_evt_flag = BLE_CONNECT;
+
+            bak_buff[0] = BLE_CMD_CON_STA;
+            bak_buff[1] = BLE_CON_STATUS;
+            send_stm_data(bak_buff, 2);
+
+            m_peer_to_be_deleted = PM_PEER_ID_INVALID;
+            m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+            err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
+            APP_ERROR_CHECK(err_code);
+            nrf_ble_gatt_data_length_set(&m_gatt, m_conn_handle, BLE_GAP_DATA_LENGTH_DEFAULT);
+            // Start Security Request timer.
+        }
+        break;
+
+    case BLE_GAP_EVT_DISCONNECTED:
+        NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_DISCONNECTED", __func__);
+        {
             ble_evt_flag = BLE_DISCONNECT;
             bond_check_key_flag = INIT_VALUE;
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
@@ -1228,57 +1168,16 @@ static void ble_evt_handler(const ble_evt_t* p_ble_evt, void* p_context)
         }
         break;
 
-    case BLE_GAP_EVT_CONNECTED:
-        {
-            NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_CONNECTED", __func__);
-            ble_evt_flag = BLE_CONNECT;
-
-            bak_buff[0] = BLE_CMD_CON_STA;
-            bak_buff[1] = BLE_CON_STATUS;
-            send_stm_data(bak_buff, 2);
-
-            m_peer_to_be_deleted = PM_PEER_ID_INVALID;
-            m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
-            err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
-            APP_ERROR_CHECK(err_code);
-            nrf_ble_gatt_data_length_set(&m_gatt, m_conn_handle, BLE_GAP_DATA_LENGTH_DEFAULT);
-            // Start Security Request timer.
-        }
-        break;
-
-    case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
-        {
-            NRF_LOG_DEBUG("PHY update request.");
-            const ble_gap_phys_t phys = {
-                .rx_phys = BLE_GAP_PHY_AUTO,
-                .tx_phys = BLE_GAP_PHY_AUTO,
-            };
-            err_code = sd_ble_gap_phy_update(p_ble_evt->evt.gap_evt.conn_handle, &phys);
-            APP_ERROR_CHECK(err_code);
-        }
-        break;
-
-    case BLE_GATTC_EVT_TIMEOUT:
-        // Disconnect on GATT Client timeout event.
-        NRF_LOG_DEBUG("GATT Client Timeout.");
-        err_code =
-            sd_ble_gap_disconnect(p_ble_evt->evt.gattc_evt.conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-        APP_ERROR_CHECK(err_code);
-        break;
-
-    case BLE_GATTS_EVT_TIMEOUT:
-        // Disconnect on GATT Server timeout event.
-        NRF_LOG_DEBUG("GATT Server Timeout.");
-        err_code =
-            sd_ble_gap_disconnect(p_ble_evt->evt.gatts_evt.conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-        APP_ERROR_CHECK(err_code);
-        break;
+        // BLE_GAP_EVT_CONN_PARAM_UPDATE
 
     case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
-        NRF_LOG_DEBUG("BLE_GAP_EVT_SEC_PARAMS_REQUEST");
+        NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_SEC_PARAMS_REQUEST", __func__);
         break;
 
+        // BLE_GAP_EVT_SEC_INFO_REQUEST
+
     case BLE_GAP_EVT_PASSKEY_DISPLAY:
+        NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_PASSKEY_DISPLAY", __func__);
         {
             char passkey[PASSKEY_LENGTH + 1];
             memcpy(passkey, p_ble_evt->evt.gap_evt.params.passkey_display.passkey, PASSKEY_LENGTH);
@@ -1293,15 +1192,18 @@ static void ble_evt_handler(const ble_evt_t* p_ble_evt, void* p_context)
         }
         break;
 
+        // BLE_GAP_EVT_KEY_PRESSED
+
     case BLE_GAP_EVT_AUTH_KEY_REQUEST:
-        NRF_LOG_INFO("BLE_GAP_EVT_AUTH_KEY_REQUEST");
+        NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_AUTH_KEY_REQUEST", __func__);
         break;
 
     case BLE_GAP_EVT_LESC_DHKEY_REQUEST:
-        NRF_LOG_INFO("BLE_GAP_EVT_LESC_DHKEY_REQUEST");
+        NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_LESC_DHKEY_REQUEST", __func__);
         break;
 
     case BLE_GAP_EVT_AUTH_STATUS:
+        NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_AUTH_STATUS", __func__);
         NRF_LOG_INFO(
             "BLE_GAP_EVT_AUTH_STATUS: status=0x%x bond=0x%x lv4: %d kdist_own:0x%x kdist_peer:0x%x",
             p_ble_evt->evt.gap_evt.params.auth_status.auth_status, p_ble_evt->evt.gap_evt.params.auth_status.bonded,
@@ -1311,6 +1213,70 @@ static void ble_evt_handler(const ble_evt_t* p_ble_evt, void* p_context)
         );
         bond_check_key_flag = AUTH_VALUE;
         break;
+
+        // case BLE_GAP_EVT_CONN_SEC_UPDATE:
+        //     NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_CONN_SEC_UPDATE", __func__);
+        //     break;
+
+        // case BLE_GAP_EVT_TIMEOUT:
+        //     NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_TIMEOUT", __func__);
+        //     err_code =
+        //         sd_ble_gap_disconnect(p_ble_evt->evt.gattc_evt.conn_handle,
+        //         BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+        //     APP_ERROR_CHECK(err_code);
+        //     break;
+
+        // BLE_GAP_EVT_RSSI_CHANGED
+        // BLE_GAP_EVT_ADV_REPORT
+        // BLE_GAP_EVT_SEC_REQUEST
+        // BLE_GAP_EVT_CONN_PARAM_UPDATE_REQUEST
+        // BLE_GAP_EVT_SCAN_REQ_REPORT
+
+    case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
+        NRF_LOG_DEBUG("%s ---> BLE_GAP_EVT_PHY_UPDATE_REQUEST", __func__);
+        {
+            const ble_gap_phys_t phys = {
+                .rx_phys = BLE_GAP_PHY_AUTO,
+                .tx_phys = BLE_GAP_PHY_AUTO,
+            };
+            err_code = sd_ble_gap_phy_update(p_ble_evt->evt.gap_evt.conn_handle, &phys);
+            APP_ERROR_CHECK(err_code);
+        }
+        break;
+
+        // BLE_GAP_EVT_PHY_UPDATE
+        // BLE_GAP_EVT_DATA_LENGTH_UPDATE_REQUEST
+        // BLE_GAP_EVT_DATA_LENGTH_UPDATE
+        // BLE_GAP_EVT_QOS_CHANNEL_SURVEY_REPORT
+        // BLE_GAP_EVT_ADV_SET_TERMINATED
+
+        // GATTC
+
+    case BLE_GATTC_EVT_TIMEOUT:
+        NRF_LOG_DEBUG("%s ---> BLE_GATTC_EVT_TIMEOUT", __func__);
+        // Disconnect on GATT Client timeout event.
+        NRF_LOG_DEBUG("GATT Client Timeout.");
+        err_code =
+            sd_ble_gap_disconnect(p_ble_evt->evt.gattc_evt.conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+        APP_ERROR_CHECK(err_code);
+        break;
+
+        // GATTS
+
+    case BLE_GATTS_EVT_TIMEOUT:
+        NRF_LOG_DEBUG("%s ---> BLE_GATTS_EVT_TIMEOUT", __func__);
+        // Disconnect on GATT Server timeout event.
+        NRF_LOG_DEBUG("GATT Server Timeout.");
+        err_code =
+            sd_ble_gap_disconnect(p_ble_evt->evt.gatts_evt.conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+        APP_ERROR_CHECK(err_code);
+        break;
+
+        // case BLE_GATTS_EVT_SYS_ATTR_MISSING:
+        //     // No system attributes have been stored.
+        //     err_code = sd_ble_gatts_sys_attr_set(p_ble_evt->evt.gatts_evt.conn_handle, NULL, 0, 0);
+        //     APP_ERROR_CHECK(err_code);
+        //     break;
 
     default:
         // No implementation needed.
@@ -2459,12 +2425,7 @@ int main(void)
     NRF_LOG_FLUSH();
     // ==> Bus Fault
     // SCB->SHCSR |= SCB_SHCSR_BUSFAULTENA_Msk;
-    // ==> Buttonless DFU
-#ifdef BUTTONLESS_ENABLED
-    // Initialize the async SVCI interface to bootloader before any interrupts are enabled.
-    ret_code_t err_code = ble_dfu_buttonless_async_svci_init();
-    APP_ERROR_CHECK(err_code);
-#endif
+
     // ==> NRF Crypto API
     nrf_crypto_init();
     // ==> Power Manage IC, LED Driver, and Device Configs
