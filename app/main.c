@@ -435,6 +435,12 @@ static volatile bool pmu_feat_charge_enable = false;
 static volatile bool led_brightness_synced = false;
 static volatile uint8_t led_brightness_value = 0;
 
+// misc status flags
+// mainly use for workarounds when needs shutdown before app fullly boots to main even loop
+// NRF5 SDK is poorly designed which do not track if a feature is initialized when calling apis
+// Thus uninit function may stuck if feature init never called
+static volatile bool app_uart_is_initialized = false;
+
 /**@brief Handler for shutdown preparation.
  *
  * @details During shutdown procedures, this function will be called at a 1 second interval
@@ -448,23 +454,29 @@ static volatile uint8_t led_brightness_value = 0;
 static bool app_shutdown_handler(nrf_pwr_mgmt_evt_t event)
 {
     NRF_LOG_DEBUG("%s , nrf_pwr_mgmt_evt_t = %d", __func__, event);
+    NRF_LOG_FLUSH();
 
     switch ( event )
     {
     case NRF_PWR_MGMT_EVT_PREPARE_WAKEUP:
         // stop bt adv
-        if ( !bt_advertising_ctrl(false, false) )
-            return false;
+        if ( nrf_sdh_is_enabled() )
+        {
+            if ( !bt_advertising_ctrl(false, false) )
+                return false;
+        }
         // enable wakeup
         nrf_gpio_cfg_sense_input(PMIC_PWROK_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
-        nrf_gpio_cfg_sense_input(PMIC_IRQ_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
+        // nrf_gpio_cfg_sense_input(PMIC_IRQ_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
+        return true;
+
+    case NRF_PWR_MGMT_EVT_PREPARE_RESET:
         return true;
 
     case NRF_PWR_MGMT_EVT_PREPARE_DFU:
     case NRF_PWR_MGMT_EVT_PREPARE_SYSOFF:
-    case NRF_PWR_MGMT_EVT_PREPARE_RESET:
     default:
-        return true;
+        return false;
     }
 }
 NRF_PWR_MGMT_HANDLER_REGISTER(app_shutdown_handler, 0);
@@ -513,7 +525,11 @@ static void enter_low_power_mode(void)
         pmu_p->Deinit();
     gpio_uninit();
     nrf_gpio_cfg_default(ST_WAKE_IO);
-    app_uart_close();
+    if ( app_uart_is_initialized )
+    {
+        app_uart_close();
+        app_uart_is_initialized = false;
+    }
     nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
 }
 
@@ -1640,6 +1656,7 @@ static void usr_uart_init(void)
         &comm_params, UART_RX_BUF_SIZE, UART_TX_BUF_SIZE, uart_event_handle, APP_IRQ_PRIORITY_LOWEST, err_code
     );
     APP_ERROR_CHECK(err_code);
+    app_uart_is_initialized = true;
 }
 
 /**@brief Function for initializing the Advertising functionality.
@@ -2425,7 +2442,9 @@ int main(void)
     NRF_LOG_FLUSH();
     // ==> Bus Fault
     // SCB->SHCSR |= SCB_SHCSR_BUSFAULTENA_Msk;
-
+    // ==> lowlevel minimal
+    gpio_init();
+    power_management_init();
     // ==> NRF Crypto API
     nrf_crypto_init();
     // ==> Power Manage IC, LED Driver, and Device Configs
@@ -2479,13 +2498,11 @@ int main(void)
     // General Init Items
     NRF_LOG_INFO("General Init Seq.");
     NRF_LOG_FLUSH();
-    gpio_init();
     usr_uart_init();
     usr_spim_init();
     timers_init();
-    watch_dog_init();
     scheduler_init();
-    power_management_init();
+    watch_dog_init();
 
     // ###############################
     // Power Manage Init Items
