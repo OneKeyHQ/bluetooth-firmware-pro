@@ -22,7 +22,7 @@ static bool axp2101_config_voltage(void)
     // ALDO1 -> RAIL_1V8 1.8V
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_ALDO1_CFG, 0x0D));
     // DCDC1 -> RAIL_3V3 3.3V
-    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC1_CFG, 0x14));
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC1_CFG, 0x12));
 
     return true;
 }
