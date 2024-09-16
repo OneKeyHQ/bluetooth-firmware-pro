@@ -24,6 +24,11 @@ static bool axp2101_config_voltage(void)
     // DCDC1 -> RAIL_3V3 3.3V
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_DCDC1_CFG, 0x12));
 
+    // minimal vsys voltage -> 2.6V
+    // there is a silicon logic bug for axp2101, batfet won't be closed if powered on by key, even if vsys is lower than
+    // VOFF_THLD
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VOFF_THLD, 0x00));
+
     return true;
 }
 
@@ -347,6 +352,12 @@ Power_Error_t axp2101_pull_status(void)
     HL_Buff hlbuff;
 
     Power_Status_t status_temp = {0};
+
+    // sys voltage
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VSYS_H, &(hlbuff.u8_high)));
+    hlbuff.u8_high &= 0b00111111; // drop bit 7:6
+    EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_VSYS_L, &(hlbuff.u8_low)));
+    status_temp.sysVoltage = hlbuff.u16;
 
     // battery present
     hlbuff.u8_high = 0;

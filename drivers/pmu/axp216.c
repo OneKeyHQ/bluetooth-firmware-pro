@@ -28,6 +28,9 @@ static bool axp216_config_voltage(void)
     // DCDC1 -> MAIN 3.3V
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_DC1OUT_VOL, 0x11));
 
+    // minimal vsys voltage -> 2.6V
+    EC_E_BOOL_R_BOOL(axp216_clr_bits(AXP216_VOFF_SET, 0b00000111));
+
     return true;
 }
 
@@ -115,8 +118,6 @@ static bool axp216_config_common(void)
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_OFF_CTL, 0x48));
     // 16s key press force reboot, die ovtmp off, no irq turn on
     EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_HOTOVER_CTL, 0x0f));
-    // voff(ipsout/vsys) 3.3v, no irq wakeup
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VOFF_SET, 0x07));
 
     return true;
 }
@@ -311,6 +312,9 @@ Power_Error_t axp216_pull_status(void)
     HL_Buff hlbuff;
 
     Power_Status_t status_temp = {0};
+
+    // sys voltage (not supported by axp216, set to zero)
+    status_temp.sysVoltage = 0;
 
     // battery present
     hlbuff.u8_high = 0;

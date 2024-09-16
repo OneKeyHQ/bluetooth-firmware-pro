@@ -2235,6 +2235,7 @@ static inline void pmu_status_print()
 {
     NRF_LOG_INFO("=== PowerStatus ===");
     NRF_LOG_INFO("PMIC_IRQ_IO -> %s", (nrf_gpio_pin_read(PMIC_IRQ_IO) ? "HIGH" : "LOW"));
+    NRF_LOG_INFO("sysVoltage=%lu", pmu_p->PowerStatus->sysVoltage);
     NRF_LOG_INFO("batteryPresent=%u", pmu_p->PowerStatus->batteryPresent);
     NRF_LOG_INFO("batteryPercent=%u", pmu_p->PowerStatus->batteryPercent);
     NRF_LOG_INFO("batteryVoltage=%lu", pmu_p->PowerStatus->batteryVoltage);

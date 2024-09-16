@@ -103,6 +103,7 @@ typedef enum
 
 typedef struct
 {
+    uint16_t sysVoltage;
     bool batteryPresent;
     uint8_t batteryPercent;
     uint16_t batteryVoltage;

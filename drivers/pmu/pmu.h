@@ -12,6 +12,7 @@ PMU_t* pmu_probe(PMU_Interface_t* pmu_if);
 //     pmu_p->PullStatus();
 
 //     NRF_LOG_INFO("=== PowerStatus ===");
+//     NRF_LOG_INFO("sysVoltage=%lu", pmu_p->PowerStatus->sysVoltage);
 //     NRF_LOG_INFO("batteryPresent=%u", pmu_p->PowerStatus->batteryPresent);
 //     NRF_LOG_INFO("batteryPercent=%u", pmu_p->PowerStatus->batteryPercent);
 //     NRF_LOG_INFO("batteryVoltage=%lu", pmu_p->PowerStatus->batteryVoltage);
