@@ -2348,6 +2348,56 @@ static void pmu_irq_pull(void* p_event_data, uint16_t event_size)
     }
 }
 
+static void pmu_sys_voltage_monitor(void* p_event_data, uint16_t event_size)
+{
+    static uint8_t match_count = 0;
+    const uint8_t match_required = 30;
+    const uint16_t minimum_mv = 3300;
+
+    if ( (match_count < match_required) )
+    {
+        // not triggered
+        if ( pmu_p->PowerStatus->batteryVoltage < minimum_mv )
+        {
+            // voltage low
+            if ( pmu_p->PowerStatus->chargerAvailable )
+            {
+                // has charger, ignore
+                // NRF_LOG_INFO("Low batteryVoltage detect skiped since charger available");
+                // reset counter
+                match_count = 0;
+            }
+            else
+            {
+                // increase counter
+                match_count++;
+                NRF_LOG_INFO(
+                    "Low batteryVoltage debounce, match %u/%u (batteryVoltage=%lu)", match_count, match_required,
+                    pmu_p->PowerStatus->batteryVoltage
+                );
+            }
+        }
+        else
+        {
+            // voltage normal
+            if ( match_count > 0 )
+            {
+                // reset counter if not zero
+                match_count = 0;
+                NRF_LOG_INFO("Low batteryVoltage debounce, match reset");
+                NRF_LOG_FLUSH();
+            }
+        }
+    }
+    else
+    {
+        // already triggered
+        NRF_LOG_INFO("Low batteryVoltage debounce, match fulfilled, force shutdown pmu");
+        NRF_LOG_FLUSH();
+        pmu_p->SetState(PWR_STATE_HARD_OFF);
+    }
+}
+
 static void led_ctl_process(void* p_event_data, uint16_t event_size)
 {
     // handle commands
@@ -2543,6 +2593,7 @@ int main(void)
     for ( ;; )
     {
         // event trigger
+        app_sched_event_put(NULL, 0, pmu_sys_voltage_monitor);
         app_sched_event_put(NULL, 0, pmu_pwrok_pull);
         app_sched_event_put(NULL, 0, pmu_irq_pull);
         app_sched_event_put(NULL, 0, pmu_status_refresh);
