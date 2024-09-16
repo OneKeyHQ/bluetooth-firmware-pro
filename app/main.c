@@ -526,6 +526,24 @@ static void enter_low_power_mode(void)
     nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
 }
 
+// sdh_soc_handler, mainly for power warning, no other event processed yet
+void sdh_soc_handler(uint32_t sys_evt, void* p_context)
+{
+    UNUSED_VAR(p_context);
+
+    if ( sys_evt == NRF_EVT_POWER_FAILURE_WARNING )
+    {
+        // nrf_gpio_cfg_output(PMIC_PWROK_IO);
+        // nrf_gpio_pin_clear(PMIC_PWROK_IO);
+        NRF_LOG_INFO("NRF Power POF triggered!");
+        NRF_LOG_FLUSH();
+
+        pmu_p->SetState(PWR_STATE_HARD_OFF);
+        enter_low_power_mode();
+    }
+}
+NRF_SDH_SOC_OBSERVER(m_soc_observer, 0, sdh_soc_handler, NULL);
+
 void battery_level_meas_timeout_handler(void* p_context)
 {
     ret_code_t err_code;
@@ -2577,6 +2595,25 @@ int main(void)
         ,
         false
     ); // TODO: check return!
+
+    // ###############################
+    // Power mode and warning (depends on SD, has to be here)
+    ExecuteCheck_ADV(sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE), NRF_SUCCESS, {
+        NRF_LOG_INFO("NRF Power enable DCDC failed");
+        NRF_LOG_FLUSH();
+        enter_low_power_mode();
+    });
+    ExecuteCheck_ADV(sd_power_pof_threshold_set(NRF_POWER_THRESHOLD_V28), NRF_SUCCESS, {
+        NRF_LOG_INFO("NRF Power set POF threadhold failed");
+        NRF_LOG_FLUSH();
+        enter_low_power_mode();
+    });
+    ExecuteCheck_ADV(sd_power_pof_enable(true), NRF_SUCCESS, {
+        NRF_LOG_INFO("NRF Power enable POF failed");
+        NRF_LOG_FLUSH();
+        enter_low_power_mode();
+    });
+    NRF_LOG_INFO("NRF Power configured");
 
     // ###############################
     // Main Loop
