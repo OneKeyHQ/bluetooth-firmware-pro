@@ -110,7 +110,7 @@
 
 Power_Error_t axp216_init(void);
 Power_Error_t axp216_deinit(void);
-Power_Error_t axp216_reset(void);
+Power_Error_t axp216_reset(bool hard_reset);
 Power_Error_t axp216_config(void);
 Power_Error_t axp216_irq(void);
 Power_Error_t axp216_set_state(const Power_State_t state);

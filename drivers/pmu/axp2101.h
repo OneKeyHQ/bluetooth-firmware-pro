@@ -135,7 +135,7 @@
 
 Power_Error_t axp2101_init(void);
 Power_Error_t axp2101_deinit(void);
-Power_Error_t axp2101_reset(void);
+Power_Error_t axp2101_reset(bool hard_reset);
 Power_Error_t axp2101_config(void);
 Power_Error_t axp2101_irq(void);
 Power_Error_t axp2101_set_state(const Power_State_t state);

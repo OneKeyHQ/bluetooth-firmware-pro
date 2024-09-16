@@ -225,9 +225,21 @@ Power_Error_t axp2101_deinit(void)
     return PWR_ERROR_NONE;
 }
 
-Power_Error_t axp2101_reset(void)
+Power_Error_t axp2101_reset(bool hard_reset)
 {
-    EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_COMM_CFG, (1 << 1)));
+    if ( !hard_reset )
+    {
+        EC_E_BOOL_R_PWR_ERR(axp2101_set_bits(AXP2101_COMM_CFG, (1 << 1)));
+    }
+    else
+    {
+        // pmu force reset by pull down pwrok
+        pmu_interface_p->GPIO.Config(7, PWR_GPIO_Config_WRITE_NP);
+        pmu_interface_p->GPIO.Write(7, false);
+        pmu_interface_p->Delay_ms(100);
+        pmu_interface_p->GPIO.Config(7, PWR_GPIO_Config_DEFAULT);
+    }
+
     return PWR_ERROR_NONE;
 }
 

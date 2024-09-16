@@ -160,7 +160,7 @@ typedef struct
     Power_Status_t* PowerStatus;
     Power_Error_t (*Init)(void);
     Power_Error_t (*Deinit)(void);
-    Power_Error_t (*Reset)(void);
+    Power_Error_t (*Reset)(bool hard_reset);
     Power_Error_t (*Config)(void);
     Power_Error_t (*Irq)(void); // irq call in
     Power_Error_t (*SetState)(const Power_State_t state);

@@ -169,9 +169,20 @@ Power_Error_t axp216_deinit(void)
     return PWR_ERROR_NONE;
 }
 
-Power_Error_t axp216_reset(void)
+Power_Error_t axp216_reset(bool hard_reset)
 {
-    EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_VOFF_SET, (1 << 6)));
+    if ( !hard_reset )
+    {
+        EC_E_BOOL_R_PWR_ERR(axp216_set_bits(AXP216_VOFF_SET, (1 << 6)));
+    }
+    else
+    {
+        // pmu force reset by pull down pwrok
+        pmu_interface_p->GPIO.Config(7, PWR_GPIO_Config_WRITE_NP);
+        pmu_interface_p->GPIO.Write(7, false);
+        pmu_interface_p->Delay_ms(100);
+        pmu_interface_p->GPIO.Config(7, PWR_GPIO_Config_DEFAULT);
+    }
 
     return PWR_ERROR_NONE;
 }
