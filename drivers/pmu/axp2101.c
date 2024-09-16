@@ -92,8 +92,8 @@ static bool axp2101_config_battery_param(void)
     return true;
 }
 
-#define AXP2101_VTS_TO_VHTF(mv) (mv / 32)
-#define AXP2101_VTS_TO_VLTF(mv) (mv / 2)
+#define AXP2101_VTS_TO_VHTF(mv) (mv / 2)
+#define AXP2101_VTS_TO_VLTF(mv) (mv / 32)
 static bool axp2101_config_battery(void)
 {
     // warn level
@@ -116,16 +116,16 @@ static bool axp2101_config_battery(void)
     // Vl = reg_val * 2mv
 
     // charge temp max
-    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VHTF_CHG, (uint8_t)(AXP2101_VTS_TO_VHTF(196.96)))); // 196.96mv
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VHTF_CHG, (uint8_t)(AXP2101_VTS_TO_VHTF(193.9))));
 
     // charge temp min
-    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VLTF_CHG, (uint8_t)(AXP2101_VTS_TO_VLTF(711.2)))); // 711.2mv
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VLTF_CHG, (uint8_t)(AXP2101_VTS_TO_VLTF(736.3))));
 
     // discharge temp max
-    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VHTF_DISCHG, (uint8_t)(AXP2101_VTS_TO_VHTF(121.28)))); // 121.28mv
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VHTF_DISCHG, (uint8_t)(AXP2101_VTS_TO_VHTF(119.3))));
 
     // discharge temp min
-    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VLTF_DISCHG, (uint8_t)(AXP2101_VTS_TO_VLTF(2520)))); // 2520mv
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VLTF_DISCHG, (uint8_t)(AXP2101_VTS_TO_VLTF(3099))));
 
     return true;
 }

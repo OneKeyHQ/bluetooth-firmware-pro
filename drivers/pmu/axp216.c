@@ -60,13 +60,13 @@ static bool axp216_config_battery(void)
     // temp formula
     // V = reg_val * 0x10 * 0.0008V
     // charge temp max
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VHTF_CHG, (uint8_t)(AXP216_VTS_TO_VXTF(196.96)))); // 196.96mv
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VHTF_CHG, (uint8_t)(AXP216_VTS_TO_VXTF(193.9))));
     // charge temp min
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VLTF_CHG, (uint8_t)(AXP216_VTS_TO_VXTF(711.2)))); // 711.2mv
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VLTF_CHG, (uint8_t)(AXP216_VTS_TO_VXTF(736.3))));
     // discharge temp max
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VHTF_DISCHG, (uint8_t)(AXP216_VTS_TO_VXTF(121.28)))); // 121.28mv
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VHTF_DISCHG, (uint8_t)(AXP216_VTS_TO_VXTF(119.3))));
     // discharge temp min
-    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VLTF_DISCHG, (uint8_t)(AXP216_VTS_TO_VXTF(2520)))); // 2520mv
+    EC_E_BOOL_R_BOOL(axp216_reg_write(AXP216_VLTF_DISCHG, (uint8_t)(AXP216_VTS_TO_VXTF(3099))));
 
     return true;
 }
