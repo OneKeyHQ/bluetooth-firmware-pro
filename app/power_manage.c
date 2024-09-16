@@ -64,8 +64,14 @@ static void pmu_if_irq(const uint64_t irq)
     //     bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
     //     send_stm_data_p(bak_buff, 3);
     // }
-    if ( 0 != (irq & (1 << PWR_IRQ_BATT_LOW)) ) {}
-    if ( 0 != (irq & (1 << PWR_IRQ_BATT_CRITICAL)) ) {}
+    if ( 0 != (irq & (1 << PWR_IRQ_BATT_LOW)) )
+    {
+        NRF_LOG_INFO("irq PWR_IRQ_BATT_LOW");
+    }
+    if ( 0 != (irq & (1 << PWR_IRQ_BATT_CRITICAL)) )
+    {
+        NRF_LOG_INFO("irq PWR_IRQ_BATT_CRITICAL");
+    }
     if ( 0 != (irq & (1 << PWR_IRQ_PB_PRESS)) )
     {
         NRF_LOG_INFO("irq PWR_IRQ_PB_PRESS");
@@ -308,11 +314,11 @@ void axp_reg_dump(uint8_t pmu_addr)
     if ( !pmu_if.isInitialized )
         return;
 
-    pmu_if.Log(PWR_LOG_LEVEL_INFO, "**************** axp_reg_dump ****************\n");
+    pmu_if.Log(PWR_LOG_LEVEL_INFO, "**************** axp_reg_dump ****************");
 
     for ( uint16_t reg = 0; reg <= 0xff; reg++ )
     {
         pmu_if.Reg.Read(pmu_addr, reg, &val);
-        pmu_if.Log(PWR_LOG_LEVEL_INFO, "reg 0x%02x = 0x%02x\n", reg, val);
+        pmu_if.Log(PWR_LOG_LEVEL_INFO, "reg 0x%02x = 0x%02x", reg, val);
     }
 }

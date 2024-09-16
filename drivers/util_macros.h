@@ -1,5 +1,5 @@
-#ifndef _util_macros_
-#define _util_macros_
+#ifndef _UTIL_MACROS_H_
+#define _UTIL_MACROS_H_
 
 #define UNUSED_VAR(X) ((void)(X))
 
@@ -51,4 +51,4 @@
 #define PRINT_CURRENT_LOCATION()
 #endif
 
-#endif //_util_macros_
+#endif //_UTIL_MACROS_H_

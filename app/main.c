@@ -475,23 +475,6 @@ static bool app_shutdown_handler(nrf_pwr_mgmt_evt_t event)
 }
 NRF_PWR_MGMT_HANDLER_REGISTER(app_shutdown_handler, 0);
 
-static void buttonless_dfu_sdh_state_observer(nrf_sdh_state_evt_t state, void* p_context)
-{
-    if ( state == NRF_SDH_EVT_STATE_DISABLED )
-    {
-        // Softdevice was disabled before going into reset. Inform bootloader to skip CRC on next boot.
-        nrf_power_gpregret2_set(BOOTLOADER_DFU_SKIP_CRC);
-
-        // Go to system off.
-        nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
-    }
-}
-
-/* nrf_sdh state observer. */
-NRF_SDH_STATE_OBSERVER(m_buttonless_dfu_state_obs, 0) = {
-    .handler = buttonless_dfu_sdh_state_observer,
-};
-
 /**@brief Function for assert macro callback.
  *
  * @details This function will be called in case of an assert in the SoftDevice.
