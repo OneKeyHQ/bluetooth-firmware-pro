@@ -459,12 +459,6 @@ static bool app_shutdown_handler(nrf_pwr_mgmt_evt_t event)
     switch ( event )
     {
     case NRF_PWR_MGMT_EVT_PREPARE_WAKEUP:
-        // stop bt adv
-        if ( nrf_sdh_is_enabled() )
-        {
-            if ( !bt_advertising_ctrl(false, false) )
-                return false;
-        }
         // enable wakeup
         nrf_gpio_cfg_sense_input(PMIC_PWROK_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
         // nrf_gpio_cfg_sense_input(PMIC_IRQ_IO, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
@@ -521,15 +515,31 @@ static inline void gpio_uninit(void)
 
 static void enter_low_power_mode(void)
 {
-    if ( (pmu_p != NULL) && (pmu_p->isInitialized) )
-        pmu_p->Deinit();
-    gpio_uninit();
-    nrf_gpio_cfg_default(ST_WAKE_IO);
+    // stop uart
     if ( app_uart_is_initialized )
     {
         app_uart_close();
         app_uart_is_initialized = false;
     }
+
+    // stop bt adv
+    if ( nrf_sdh_is_enabled() )
+    {
+        while ( !bt_advertising_ctrl(false, false) )
+        {
+            nrf_delay_ms(100);
+        }
+    }
+
+    // release pmu interface
+    if ( (pmu_p != NULL) && (pmu_p->isInitialized) )
+        pmu_p->Deinit();
+
+    // release gpio
+    gpio_uninit();
+    nrf_gpio_cfg_default(ST_WAKE_IO);
+
+    // shutdown
     nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
 }
 
