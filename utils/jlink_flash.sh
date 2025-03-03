@@ -7,9 +7,7 @@ device NRF52832_XXAA
 SelectInterface swd
 speed 8000
 RSetType 0
-r
 loadbin $1 0x00000000
-r
 g
 exit
 EOT
