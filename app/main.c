@@ -217,6 +217,7 @@
 #define MAX_TEST_DATA_BYTES (15U) /**< max number of test bytes to be used for tx and rx. */
 #define UART_TX_BUF_SIZE    256   /**< UART TX buffer size. */
 #define UART_RX_BUF_SIZE    256   /**< UART RX buffer size. */
+
 // BLE send CMD
 #define BLE_CMD_ADV_NAME 0x01
 //
@@ -250,6 +251,7 @@
 
 #define BLE_CMD_BUILD_ID         0x10
 #define BLE_CMD_HASH             0x11
+#define BLE_CMD_BT_MAC           0x12
 
 // end BLE send CMD
 //
@@ -286,6 +288,7 @@
 #define ST_REQ_BOOTLOADER_VER 0x04
 #define ST_REQ_BUILD_ID       0x05
 #define ST_REQ_HASH           0x06
+#define ST_REQ_BT_MAC         0x07
 
 //
 #define ST_CMD_RESET_BLE   0x84
@@ -336,17 +339,18 @@
 
 #define UART_DEF                    0x00
 #define ACTIVE_SEND_UART            0x01
-#define RESPONESE_NAME_UART         0x02
-#define RESPONESE_BAT_UART          0x03
-#define RESPONESE_VER_UART          0x04
-#define RESPONESE_SD_VER_UART       0x05
-#define RESPONESE_BOOT_VER_UART     0x06
-#define RESPONESE_LED_VER_UART      0x07
+#define RESPONESE_NAME              0x02
+#define RESPONESE_BAT               0x03
+#define RESPONESE_VER               0x04
+#define RESPONESE_SD_VER            0x05
+#define RESPONESE_BOOT_VER          0x06
+#define RESPONESE_LED_VER           0x07
 #define RESPONESE_BLE_PUBKEY        0x08
 #define RESPONESE_BLE_PUBKEY_LOCK   0x09
 #define RESPONESE_BLE_SIGN          0x0A
 #define RESPONESE_BUILD_ID          0x0B
 #define RESPONESE_HASH              0x0C
+#define RESPONESE_BT_MAC            0x0D
 #define DEF_RESP                    0xFF
 
 #define TIMER_INIT_FLAG             0
@@ -380,7 +384,7 @@ static volatile uint8_t led_brightness_flag = LED_DEF;
 static volatile uint8_t bat_msg_flag = BAT_DEF;
 static volatile uint8_t ble_trans_timer_flag = TIMER_INIT_FLAG;
 static uint8_t mac_ascii[12];
-static uint8_t mac[6] = {0x42, 0x13, 0xc7, 0x98, 0x95, 0x1a}; // Device MAC address
+static uint8_t mac[BLE_GAP_ADDR_LEN] = {0x42, 0x13, 0xc7, 0x98, 0x95, 0x1a}; // Device MAC address
 static char ble_adv_name[ADV_NAME_LENGTH];
 
 // void BusFault_Handler(void)
@@ -753,8 +757,9 @@ void mac_address_get(void)
     uint32_t err_code = sd_ble_gap_addr_get(&Mac_address);
     APP_ERROR_CHECK(err_code);
 
-    memcpy(mac, Mac_address.addr, 6);
-    for ( i = 0; i < 6; i++ )
+    memcpy(mac, Mac_address.addr, BLE_GAP_ADDR_LEN);
+
+    for ( i = 0; i < BLE_GAP_ADDR_LEN; i++ )
     {
         if ( (mac[i] >> 4) < 0x0a )
         {
@@ -1554,22 +1559,25 @@ void uart_event_handle(app_uart_evt_t* p_event)
                 switch ( uart_data_array[5] )
                 {
                 case ST_REQ_ADV_NAME:
-                    trans_info_flag = RESPONESE_NAME_UART;
+                    trans_info_flag = RESPONESE_NAME;
                     break;
                 case ST_REQ_FIRMWARE_VER:
-                    trans_info_flag = RESPONESE_VER_UART;
+                    trans_info_flag = RESPONESE_VER;
                     break;
                 case ST_REQ_SOFTDEVICE_VER:
-                    trans_info_flag = RESPONESE_SD_VER_UART;
+                    trans_info_flag = RESPONESE_SD_VER;
                     break;
                 case ST_REQ_BOOTLOADER_VER:
-                    trans_info_flag = RESPONESE_BOOT_VER_UART;
+                    trans_info_flag = RESPONESE_BOOT_VER;
                     break;
                 case ST_REQ_BUILD_ID:
                     trans_info_flag = RESPONESE_BUILD_ID;
                     break;
                 case ST_REQ_HASH:
                     trans_info_flag = RESPONESE_HASH;
+                    break;
+                case ST_REQ_BT_MAC:
+                    trans_info_flag = RESPONESE_BT_MAC;
                     break;
                 default:
                     trans_info_flag = UART_DEF;
@@ -1915,25 +1923,32 @@ static void rsp_st_uart_cmd(void* p_event_data, uint16_t event_size)
     memset(bak_buff, 0x00, sizeof(bak_buff));
     switch ( trans_info_flag )
     {
-    case RESPONESE_NAME_UART:
+    case RESPONESE_NAME:
         bak_buff[0] = BLE_CMD_ADV_NAME;
         memcpy(&bak_buff[1], (uint8_t*)ble_adv_name, ADV_NAME_LENGTH);
         send_stm_data(bak_buff, 1 + ADV_NAME_LENGTH);
         break;
 
-    case RESPONESE_VER_UART:
+    case RESPONESE_BT_MAC:
+        bak_buff[0] = BLE_CMD_BT_MAC;
+        memcpy(&bak_buff[1], (uint8_t*)mac, BLE_GAP_ADDR_LEN);
+        send_stm_data(bak_buff, 1 + BLE_GAP_ADDR_LEN);
+        trans_info_flag = DEF_RESP;
+        break;
+
+    case RESPONESE_VER:
         bak_buff[0] = BLE_FIRMWARE_VER;
         memcpy(&bak_buff[1], FW_REVISION, sizeof(FW_REVISION) - 1);
         send_stm_data(bak_buff, sizeof(FW_REVISION));
         break;
 
-    case RESPONESE_SD_VER_UART:
+    case RESPONESE_SD_VER:
         bak_buff[0] = BLE_SOFTDEVICE_VER;
         memcpy(&bak_buff[1], SW_REVISION, sizeof(SW_REVISION) - 1);
         send_stm_data(bak_buff, sizeof(SW_REVISION));
         break;
 
-    case RESPONESE_BOOT_VER_UART:
+    case RESPONESE_BOOT_VER:
         bak_buff[0] = BLE_BOOTLOADER_VER;
         memcpy(&bak_buff[1], BT_REVISION, sizeof(BT_REVISION) - 1);
         send_stm_data(bak_buff, sizeof(BT_REVISION));
