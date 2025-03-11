@@ -9,7 +9,7 @@ jobs:
     steps:
 
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: |
@@ -36,6 +36,9 @@ jobs:
           echo "short_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "fw_revision=$(sed -n 's/^#define FW_REVISION\s*"\(.*\)"/\1/p' app/firmware_config.h)" >> $GITHUB_OUTPUT
           echo "artifacts_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"" >> $GITHUB_OUTPUT
+          echo "changelog="$(python3 utils/git_changelog.py)"" >> "$GITHUB_OUTPUT"
+
+          echo "$(python3 utils/git_changelog.py)" # debug
 
       - name: Build and Sign
         env:
@@ -63,7 +66,7 @@ jobs:
           artifact-version-name: "${{ steps.vars.outputs.fw_revision }}"
           artifact-version-code: "${{ steps.vars.outputs.short_hash }}"
           artifact-download-url: "${{ steps.vars.outputs.artifacts_url }}"
-          change-log: "Download [Artifacts] at the bottom of page."
+          change-log: "${{ steps.vars.outputs.changelog }}"
           custom-issue-url: ""
           custom-message-title: ""
           custom-message-payload: ""
