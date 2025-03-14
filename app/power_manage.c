@@ -37,7 +37,7 @@ static void pmu_if_irq(const uint64_t irq)
         NRF_LOG_INFO("irq PWR_IRQ_PWR_CONNECTED");
         bak_buff[0] = BLE_CMD_POWER_STA;
         bak_buff[1] = BLE_INSERT_POWER;
-        bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
+        bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? CHARGE_TYPE_USB : CHARGE_TYPE_WIRELESS);
         send_stm_data_p(bak_buff, 3);
     }
     if ( 0 != (irq & (1 << PWR_IRQ_PWR_DISCONNECTED)) )
@@ -53,7 +53,7 @@ static void pmu_if_irq(const uint64_t irq)
         NRF_LOG_INFO("irq PWR_IRQ_CHARGING");
         bak_buff[0] = BLE_CMD_POWER_STA;
         bak_buff[1] = BLE_CHARGING_PWR;
-        bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
+        bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? CHARGE_TYPE_USB : CHARGE_TYPE_WIRELESS);
         send_stm_data_p(bak_buff, 3);
     }
     // if ( 0 != (irq & (1 << PWR_IRQ_CHARGED)) )
@@ -61,7 +61,7 @@ static void pmu_if_irq(const uint64_t irq)
     //     NRF_LOG_INFO("irq PWR_IRQ_CHARGED");
     //     bak_buff[0] = BLE_CMD_POWER_STA;
     //     bak_buff[1] = BLE_CHAGE_OVER;
-    //     bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
+    //     bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? CHARGE_TYPE_USB : CHARGE_TYPE_WIRELESS);
     //     send_stm_data_p(bak_buff, 3);
     // }
     if ( 0 != (irq & (1 << PWR_IRQ_BATT_LOW)) )
@@ -76,31 +76,79 @@ static void pmu_if_irq(const uint64_t irq)
     {
         NRF_LOG_INFO("irq PWR_IRQ_PB_PRESS");
         bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x20;
+        bak_buff[1] = BLE_KEY_PRESS;
         send_stm_data_p(bak_buff, 2);
     }
     if ( 0 != (irq & (1 << PWR_IRQ_PB_RELEASE)) )
     {
         NRF_LOG_INFO("irq PWR_IRQ_PB_RELEASE");
         bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x40;
+        bak_buff[1] = BLE_KEY_RELEASE;
         send_stm_data_p(bak_buff, 2);
     }
     if ( 0 != (irq & (1 << PWR_IRQ_PB_SHORT)) )
     {
         NRF_LOG_INFO("irq PWR_IRQ_PB_SHORT");
         bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x01;
+        bak_buff[1] = BLE_KEY_SHORT_PRESS;
         send_stm_data_p(bak_buff, 2);
     }
     if ( 0 != (irq & (1 << PWR_IRQ_PB_LONG)) )
     {
         NRF_LOG_INFO("irq PWR_IRQ_PB_LONG");
         bak_buff[0] = BLE_CMD_KEY_STA;
-        bak_buff[1] = 0x02;
+        bak_buff[1] = BLE_KEY_LONG_PRESS;
         send_stm_data_p(bak_buff, 2);
     }
     if ( 0 != (irq & (1 << PWR_IRQ_PB_FORCEOFF)) ) {}
+
+    // power error handling
+    if ( 0 != (irq & ((1 << PWR_IRQ_PMU_OVER_TEMP) | (1 << PWR_IRQ_BATT_OVER_TEMP) | (1 << PWR_IRQ_BATT_UNDER_TEMP) |
+                      (1 << PWR_IRQ_BATT_OVER_VOLTAGE) | (1 << PWR_IRQ_CHARGE_TIMEOUT))) )
+    {
+        if ( 0 != (irq & (1 << PWR_IRQ_PMU_OVER_TEMP)) )
+        {
+            NRF_LOG_INFO("irq PWR_IRQ_PMU_OVER_TEMP");
+            bak_buff[0] = BLE_CMD_POWER_ERR;
+            bak_buff[1] = BLE_CMD_POWER_ERR__PMU_OVER_TEMP;
+            send_stm_data_p(bak_buff, 2);
+        }
+        if ( 0 != (irq & (1 << PWR_IRQ_BATT_OVER_TEMP)) )
+        {
+            NRF_LOG_INFO("irq PWR_IRQ_BATT_OVER_TEMP");
+            bak_buff[0] = BLE_CMD_POWER_ERR;
+            bak_buff[1] = BLE_CMD_POWER_ERR__BATT_OVER_TEMP;
+            send_stm_data_p(bak_buff, 2);
+        }
+        if ( 0 != (irq & (1 << PWR_IRQ_BATT_UNDER_TEMP)) )
+        {
+            NRF_LOG_INFO("irq PWR_IRQ_BATT_UNDER_TEMP");
+            bak_buff[0] = BLE_CMD_POWER_ERR;
+            bak_buff[1] = BLE_CMD_POWER_ERR__BATT_UNDER_TEMP;
+            send_stm_data_p(bak_buff, 2);
+        }
+        if ( 0 != (irq & (1 << PWR_IRQ_BATT_OVER_VOLTAGE)) )
+        {
+            NRF_LOG_INFO("irq PWR_IRQ_BATT_OVER_VOLTAGE");
+            bak_buff[0] = BLE_CMD_POWER_ERR;
+            bak_buff[1] = BLE_CMD_POWER_ERR__BATT_OVER_VOLTAGE;
+            send_stm_data_p(bak_buff, 2);
+        }
+        if ( 0 != (irq & (1 << PWR_IRQ_CHARGE_TIMEOUT)) )
+        {
+            NRF_LOG_INFO("irq PWR_IRQ_CHARGE_TIMEOUT");
+            bak_buff[0] = BLE_CMD_POWER_ERR;
+            bak_buff[1] = BLE_CMD_POWER_ERR__CHARGE_TIMEOUT;
+            send_stm_data_p(bak_buff, 2);
+        }
+    }
+    else
+    {
+        NRF_LOG_INFO("irq BLE_CMD_POWER_ERR__NONE");
+        bak_buff[0] = BLE_CMD_POWER_ERR;
+        bak_buff[1] = BLE_CMD_POWER_ERR__NONE;
+        send_stm_data_p(bak_buff, 2);
+    }
 }
 
 static bool pmu_if_gpio_config(uint32_t pin_num, const Power_GPIO_Config_t config)

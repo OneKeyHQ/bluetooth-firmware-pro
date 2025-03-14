@@ -21,7 +21,7 @@
 #define EC_E_BOOL_R_BOOL(expr)         ExecuteCheck_ADV(expr, true, { return false; })
 
 #define PWR_ENUM_ITEM(b, c)            JOIN_EXPR(PWR, b, c)
-// regex ->(PWR_ENUM_ITEM\((.*), (.*)\).*,).*
+// regex -> (PWR_ENUM_ITEM\((.*), (.*)\).*,).*
 // replace -> $1 // PWR_$2_$3
 
 // ================================
@@ -77,6 +77,12 @@ typedef enum
     PWR_ENUM_ITEM(IRQ, PB_SHORT),         // PWR_IRQ_PB_SHORT
     PWR_ENUM_ITEM(IRQ, PB_LONG),          // PWR_IRQ_PB_LONG
     PWR_ENUM_ITEM(IRQ, PB_FORCEOFF),      // PWR_IRQ_PB_FORCEOFF
+
+    PWR_ENUM_ITEM(IRQ, PMU_OVER_TEMP),     // PWR_IRQ_PMU_OVER_TEMP
+    PWR_ENUM_ITEM(IRQ, BATT_OVER_TEMP),    // PWR_IRQ_BATT_OVER_TEMP
+    PWR_ENUM_ITEM(IRQ, BATT_UNDER_TEMP),   // PWR_IRQ_BATT_UNDER_TEMP
+    PWR_ENUM_ITEM(IRQ, BATT_OVER_VOLTAGE), // PWR_IRQ_BATT_OVER_VOLTAGE
+    PWR_ENUM_ITEM(IRQ, CHARGE_TIMEOUT),    // PWR_IRQ_CHARGE_TIMEOUT
 } Power_Irq_t;
 
 typedef enum
@@ -118,6 +124,8 @@ typedef struct
     bool wirelessCharge;
     uint16_t chargeCurrent;
     uint16_t dischargeCurrent;
+
+    uint64_t irqSnapshot; // snapshot, not pulled every loop, for debug only
 
 } Power_Status_t;
 

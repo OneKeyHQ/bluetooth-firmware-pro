@@ -2116,8 +2116,6 @@ static void manage_bat_level(void* p_event_data, uint16_t event_size)
 }
 static void ble_ctl_process(void* p_event_data, uint16_t event_size)
 {
-    uint8_t respons_flag = 0;
-
     if ( BLE_OFF_ALWAYS == ble_adv_switch_flag )
     {
         ble_adv_switch_flag = BLE_DEF;
@@ -2165,24 +2163,11 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
     {
     case PWR_SHUTDOWN_SYS:
         pwr_status_flag = PWR_DEF;
-
-        bak_buff[0] = BLE_CMD_PWR_STA;
-        bak_buff[1] = BLE_CLOSE_SYSTEM;
-        send_stm_data(bak_buff, 2);
-
         if ( ble_status_flag != BLE_OFF_ALWAYS )
         {
             bt_disconnect();
         }
         pmu_p->SetState(PWR_STATE_HARD_OFF);
-        break;
-    case PWR_CLOSE_EMMC:
-        respons_flag = BLE_CLOSE_EMMC;
-        // ctl_emmc_power(AXP_CLOSE_EMMC);
-        break;
-    case PWR_OPEN_EMMC:
-        respons_flag = BLE_OPEN_EMMC;
-        // ctl_emmc_power(AXP_OPEN_EMMC);
         break;
     case PWR_BAT_PERCENT:
         pwr_status_flag = PWR_DEF;
@@ -2200,7 +2185,7 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
             //     ((pmu_p->PowerStatus->chargeFinished && pmu_p->PowerStatus->chargeAllowed) ? BLE_CHAGE_OVER
             //                                                                                : BLE_CHARGING_PWR);
             bak_buff[1] = BLE_CHARGING_PWR;
-            bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? AXP_CHARGE_TYPE_USB : AXP_CHARGE_TYPE_WIRELESS);
+            bak_buff[2] = (pmu_p->PowerStatus->wiredCharge ? CHARGE_TYPE_USB : CHARGE_TYPE_WIRELESS);
         }
         else
         {
@@ -2211,14 +2196,6 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
         break;
     default:
         break;
-    }
-    if ( (PWR_DEF != pwr_status_flag) && (respons_flag != 0x00) )
-    {
-        bak_buff[0] = BLE_CMD_PWR_STA;
-        bak_buff[1] = respons_flag;
-        send_stm_data(bak_buff, 2);
-
-        pwr_status_flag = PWR_DEF;
     }
 }
 
@@ -2239,6 +2216,7 @@ static inline void pmu_status_print()
     NRF_LOG_INFO("wirelessCharge=%u", pmu_p->PowerStatus->wirelessCharge);
     NRF_LOG_INFO("chargeCurrent=%lu", pmu_p->PowerStatus->chargeCurrent);
     NRF_LOG_INFO("dischargeCurrent=%lu", pmu_p->PowerStatus->dischargeCurrent);
+    NRF_LOG_INFO("irqSnapshot=0x%08x", pmu_p->PowerStatus->irqSnapshot);
     NRF_LOG_INFO("=== ============== ===");
     NRF_LOG_FLUSH();
 }
@@ -2503,6 +2481,8 @@ int main(void)
         {
             NRF_LOG_INFO("PMU Init Success");
             NRF_LOG_FLUSH();
+            // axp_reg_dump(0x35);
+            // NRF_LOG_FLUSH();
         },
         {
             NRF_LOG_INFO("PMU Init Fail");

@@ -29,6 +29,11 @@ static bool axp2101_config_voltage(void)
     // VOFF_THLD
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VOFF_THLD, 0x00));
 
+    // VSYS_MIN -> 3.9V
+    // it is not clear what this do by the datasheet or axp suppot
+    // from testing, this seems effect lower than what battery voltage switch to usb power
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VSYS_MIN, 0x07));
+
     return true;
 }
 
@@ -37,9 +42,9 @@ static bool axp2101_config_battery_param(void)
     uint8_t val_temp = 0xff;
 
     // check if BROM already programed
-    // according to axp support, check reg A2 bit 4
+    // according to axp support, check if reg A2 bit 4 is 0
     EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_CONFIG, &val_temp));
-    if ( (val_temp & (1 << 4)) == (1 << 4) )
+    if ( 0 != (val_temp & (1 << 4)) )
     {
         pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM already configured, skip");
         return true;
@@ -159,9 +164,9 @@ static bool axp2101_config_irq(void)
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTSTS3, 0xFF));
 
     // enable irq (only needed)
-    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN1, 0xC0));
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN1, 0xCF));
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN2, 0xCF));
-    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN3, 0x18));
+    EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_INTEN3, 0x1F));
 
     return true;
 }
@@ -253,17 +258,28 @@ Power_Error_t axp2101_irq(void)
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_INTSTS2, &irqs[1]));
     EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_INTSTS3, &irqs[2]));
 
-    irq_bits |= ((((irqs[1] & (1 << 7))) != 0) << PWR_IRQ_PWR_CONNECTED);    // vbus
-    irq_bits |= ((((irqs[1] & (1 << 6))) != 0) << PWR_IRQ_PWR_DISCONNECTED); // vbus
-    irq_bits |= ((((irqs[2] & (1 << 3))) != 0) << PWR_IRQ_CHARGING);
-    irq_bits |= ((((irqs[2] & (1 << 4))) != 0) << PWR_IRQ_CHARGED);
     irq_bits |= ((((irqs[0] & (1 << 7))) != 0) << PWR_IRQ_BATT_LOW);
     irq_bits |= ((((irqs[0] & (1 << 6))) != 0) << PWR_IRQ_BATT_CRITICAL);
-    irq_bits |= ((((irqs[1] & (1 << 1))) != 0) << PWR_IRQ_PB_PRESS);
-    irq_bits |= ((((irqs[1] & (1 << 0))) != 0) << PWR_IRQ_PB_RELEASE);
+    irq_bits |= ((((irqs[0] & (1 << 3))) != 0) << PWR_IRQ_BATT_OVER_TEMP);  // charging
+    irq_bits |= ((((irqs[0] & (1 << 2))) != 0) << PWR_IRQ_BATT_UNDER_TEMP); // charging
+    irq_bits |= ((((irqs[0] & (1 << 1))) != 0) << PWR_IRQ_BATT_OVER_TEMP);  // discharging
+    irq_bits |= ((((irqs[0] & (1 << 0))) != 0) << PWR_IRQ_BATT_UNDER_TEMP); // discharging
+
+    irq_bits |= ((((irqs[1] & (1 << 7))) != 0) << PWR_IRQ_PWR_CONNECTED);    // vbus
+    irq_bits |= ((((irqs[1] & (1 << 6))) != 0) << PWR_IRQ_PWR_DISCONNECTED); // vbus
     irq_bits |= ((((irqs[1] & (1 << 3))) != 0) << PWR_IRQ_PB_SHORT);
     irq_bits |= ((((irqs[1] & (1 << 2))) != 0) << PWR_IRQ_PB_LONG);
-    // PWR_IRQ_PB_FORCEOFF not supported
+    irq_bits |= ((((irqs[1] & (1 << 1))) != 0) << PWR_IRQ_PB_PRESS);
+    irq_bits |= ((((irqs[1] & (1 << 0))) != 0) << PWR_IRQ_PB_RELEASE);
+
+    irq_bits |= ((((irqs[2] & (1 << 4))) != 0) << PWR_IRQ_CHARGED);
+    irq_bits |= ((((irqs[2] & (1 << 3))) != 0) << PWR_IRQ_CHARGING);
+    irq_bits |= ((((irqs[2] & (1 << 2))) != 0) << PWR_IRQ_PMU_OVER_TEMP);
+    irq_bits |= ((((irqs[2] & (1 << 1))) != 0) << PWR_IRQ_CHARGE_TIMEOUT);
+    irq_bits |= ((((irqs[2] & (1 << 0))) != 0) << PWR_IRQ_BATT_OVER_VOLTAGE);
+
+    // snapshot irqs
+    status_current.irqSnapshot = irq_bits;
 
     // process irq
     pmu_interface_p->Irq(irq_bits);
@@ -464,6 +480,7 @@ Power_Error_t axp2101_pull_status(void)
         status_temp.dischargeCurrent = 0;
     }
 
+    status_temp.irqSnapshot = status_current.irqSnapshot; // preserve irqSnapshot
     memcpy(&status_current, &status_temp, sizeof(Power_Status_t));
     return PWR_ERROR_NONE;
 }
