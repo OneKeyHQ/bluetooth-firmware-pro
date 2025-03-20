@@ -72,7 +72,6 @@ AXP216_CONF_R_t axp216_minimum_config()
                 nrf_delay_ms(100);
                 continue;
             }
-            nrf_i2c_handle->HighDriveStrengthCtrl(false);
 
             // check id, as axp different ic may share same i2c addrs
             if ( val == 0x62 )
@@ -114,9 +113,7 @@ AXP216_CONF_R_t axp216_minimum_config()
                     // delay
                     nrf_delay_ms(50);
                     // try wakeup
-                    nrf_i2c_handle->HighDriveStrengthCtrl(true);
                     EC_E_BOOL_BREAK(axp216_reg_write(AXP216_VOFF_SET, (val | (1 << 5))));
-                    nrf_i2c_handle->HighDriveStrengthCtrl(false);
                 }
                 else
                 {
@@ -127,15 +124,14 @@ AXP216_CONF_R_t axp216_minimum_config()
                     // delay
                     nrf_delay_ms(50);
                     // back on
-                    nrf_i2c_handle->HighDriveStrengthCtrl(true);
                     EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN2, 0x34));
                     EC_E_BOOL_BREAK(axp216_reg_write(AXP216_LDO_DC_EN1, 0xC2));
-                    nrf_i2c_handle->HighDriveStrengthCtrl(false);
                 }
 
                 result = AXP216_CONF_SUCCESS;
                 break;
             }
+            nrf_i2c_handle->HighDriveStrengthCtrl(false);
         }
     }
 

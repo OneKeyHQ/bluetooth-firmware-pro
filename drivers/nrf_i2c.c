@@ -110,6 +110,8 @@ static void nrf_i2c_strong_drive_ctrl(bool enable)
         TWI_PIN_CFG_STD(twi_config.sda);
         TWI_PIN_CFG_STD(twi_config.scl);
     }
+
+    nrf_delay_ms(100);
 }
 
 static bool nrf_i2c_init()
