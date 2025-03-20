@@ -39,18 +39,10 @@ static bool axp2101_config_voltage(void)
 
 static bool axp2101_config_battery_param(void)
 {
+    bool brom_valid = true;
     uint8_t val_temp = 0xff;
 
-    // check if BROM already programed
-    // according to axp support, check if reg A2 bit 4 is 0
-    EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_CONFIG, &val_temp));
-    if ( 0 != (val_temp & (1 << 4)) )
-    {
-        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM already configured, skip");
-        return true;
-    }
-
-    // battery param
+    // battery param -> BROM
     static const uint8_t batt_cal_data[128] = {
         0x01, 0xf5, 0x40, 0x00, 0x1b, 0x1e, 0x28, 0x0f, 0x0c, 0x1e, 0x32, 0x02, 0x14, 0x05, 0x0a, 0x04, //
         0x74, 0x00, 0x78, 0x0c, 0xdf, 0x10, 0xcc, 0xfc, 0xd0, 0x01, 0xea, 0x0c, 0x28, 0x06, 0xa4, 0x06, //
@@ -59,45 +51,109 @@ static bool axp2101_config_battery_param(void)
         0x6d, 0x09, 0x69, 0x0e, 0x57, 0x0d, 0xdf, 0x07, 0x85, 0x59, 0x2c, 0x28, 0x1e, 0x0d, 0x12, 0x08, //
         0xc5, 0x98, 0x7e, 0x66, 0x4e, 0x44, 0x38, 0x1a, 0x12, 0x0a, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
         0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
-        0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6  //
+        0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
     };
 
-    // reset fuel gauge
-    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
-    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
-    // enable BROM access
-    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
-    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
-    // program BROM
-    for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
     {
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_BROM, batt_cal_data[i]));
-        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM prog! i=%u, buff=0x%02x", i, batt_cal_data[i]);
-        pmu_interface_p->Delay_ms(10);
-    }
-    // enable BROM access
-    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
-    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
-    // verify BROM
-    for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
-    {
-        val_temp = 0;
-        EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_BROM, &val_temp));
-        if ( batt_cal_data[i] != val_temp )
+        // check brom
+        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM validating...");
+
+        // enable BROM access
+        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
+        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
+        // verify BROM
+        for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
         {
-            pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "BROM verify failed!");
-            pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "i=%u, buff=0x%02x, val=0x%02x", i, batt_cal_data[i], val_temp);
-            return false;
+            val_temp = 0xff;
+            EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_BROM, &val_temp));
+            if ( batt_cal_data[i] != val_temp )
+            {
+                brom_valid = false;
+                break;
+            }
+            pmu_interface_p->Delay_ms(10);
         }
-        pmu_interface_p->Delay_ms(10);
+        // disable BROM access
+        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
     }
-    // disable BROM access
-    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
-    // set fuel gauge use BROM
-    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 4)));
-    // reset fuel gauge
-    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
-    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
+
+    if ( !brom_valid )
+    {
+        // invalid brom
+        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM invalid, will be programmed");
+
+        // set fuel gauge use SRAM
+        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 4)));
+        // reset fuel gauge
+        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
+        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
+
+        // enable BROM access
+        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
+        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
+        // program BROM
+        const uint8_t bytes_wide = 8;
+        char print_buffer[(sizeof("0x00, ") - 1) * 16 + 1] = {'\0'};
+        for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
+        {
+            EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_BROM, batt_cal_data[i]));
+            if ( (i + 1) % 8 == 0 )
+            {
+                for ( uint16_t idx = 0; idx < bytes_wide; idx++ )
+                {
+                    sprintf(
+                        print_buffer + ((sizeof("0x00, ") - 1) * idx), "0x%02X, ",
+                        batt_cal_data[i - (bytes_wide - 1) + idx]
+                    );
+                }
+                pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM Prog 0x%02X: %s", (i - (bytes_wide - 1)), print_buffer);
+            }
+            pmu_interface_p->Delay_ms(10);
+        }
+
+        // enable BROM access
+        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
+        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
+        // verify BROM
+        for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
+        {
+            val_temp = 0;
+            EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_BROM, &val_temp));
+            if ( batt_cal_data[i] != val_temp )
+            {
+                pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "BROM program verify failed!");
+                pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "i=%u, buff=0x%02x, val=0x%02x", i, batt_cal_data[i], val_temp);
+                // disable BROM access
+                EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
+                // set fuel gauge use SRAM
+                EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 4)));
+                // reset fuel gauge
+                EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
+                EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
+                return false;
+            }
+            pmu_interface_p->Delay_ms(10);
+        }
+        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM program verify success!");
+        // disable BROM access
+        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
+        // set fuel gauge use BROM
+        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 4)));
+        // reset fuel gauge
+        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
+        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
+    }
+    else
+    {
+        // valid brom
+        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM valid");
+
+        // set fuel gauge use BROM
+        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 4)));
+        // reset fuel gauge
+        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
+        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
+    }
 
     return true;
 }
