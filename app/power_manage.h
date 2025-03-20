@@ -35,8 +35,6 @@
 // pmu handle
 extern PMU_t* pmu_p;
 
-static uint8_t bak_buff[128];
-
 void set_send_stm_data_p(void (*send_stm_data_p_)(uint8_t* pdata, uint8_t lenth));
 
 bool power_manage_init();
