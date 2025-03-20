@@ -30,7 +30,7 @@ static bool axp2101_config_voltage(void)
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VOFF_THLD, 0x00));
 
     // VSYS_MIN -> 3.9V
-    // it is not clear what this do by the datasheet or axp suppot
+    // it is not clear what this do by the datasheet or axp support
     // from testing, this seems effect lower than what battery voltage switch to usb power
     EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_VSYS_MIN, 0x07));
 

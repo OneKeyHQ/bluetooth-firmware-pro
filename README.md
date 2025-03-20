@@ -7,7 +7,7 @@ The firmware is based on NRF5 SDK 16.0.0, and build with CMake
 ## How to build
 
 ```shell
-# make sure you have cmake, Python 3, amd aarm-none-eabi toolchain available in PATH
+# make sure you have cmake, Python 3, and aarm-none-eabi toolchain available in PATH
 
 # export your OWN key for firmware signing
 export BT_SIG_PK=$(cat <<EOF
