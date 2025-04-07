@@ -42,4 +42,5 @@ int twi_master_init(void);
 void spi_write_st_data(void* data, uint16_t len);
 void spi_read_st_data(void* data, uint16_t len);
 void spi_state_reset(void);
+void spi_state_update(void);
 #endif

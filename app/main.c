@@ -159,7 +159,7 @@
 #define SCHED_MAX_EVENT_DATA_SIZE   256 //!< Maximum size of the scheduler event data.
 #define SCHED_QUEUE_SIZE            4   //!< Size of the scheduler queue.
 
-#define RCV_DATA_TIMEOUT_INTERVAL   APP_TIMER_TICKS(1000)
+#define RCV_DATA_TIMEOUT_INTERVAL   APP_TIMER_TICKS(500)
 #define BATTERY_LEVEL_MEAS_INTERVAL APP_TIMER_TICKS(1000) /**< Battery level measurement interval (ticks). */
 #define BATTERY_MEAS_LONG_INTERVAL  APP_TIMER_TICKS(5000)
 
@@ -327,6 +327,8 @@
 // DATA FLAG
 #define DATA_INIT 0x00
 #define DATA_HEAD 0x01
+#define DATA_RECV 0x02
+#define DATA_WAIT 0x03
 
 // BLE RSP STATUS
 #define CTL_SUCCESSS 0x01
@@ -419,7 +421,6 @@ static uint8_t calcXor(uint8_t* buf, uint8_t len);
 
 static bool bt_advertising_ctrl(bool enable, bool commit);
 static void idle_state_handle(void);
-void start_data_wait_timer(void);
 
 static uint8_t bond_check_key_flag = INIT_VALUE;
 static uint8_t rcv_head_flag = 0;
@@ -574,8 +575,15 @@ void data_wait_timeout_hander(void* p_context)
 {
     UNUSED_PARAMETER(p_context);
 
-    rcv_head_flag = DATA_INIT;
-    spi_state_reset();
+    if ( rcv_head_flag == DATA_RECV )
+    {
+        rcv_head_flag = DATA_WAIT;
+    }
+    else if ( rcv_head_flag == DATA_WAIT )
+    {
+        rcv_head_flag = DATA_INIT;
+    }
+    spi_state_update();
 }
 
 void m_1s_timeout_hander(void* p_context)
@@ -914,9 +922,8 @@ static void nus_data_handler(ble_nus_evt_t* p_evt)
                     if ( msg_len > nus_data_len - pad )
                     {
                         msg_len -= nus_data_len - pad;
-                        rcv_head_flag = DATA_HEAD;
+                        rcv_head_flag = DATA_RECV;
                     }
-                    start_data_wait_timer();
                 }
             }
             else if ( nus_data_buf[0] == 0x5A && nus_data_buf[1] == 0xA5 && nus_data_buf[2] == 0x07 &&
@@ -940,6 +947,7 @@ static void nus_data_handler(ble_nus_evt_t* p_evt)
                 else
                 {
                     msg_len -= nus_data_len - pad;
+                    rcv_head_flag = DATA_RECV;
                 }
             }
             else
@@ -1046,7 +1054,7 @@ static void timers_init(void)
     err_code = app_timer_create(&m_1s_timer_id, APP_TIMER_MODE_REPEATED, m_1s_timeout_hander);
     APP_ERROR_CHECK(err_code);
 
-    err_code = app_timer_create(&data_wait_timer_id, APP_TIMER_MODE_SINGLE_SHOT, data_wait_timeout_hander);
+    err_code = app_timer_create(&data_wait_timer_id, APP_TIMER_MODE_REPEATED, data_wait_timeout_hander);
     APP_ERROR_CHECK(err_code);
 }
 /**@brief Function for starting application timers.
@@ -1064,8 +1072,8 @@ static void application_timers_start(void)
     APP_ERROR_CHECK(err_code);
 
     // Start data wait timer
-    // err_code = app_timer_start(data_wait_timer_id, RCV_DATA_TIMEOUT_INTERVAL, NULL);
-    // APP_ERROR_CHECK(err_code);
+    err_code = app_timer_start(data_wait_timer_id, RCV_DATA_TIMEOUT_INTERVAL, NULL);
+    APP_ERROR_CHECK(err_code);
 }
 
 void start_data_wait_timer(void)

@@ -20,6 +20,7 @@ enum
     READSTATE_IDLE,
     READSTATE_READ_INFO,
     READSTATE_READ_DATA,
+    READSTATE_READ_DATA_WAIT,
     READSTATE_READ_FIDO_STATUS,
     READSTATE_READ_FIDO_LEN,
     READSTATE_READ_FIDO_DATA,
@@ -185,7 +186,6 @@ static bool spi_read_data(void)
                 data_recived_len = PACKAGE_LENTH;
                 data_len -= (PACKAGE_LENTH - HEAD_LENTH);
                 read_state = READSTATE_READ_DATA;
-                start_data_wait_timer();
                 return false;
             }
         }
@@ -304,4 +304,16 @@ void spi_read_st_data(void* data, uint16_t len)
 void spi_state_reset(void)
 {
     read_state = READSTATE_IDLE;
+}
+
+void spi_state_update(void)
+{
+    if (read_state == READSTATE_READ_DATA)
+    {
+        read_state = READSTATE_READ_DATA_WAIT;
+    }
+    else if (read_state == READSTATE_READ_DATA_WAIT)
+    {
+        read_state = READSTATE_IDLE;
+    }
 }
