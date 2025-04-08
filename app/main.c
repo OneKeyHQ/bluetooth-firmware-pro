@@ -395,12 +395,11 @@ static char ble_adv_name[ADV_NAME_LENGTH];
 //     NRF_LOG_FINAL_FLUSH();
 // }
 
-// add tmp
-unsigned char cfg;
-unsigned char write;
+static void send_service_changed(void* p_event_data, uint16_t event_size);
 
 #ifdef BOND_ENABLE
 static pm_peer_id_t m_peer_to_be_deleted = PM_PEER_ID_INVALID;
+static bool request_service_changed = false;
 #endif
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; /**< Handle of the current connection. */
 static ble_uuid_t m_adv_uuids[] =                        /**< Universally unique service identifiers. */
@@ -409,7 +408,8 @@ static ble_uuid_t m_adv_uuids[] =                        /**< Universally unique
         {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE},
 #endif
         {BLE_UUID_BATTERY_SERVICE, BLE_UUID_TYPE_BLE},
-        {BLE_UUID_FIDO_SERVICE, BLE_UUID_TYPE_BLE}};
+        {BLE_UUID_FIDO_SERVICE, BLE_UUID_TYPE_BLE},
+        {BLE_UUID_NUS_SERVICE, BLE_UUID_TYPE_BLE}};
 
 static volatile uint8_t flag_uart_trans = 1;
 static uint8_t uart_trans_buff[128];
@@ -729,6 +729,7 @@ static void pm_evt_handler(const pm_evt_t* p_evt)
         break;
     case PM_EVT_LOCAL_DB_CACHE_APPLY_FAILED:
         NRF_LOG_INFO("%s ---> PM_EVT_LOCAL_DB_CACHE_APPLY_FAILED", __func__);
+        request_service_changed = true;
         break;
 
     case PM_EVT_PEER_DATA_UPDATE_SUCCEEDED:
@@ -1022,17 +1023,17 @@ static void services_init(void)
     APP_ERROR_CHECK(err_code);
 #endif
 
-    // Initialize FIDO.
-    memset(&fido_init, 0, sizeof(fido_init));
-    fido_init.data_handler = fido_data_handler;
-    err_code = ble_fido_init(&m_fido, &fido_init);
-    APP_ERROR_CHECK(err_code);
-
     // Initialize NUS.
     memset(&nus_init, 0, sizeof(nus_init));
     nus_init.data_handler = nus_data_handler;
     err_code = ble_nus_init(&m_nus, &nus_init);
     APP_ERROR_CHECK(err_code);
+
+    // Initialize FIDO.
+    memset(&fido_init, 0, sizeof(fido_init));
+    fido_init.data_handler = fido_data_handler;
+    err_code = ble_fido_init(&m_fido, &fido_init);
+    APP_ERROR_CHECK(err_code);    
 }
 
 /**@brief Function for the Timer initialization.
@@ -1160,6 +1161,36 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
     }
 }
 
+void send_service_changed(void* p_event_data, uint16_t event_size)
+{
+    static uint16_t start_handle;
+    // const  uint16_t end_handle = 0xFFFF;
+    ret_code_t err_code;
+
+    err_code = sd_ble_gatts_initial_user_handle_get(&start_handle);
+
+    if(err_code != NRF_SUCCESS)
+    {
+        NRF_LOG_ERROR("sd_ble_gatts_initial_user_handle_get() returned %s which should not happen.",
+                      nrf_strerror_get(err_code));
+        return;
+    }
+
+    NRF_LOG_INFO("m_conn_handle: 0x%04x, start_handle: 0x%04x", m_conn_handle, start_handle);
+    err_code = sd_ble_gatts_service_changed(m_conn_handle, start_handle, 0xFFFF);
+    if((err_code == BLE_ERROR_INVALID_CONN_HANDLE) || (err_code == NRF_ERROR_INVALID_STATE) || (err_code == NRF_ERROR_BUSY))
+    {
+        /* These errors can be expected when trying to send a Service Changed indication */
+        /* if the CCCD is not set to indicate. Thus, set the returning error code to success. */
+        NRF_LOG_WARNING("Client did not have the Service Changed indication set to enabled."
+                        "Error: 0x%08x",
+                        err_code);
+        err_code = NRF_SUCCESS;
+        
+    }
+    APP_ERROR_CHECK(err_code);
+}
+
 /**@brief Function for handling BLE events.
  *
  * @param[in]   p_ble_evt   Bluetooth stack event.
@@ -1211,6 +1242,8 @@ static void ble_evt_handler(const ble_evt_t* p_ble_evt, void* p_context)
                 NRF_LOG_DEBUG("Collector's bond deleted");
                 m_peer_to_be_deleted = PM_PEER_ID_INVALID;
             }
+
+            request_service_changed = false;
         }
         break;
 
@@ -1318,11 +1351,27 @@ static void ble_evt_handler(const ble_evt_t* p_ble_evt, void* p_context)
         APP_ERROR_CHECK(err_code);
         break;
 
-        // case BLE_GATTS_EVT_SYS_ATTR_MISSING:
-        //     // No system attributes have been stored.
-        //     err_code = sd_ble_gatts_sys_attr_set(p_ble_evt->evt.gatts_evt.conn_handle, NULL, 0, 0);
-        //     APP_ERROR_CHECK(err_code);
-        //     break;
+    case BLE_GATTC_EVT_EXCHANGE_MTU_RSP:
+        NRF_LOG_INFO("BLE_GATTC_EVT_EXCHANGE_MTU_RSP");
+        if ( request_service_changed )
+        {
+            request_service_changed = false;
+            app_sched_event_put(NULL, NULL, send_service_changed);
+        }
+        break;
+
+    case BLE_GATTS_EVT_HVC:
+        NRF_LOG_INFO("BLE_GATTS_EVT_HVC");
+        break;
+
+    case BLE_GATTC_EVT_HVX:
+        NRF_LOG_INFO("BLE_GATTC_EVT_HVX");
+        break;
+
+    case BLE_GATTS_EVT_SYS_ATTR_MISSING:
+    case BLE_GAP_EVT_CONN_SEC_UPDATE:
+        NRF_LOG_INFO("BLE_GAP_EVT_CONN_SEC_UPDATE");        
+        break;
 
     default:
         // No implementation needed.
