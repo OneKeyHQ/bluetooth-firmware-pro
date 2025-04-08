@@ -11,7 +11,7 @@
     0xEEBBEE /**< DUMMY Organisation Unique ID. Will be passed to Device Information Service. You shall use the \
                 Organisation Unique ID relevant for your Company */
 #define HW_REVISION "1.0.0"
-#define FW_REVISION "2.3.3"
+#define FW_REVISION "2.3.4"
 #define SW_REVISION "s132_nrf52_7.0.1"
 #define BT_REVISION "1.0.1"
 
