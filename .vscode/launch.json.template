@@ -7,27 +7,13 @@
         {
             "name": "dfu",
             "gdbPath": "gdb-multiarch",
-            // "showDevDebugOutput": "raw",
+            "showDevDebugOutput": "raw",
             "cwd": "${workspaceFolder}",
-            "executable": "artifacts/OnekeyProBTFW_BL",
+            "executable": "${workspaceFolder}/artifacts/OnekeyProBTFW_BL",
             // "loadFiles": [],
-            "request": "launch",
-            "type": "cortex-debug",
-            "runToEntryPoint": "main",
-            "servertype": "jlink",
-            "device": "NRF52832_XXAA",
-            "interface": "swd",
-            // "serialNumber": "", //If you have more than one J-Link probe, add the serial number here.
-            // "jlinkscript":"${workspaceRoot}/xxx.jlink",
-            "svdFile": "${workspaceRoot}/ble-firmware/modules/nrfx/mdk/nrf52.svd"
-        },
-        {
-            "name": "app",
-            "gdbPath": "gdb-multiarch",
-            // "showDevDebugOutput": "raw",
-            "cwd": "${workspaceFolder}",
-            "executable": "artifacts/OnekeyProBTFW_APP",
-            // "loadFiles": [],
+            "preAttachCommands": [
+                "mon speed 8000"
+            ],
             "request": "attach",
             "type": "cortex-debug",
             "runToEntryPoint": "main",
@@ -35,8 +21,28 @@
             "device": "NRF52832_XXAA",
             "interface": "swd",
             // "serialNumber": "", //If you have more than one J-Link probe, add the serial number here.
-            // "jlinkscript":"${workspaceRoot}/xxx.jlink",
-            "svdFile": "${workspaceRoot}/ble-firmware/modules/nrfx/mdk/nrf52.svd"
+            // "jlinkscript":"${workspaceFolder}/xxx.jlink",
+            "svdFile": "${workspaceFolder}/ble-firmware/modules/nrfx/mdk/nrf52.svd"
+        },
+        {
+            "name": "app",
+            "gdbPath": "gdb-multiarch",
+            "showDevDebugOutput": "raw",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/artifacts/OnekeyProBTFW_APP",
+            // "loadFiles": [],
+            "preAttachCommands": [
+                "mon speed 8000"
+            ],
+            "request": "attach",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "jlink",
+            "device": "NRF52832_XXAA",
+            "interface": "swd",
+            // "serialNumber": "", //If you have more than one J-Link probe, add the serial number here.
+            // "jlinkscript":"${workspaceFolder}/xxx.jlink",
+            "svdFile": "${workspaceFolder}/ble-firmware/modules/nrfx/mdk/nrf52.svd"
         }
     ]
 }
