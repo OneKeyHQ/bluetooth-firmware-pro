@@ -371,3 +371,55 @@ void axp_reg_dump(uint8_t pmu_addr)
         pmu_if.Log(PWR_LOG_LEVEL_INFO, "reg 0x%02x = 0x%02x", reg, val);
     }
 }
+
+// #define AXP2101_I2C_ADDR            (0x35)
+// #define AXP2101_RESET_CFG           (0x17)
+// #define AXP2101_BROM                (0xA1)
+// #define AXP2101_CONFIG              (0xA2)
+// void axp2101_brom_dump()
+// {
+//     if ( !pmu_if.isInitialized )
+//         return;
+
+//     pmu_if.Log(PWR_LOG_LEVEL_INFO, "**************** axp2101_brom_dump ****************");
+
+//     char print_buffer[(sizeof("0x00, ") - 1) * 16 + 1] = {'\0'};
+//     uint8_t reg_17 = 0xff;
+//     uint8_t reg_a2 = 0xff;
+//     uint8_t batt_cal_data[128] = {0xff};
+
+//     pmu_if.Reg.Read(AXP2101_I2C_ADDR, AXP2101_RESET_CFG, &reg_17);
+//     pmu_if.Log(
+//         PWR_LOG_LEVEL_INFO, "AXP2101_RESET_CFG 0x%02X = " BYTE_TO_BINARY_PATTERN, AXP2101_RESET_CFG,
+//         BYTE_TO_BINARY(reg_17)
+//     );
+//     pmu_if.Reg.Read(AXP2101_I2C_ADDR, AXP2101_CONFIG, &reg_a2);
+//     pmu_if.Log(
+//         PWR_LOG_LEVEL_INFO, "AXP2101_CONFIG 0x%02X = " BYTE_TO_BINARY_PATTERN, AXP2101_CONFIG, BYTE_TO_BINARY(reg_a2)
+//     );
+
+//     // enable BROM access
+//     pmu_if.Reg.ClrBits(AXP2101_I2C_ADDR, AXP2101_CONFIG, (1 << 0));
+//     pmu_if.Reg.SetBits(AXP2101_I2C_ADDR, AXP2101_CONFIG, (1 << 0));
+//     pmu_if.Log(PWR_LOG_LEVEL_INFO, "AXP2101_BROM 0x%02X = ", AXP2101_BROM);
+
+//     const uint8_t bytes_wide = 8;
+//     for ( uint16_t idx = 0; idx < sizeof(batt_cal_data); idx++ )
+//     {
+//         pmu_if.Reg.Read(AXP2101_I2C_ADDR, AXP2101_BROM, &(batt_cal_data[idx]));
+//         // pmu_if.Log(PWR_LOG_LEVEL_INFO, "0x%02X", batt_cal_data[idx]);
+//         if ( (idx + 1) % bytes_wide == 0 )
+//         {
+//             for ( uint16_t idxx = 0; idxx < bytes_wide; idxx++ )
+//             {
+//                 sprintf(
+//                     print_buffer + ((sizeof("0x00, ") - 1) * idxx), "0x%02X, ",
+//                     batt_cal_data[idx - (bytes_wide - 1) + idxx]
+//                 );
+//             }
+//             pmu_if.Log(PWR_LOG_LEVEL_INFO, "BROM Dump 0x%02X: %s", (idx - (bytes_wide - 1)), print_buffer);
+//         }
+//     }
+//     // disable BROM access
+//     pmu_if.Reg.ClrBits(AXP2101_I2C_ADDR, AXP2101_CONFIG, (1 << 0));
+// }

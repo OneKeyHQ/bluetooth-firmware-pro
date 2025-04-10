@@ -40,5 +40,6 @@ void set_send_stm_data_p(void (*send_stm_data_p_)(uint8_t* pdata, uint8_t lenth)
 bool power_manage_init();
 bool power_manage_deinit();
 void axp_reg_dump(uint8_t pmu_addr);
+// void axp2101_brom_dump();
 
 #endif //_POWER_MANAGE_H_

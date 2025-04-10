@@ -3,6 +3,12 @@
 
 #define UNUSED_VAR(X) ((void)(X))
 
+#define BYTE_TO_BINARY_PATTERN "0b%c%c%c%c%c%c%c%c"
+#define BYTE_TO_BINARY(byte)                                                                   \
+    ((byte) & 0x80 ? '1' : '0'), ((byte) & 0x40 ? '1' : '0'), ((byte) & 0x20 ? '1' : '0'),     \
+        ((byte) & 0x10 ? '1' : '0'), ((byte) & 0x08 ? '1' : '0'), ((byte) & 0x04 ? '1' : '0'), \
+        ((byte) & 0x02 ? '1' : '0'), ((byte) & 0x01 ? '1' : '0')
+
 #define ExecuteCheck_ADV(expr, expected_result, on_false) \
     {                                                     \
         typeof(expected_result) ret = (expr);             \
@@ -15,6 +21,11 @@
 #define JOIN_EXPR(a, b, c) a##_##b##_##c
 // regex ->(JOIN_EXPR\((.*), (.*), (.*)\).*,).*
 // replace -> $1 // $2_$3_$4
+
+// from exisiting enum use following (change "xx")
+// #define xx_ENUM_ITEM(CLASS, TYPE) JOIN_EXPR(xx, CLASS, TYPE)
+// regex -> ^(\s*)(\S*)(.*),
+// replace -> $1xx_ENUM_ITEM(CLASS, $2)$3,
 
 #include <stdint.h>
 #include <stdbool.h>
