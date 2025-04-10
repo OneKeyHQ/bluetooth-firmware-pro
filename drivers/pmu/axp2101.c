@@ -428,7 +428,7 @@ Power_Error_t axp2101_set_state(const Power_State_t state)
 Power_Error_t axp2101_get_state(Power_State_t* state)
 {
     *state = state_current;
-    return PWR_ERROR_USAGE;
+    return PWR_ERROR_NONE;
 }
 
 Power_Error_t axp2101_pull_status(void)

@@ -61,7 +61,7 @@ static void pmu_if_irq(const uint64_t irq)
     // {
     //     NRF_LOG_INFO("irq PWR_IRQ_CHARGED");
     //     stm_data_buff[0] = BLE_CMD_POWER_STA;
-    //     stm_data_buff[1] = BLE_CHAGE_OVER;
+    //     stm_data_buff[1] = BLE_CHARGE_OVER;
     //     stm_data_buff[2] = (pmu_p->PowerStatus->wiredCharge ? CHARGE_TYPE_USB : CHARGE_TYPE_WIRELESS);
     //     send_stm_data_p(stm_data_buff, 3);
     // }

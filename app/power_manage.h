@@ -20,7 +20,7 @@
 #define BLE_INSERT_POWER                     0x01
 #define BLE_REMOVE_POWER                     0x02
 #define BLE_CHARGING_PWR                     0x03
-#define BLE_CHAGE_OVER                       0x04
+#define BLE_CHARGE_OVER                      0x04
 #define CHARGE_TYPE_USB                      0x01
 #define CHARGE_TYPE_WIRELESS                 0x02
 
