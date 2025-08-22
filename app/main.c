@@ -947,7 +947,7 @@ static void nus_data_handler(ble_nus_evt_t* p_evt)
             if ( nus_data_buf[0] == '?' )
             {
                 pad = (nus_data_len + 63) / 64;
-                if ( nus_data_len - pad > msg_len )
+                if ( nus_data_len - pad >= msg_len )
                 {
                     rcv_head_flag = DATA_INIT;
                     nus_data_len = msg_len + (msg_len + 62) / 63;
