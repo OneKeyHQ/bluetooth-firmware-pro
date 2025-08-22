@@ -964,8 +964,8 @@ static void nus_data_handler(ble_nus_evt_t* p_evt)
                 rcv_head_flag = DATA_INIT;
             }
         }
-        // spi_write_st_data(nus_data_buf, nus_data_len);
-        app_sched_event_put(nus_data_buf, nus_data_len, spi_write_st_data);
+        spi_write_st_data(nus_data_buf, nus_data_len);
+        // app_sched_event_put(nus_data_buf, nus_data_len, spi_write_st_data);
     }
     else if ( p_evt->type == BLE_NUS_EVT_TX_RDY )
     {
@@ -1871,8 +1871,8 @@ void in_gpiote_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
         }
         else if ( nrf_gpio_pin_read(SLAVE_SPI_RSP_IO) == 0 && !spi_dir_out )
         {
-            // spi_read_st_data(NULL, 0);
-            app_sched_event_put(NULL, 0, spi_read_st_data);
+            spi_read_st_data(NULL, 0);
+            // app_sched_event_put(NULL, 0, spi_read_st_data);
         }
         break;
     default:

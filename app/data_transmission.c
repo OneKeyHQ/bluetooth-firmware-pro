@@ -45,7 +45,7 @@ void usr_spim_init(void)
     driver_spi_config.mosi_pin = STM32_SPI2_MOSI_IO;
     driver_spi_config.sck_pin = STM32_SPI2_CLK_IO;
     driver_spi_config.frequency = NRF_SPIM_FREQ_4M;
-    err_code = nrfx_spim_init(&m_spim_master, &driver_spi_config, spi_event_handler, NULL);
+    err_code = nrfx_spim_init(&m_spim_master, &driver_spi_config, NULL, NULL);
     APP_ERROR_CHECK(err_code);
 
     nrf_gpio_cfg_output(STM32_SPI2_CSN_IO);
@@ -68,6 +68,9 @@ void usr_spi_write(uint8_t* p_buffer, uint32_t size)
 
     nrf_gpio_pin_clear(STM32_SPI2_CSN_IO);
 
+    uint32_t event_end = nrfx_spim_end_event_get(&m_spim_master);
+    volatile uint32_t* event_end_ptr = (uint32_t*)event_end;
+
     while ( size > 0 )
     {
         uint32_t send_len = size > 255 ? 255 : size;
@@ -79,33 +82,34 @@ void usr_spi_write(uint8_t* p_buffer, uint32_t size)
         }
 
         spi_xfer_done = false;
+        *event_end_ptr = 0;
 
         driver_spim_xfer.tx_length = send_len;
         driver_spim_xfer.p_tx_buffer = buffer;
         driver_spim_xfer.rx_length = 0;
         driver_spim_xfer.p_rx_buffer = NULL;
-        ret_code_t err_code = nrfx_spim_xfer(&m_spim_master, &driver_spim_xfer, 0);
+        ret_code_t err_code = nrfx_spim_xfer(&m_spim_master, &driver_spim_xfer, NRFX_SPIM_FLAG_NO_XFER_EVT_HANDLER);
         APP_ERROR_CHECK(err_code);
         p_buffer += send_len;
         size -= send_len;
-        while ( !spi_xfer_done )
+        // while ( !spi_xfer_done )
+        // {
+        //     nrf_delay_us(1);
+        // }
+        uint32_t timeout = 5000;
+        
+        while ( *event_end_ptr == 0 )
         {
             nrf_delay_us(1);
+            timeout--;
+            if ( timeout == 0 )
+            {
+                break;
+            }
         }
+        *event_end_ptr = 0;
     }
     nrf_gpio_pin_set(STM32_SPI2_CSN_IO);
-
-    // uint32_t timeout = 5000;
-    // while ( spi_dir_out )
-    // {
-    //     timeout--;
-    //     if ( timeout == 0 )
-    //     {
-    //         break;
-    //     }
-    //     nrf_delay_us(1);
-    // }
-    // spi_dir_out = false;
 }
 
 bool usr_spi_read(uint8_t* p_buffer, uint32_t size)
@@ -113,21 +117,36 @@ bool usr_spi_read(uint8_t* p_buffer, uint32_t size)
 
     nrf_gpio_pin_clear(STM32_SPI2_CSN_IO);
 
+    uint32_t event_end = nrfx_spim_end_event_get(&m_spim_master);
+    volatile uint32_t* event_end_ptr = (uint32_t*)event_end;
+
     while ( size > 0 )
     {
         spi_xfer_done = false;
+        *event_end_ptr = 0;
         uint32_t read_len = size > 255 ? 255 : size;
         driver_spim_xfer.tx_length = 0;
         driver_spim_xfer.p_tx_buffer = NULL;
         driver_spim_xfer.rx_length = read_len;
         driver_spim_xfer.p_rx_buffer = p_buffer;
-        APP_ERROR_CHECK(nrfx_spim_xfer(&m_spim_master, &driver_spim_xfer, 0));
+        APP_ERROR_CHECK(nrfx_spim_xfer(&m_spim_master, &driver_spim_xfer, NRFX_SPIM_FLAG_NO_XFER_EVT_HANDLER));
         p_buffer += read_len;
         size -= read_len;
-        while ( !spi_xfer_done )
+        // while ( !spi_xfer_done )
+        // {
+        //     nrf_delay_us(1);
+        // }
+        uint32_t timeout = 5000;
+        while ( *event_end_ptr == 0 )
         {
             nrf_delay_us(1);
+            timeout--;
+            if ( timeout == 0 )
+            {
+                break;
+            }
         }
+        *event_end_ptr = 0;
     }
     nrf_gpio_pin_set(STM32_SPI2_CSN_IO);
 
@@ -296,11 +315,11 @@ void spi_state_reset(void)
 
 void spi_state_update(void)
 {
-    if (read_state == READSTATE_READ_DATA)
+    if ( read_state == READSTATE_READ_DATA )
     {
         read_state = READSTATE_READ_DATA_WAIT;
     }
-    else if (read_state == READSTATE_READ_DATA_WAIT)
+    else if ( read_state == READSTATE_READ_DATA_WAIT )
     {
         read_state = READSTATE_IDLE;
     }
