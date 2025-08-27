@@ -125,6 +125,7 @@
 #define BLE_DISCON              3
 #define BLE_CON                 4
 #define BLE_PAIR                5
+#define BLE_CONN_STATUS         6
 
 #define PWR_DEF                 0
 #define PWR_SHUTDOWN_SYS        1
@@ -271,6 +272,7 @@
 #define ST_SEND_CLOSE_BLE        0x02
 #define ST_SEND_DISCON_BLE       0x03
 #define ST_GET_BLE_SWITCH_STATUS 0x04
+#define ST_GET_BLE_CONN_STATUS   0x05
 //
 #define ST_CMD_POWER           0x82
 #define ST_SEND_CLOSE_SYS_PWR  0x01
@@ -1592,6 +1594,9 @@ void uart_event_handle(app_uart_evt_t* p_event)
                 case ST_GET_BLE_SWITCH_STATUS:
                     ble_conn_flag = BLE_CON;
                     break;
+                case ST_GET_BLE_CONN_STATUS:
+                    ble_conn_flag = BLE_CONN_STATUS;
+                    break;
                 default:
                     break;
                 }
@@ -2155,11 +2160,18 @@ static void ble_ctl_process(void* p_event_data, uint16_t event_size)
 
         bt_disconnect();
     }
-    if ( BLE_CON == ble_conn_flag )
+    else if ( BLE_CON == ble_conn_flag )
     {
         ble_conn_flag = BLE_DEF;
         bak_buff[0] = BLE_CMD_CON_STA;
         bak_buff[1] = ble_status_flag + 2;
+        send_stm_data(bak_buff, 2);
+    }
+    else if ( BLE_CONN_STATUS == ble_conn_flag )
+    {
+        ble_conn_flag = BLE_DEF;
+        bak_buff[0] = BLE_CMD_CON_STA;
+        bak_buff[1] = m_conn_handle == BLE_CONN_HANDLE_INVALID ? BLE_DISCON_STATUS : BLE_CON_STATUS;
         send_stm_data(bak_buff, 2);
     }
 
