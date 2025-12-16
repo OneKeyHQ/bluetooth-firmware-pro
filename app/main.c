@@ -1383,7 +1383,7 @@ static void ble_evt_handler(const ble_evt_t* p_ble_evt, void* p_context)
         if ( request_service_changed )
         {
             request_service_changed = false;
-            app_sched_event_put(NULL, NULL, send_service_changed);
+            app_sched_event_put(NULL, 0, send_service_changed);
         }
         break;
 

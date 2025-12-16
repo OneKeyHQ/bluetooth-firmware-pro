@@ -66,7 +66,7 @@ add_custom_target(
 set(PYTHON_RUNNER ${PROJECT_BINARY_DIR}/venv/bin/python)
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_PYENV
-  COMMAND python -m venv ${PROJECT_BINARY_DIR}/venv
+  COMMAND python -m venv ${PROJECT_BINARY_DIR}/venv --system-site-packages
   COMMAND ${PROJECT_BINARY_DIR}/venv/bin/pip install -r ${DIR_UTILS}/requirements.txt
 )
 
