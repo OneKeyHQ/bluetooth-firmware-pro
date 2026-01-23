@@ -151,8 +151,10 @@ static bool axp2101_config_battery_param(void)
         // set fuel gauge use BROM
         EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 4)));
         // reset fuel gauge
-        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
-        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
+        // Note: as per AXP support suggestion, but will cause sudden jump in fuel gauge value
+        // from out testing this seems not necessary anyways
+        // EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
+        // EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
     }
 
     return true;
