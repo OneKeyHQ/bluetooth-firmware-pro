@@ -1,5 +1,7 @@
 name: "Build Factory and OTA Images"
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
