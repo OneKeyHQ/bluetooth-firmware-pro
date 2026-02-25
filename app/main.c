@@ -71,6 +71,7 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
+#include "nrf_strerror.h"
 #include "nrf_pwr_mgmt.h"
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
@@ -764,6 +765,12 @@ static void pm_evt_handler(const pm_evt_t* p_evt)
         break;
     case PM_EVT_PEERS_DELETE_FAILED:
         NRF_LOG_INFO("%s ---> PM_EVT_PEERS_DELETE_FAILED", __func__);
+        break;
+    case PM_EVT_SERVICE_CHANGED_IND_SENT:
+        NRF_LOG_INFO("%s ---> PM_EVT_SERVICE_CHANGED_IND_SENT", __func__);
+        break;
+    case PM_EVT_SERVICE_CHANGED_IND_CONFIRMED:
+        NRF_LOG_INFO("%s ---> PM_EVT_SERVICE_CHANGED_IND_CONFIRMED", __func__);
         break;
 
     default:

@@ -5,6 +5,13 @@
 #include <stdbool.h>
 
 // ======================
+// Device Presistence Configs
+
+// UICR 31 is used for battery profile flag
+uint32_t devicePresistence_get_battery_profile_flag(void);
+bool devicePresistence_set_battery_profile_flag(uint32_t flag);
+
+// ======================
 // Device Configs Items
 
 // *** key store ***

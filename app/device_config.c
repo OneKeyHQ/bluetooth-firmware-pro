@@ -23,6 +23,19 @@ static deviceCfg_t deviceConfig;
 deviceCfg_t* deviceConfig_p = NULL;
 
 // ======================
+// Device Presistence Configs
+
+// UICR 31 is used for battery profile flag
+uint32_t devicePresistence_get_battery_profile_flag(void)
+{
+    return NRF_UICR->CUSTOMER[31];
+}
+bool devicePresistence_set_battery_profile_flag(uint32_t flag)
+{
+    return uicr_write((uint32_t)(&(NRF_UICR->CUSTOMER[31])), &flag, 1);
+}
+
+// ======================
 // Device Configs Items
 
 // *** key store ***

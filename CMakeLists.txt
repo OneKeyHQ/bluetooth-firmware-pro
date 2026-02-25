@@ -22,6 +22,7 @@ set(DIR_NRFUTIL_REPO "${DIR_UTILS}/nrfutil_repo")
 set(FILE_KEY "${PROJECT_BINARY_DIR}/temp.pk")
 set(FILE_INPUT_BL_CONFIG "bl_config.hex")
 set(FILE_INPUT_MBR_UICR "${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_MBR_UICR.hex")
+set(FILE_INPUT_UICR_CUSTOMER "${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_UICR_CUSTOMER.hex")
 set(FILE_INPUT_BOOTLOADER "${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_BL.hex")
 set(FILE_INPUT_APP "${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_APP.hex")
 set(FILE_INPUT_SD "${PROJECT_SOURCE_DIR}/ble-firmware/components/softdevice/s132/hex/s132_nrf52_7.0.1_softdevice.hex")
@@ -30,7 +31,7 @@ set(FILE_OUTPUT_FACTORY_HEX "${DIR_OUTPUT}/factory.hex")
 set(FILE_OUTPUT_FACTORY_BIN "${DIR_OUTPUT}/factory.bin")
 set(FILE_OUTPUT_ZIP "${DIR_OUTPUT}/ota.zip")
 set(FILE_OUTPUT_OTA_BIN "${DIR_OUTPUT}/ota.bin")
-set(PYTHON_RUNNER exit -1 && ) # placeholder, will be set later 
+set(PYTHON_RUNNER exit -1 &&) # placeholder, will be set later 
 
 ###############################
 # Prerequests and Environments
@@ -84,7 +85,7 @@ ExternalProject_Add(
   BUILD_ALWAYS YES
   CMAKE_ARGS "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
   CMAKE_ARGS "-DTOOL_CHAIN_PREFIX=${TOOL_CHAIN_PREFIX}"
-  CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${PROJECT_SOURCE_DIR}/artifacts" 
+  CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${PROJECT_SOURCE_DIR}/artifacts"
 )
 
 # dfu payload
@@ -99,6 +100,13 @@ add_custom_target(
   ${CMAKE_PROJECT_NAME}_MBR_UICR ALL
   COMMAND ${PYTHON_RUNNER} ${DIR_UTILS}/uicr_mbr_hex_gen.py --no-use-uicr -i ${PROJECT_SOURCE_DIR}/artifacts/OnekeyProBTFW_BL -o ${FILE_INPUT_MBR_UICR}
   DEPENDS dfu ${CMAKE_PROJECT_NAME}_PYENV
+)
+
+# uicr customer data
+add_custom_target(
+  ${CMAKE_PROJECT_NAME}_UICR_CUSTOMER ALL
+  COMMAND ${PYTHON_RUNNER} ${DIR_UTILS}/uicr_customer_hex_gen.py -o ${FILE_INPUT_UICR_CUSTOMER}
+  DEPENDS ${CMAKE_PROJECT_NAME}_PYENV
 )
 
 # app
@@ -120,21 +128,21 @@ ExternalProject_Add(
 # gen bl config
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_BL_CONF ALL
-  COMMAND ${DIR_UTILS}/nrfutil 
-          settings generate --family NRF52 --bootloader-version 2 --bl-settings-version 2 
-          --app-boot-validation VALIDATE_ECDSA_P256_SHA256 --application ${FILE_INPUT_APP} --application-version 5 
-          --sd-boot-validation VALIDATE_ECDSA_P256_SHA256 --softdevice ${FILE_INPUT_SD} 
-          --key-file ${FILE_KEY}  ${FILE_INPUT_BL_CONFIG}
+  COMMAND ${DIR_UTILS}/nrfutil
+  settings generate --family NRF52 --bootloader-version 2 --bl-settings-version 2
+  --app-boot-validation VALIDATE_ECDSA_P256_SHA256 --application ${FILE_INPUT_APP} --application-version 5
+  --sd-boot-validation VALIDATE_ECDSA_P256_SHA256 --softdevice ${FILE_INPUT_SD}
+  --key-file ${FILE_KEY} ${FILE_INPUT_BL_CONFIG}
   DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_KEY app
 )
 
 # megre factory hex
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_FACTORY_HEX ALL
-  COMMAND ${DIR_UTILS}/mergehex 
-                      --merge ${FILE_INPUT_BOOTLOADER} ${FILE_INPUT_BL_CONFIG} ${FILE_INPUT_SD} ${FILE_INPUT_APP} ${FILE_INPUT_MBR_UICR}
-                      --output ${FILE_OUTPUT_FACTORY_HEX}
-  DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_BL_CONF dfu app ${CMAKE_PROJECT_NAME}_MBR_UICR
+  COMMAND ${DIR_UTILS}/mergehex
+  --merge ${FILE_INPUT_BOOTLOADER} ${FILE_INPUT_BL_CONFIG} ${FILE_INPUT_SD} ${FILE_INPUT_APP} ${FILE_INPUT_MBR_UICR} ${FILE_INPUT_UICR_CUSTOMER}
+  --output ${FILE_OUTPUT_FACTORY_HEX}
+  DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_BL_CONF dfu app ${CMAKE_PROJECT_NAME}_MBR_UICR ${CMAKE_PROJECT_NAME}_UICR_CUSTOMER
 )
 
 # gen factory bin
@@ -149,10 +157,10 @@ add_custom_target(
 # gen ota bin
 add_custom_target(
   ${CMAKE_PROJECT_NAME}_OTA_BIN ALL
-  COMMAND ${DIR_UTILS}/nrfutil pkg generate 
-          --hw-version 52 --sd-req 0xCB 
-          --application ${FILE_INPUT_APP} --application-version 5 --app-boot-validation VALIDATE_ECDSA_P256_SHA256
-          --key-file ${FILE_KEY} ${FILE_OUTPUT_ZIP}
+  COMMAND ${DIR_UTILS}/nrfutil pkg generate
+  --hw-version 52 --sd-req 0xCB
+  --application ${FILE_INPUT_APP} --application-version 5 --app-boot-validation VALIDATE_ECDSA_P256_SHA256
+  --key-file ${FILE_KEY} ${FILE_OUTPUT_ZIP}
   COMMAND ${PYTHON_RUNNER} ${DIR_UTILS}/ota_to_onekey_bin.py ${FILE_OUTPUT_ZIP} ${FILE_OUTPUT_OTA_BIN}
   DEPENDS ${CMAKE_PROJECT_NAME}_OUT_DIR ${CMAKE_PROJECT_NAME}_UTIL ${CMAKE_PROJECT_NAME}_KEY dfu app
 )

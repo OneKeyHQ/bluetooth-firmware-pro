@@ -1,5 +1,6 @@
 #include "axp2101.h"
 
+#include "device_config.h"
 #include "ntc_util.h"
 
 // macros
@@ -43,16 +44,25 @@ static bool axp2101_config_battery_param(void)
     uint8_t val_temp = 0xff;
 
     // battery param -> BROM
-    static const uint8_t batt_cal_data[128] = {
-        0x01, 0xf5, 0x40, 0x00, 0x1b, 0x1e, 0x28, 0x0f, 0x0c, 0x1e, 0x32, 0x02, 0x14, 0x05, 0x0a, 0x04, //
-        0x74, 0x00, 0x78, 0x0c, 0xdf, 0x10, 0xcc, 0xfc, 0xd0, 0x01, 0xea, 0x0c, 0x28, 0x06, 0xa4, 0x06, //
-        0x6b, 0x0b, 0x37, 0x0f, 0xe0, 0x0f, 0x81, 0x0a, 0x32, 0x0e, 0xed, 0x0e, 0xe8, 0x04, 0xdc, 0x04, //
-        0xcf, 0x09, 0xc5, 0x0e, 0xb5, 0x0e, 0xb0, 0x09, 0xa5, 0x0e, 0x92, 0x0e, 0x8c, 0x04, 0x7d, 0x04, //
-        0x6d, 0x09, 0x69, 0x0e, 0x57, 0x0d, 0xdf, 0x07, 0x85, 0x59, 0x2c, 0x28, 0x1e, 0x0d, 0x12, 0x08, //
-        0xc5, 0x98, 0x7e, 0x66, 0x4e, 0x44, 0x38, 0x1a, 0x12, 0x0a, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
-        0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
-        0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
-    };
+    uint32_t bat_flag = devicePresistence_get_battery_profile_flag();
+    if ( bat_flag == 0xFFFFFFFF )
+    {
+        bat_flag = AXP2101_BROM_VARIANT_STML;
+        devicePresistence_set_battery_profile_flag(bat_flag);
+    }
+    pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "AXP2101 battery profile flag=0x%08X", bat_flag);
+
+    const uint8_t* batt_cal_data;
+    switch ( bat_flag )
+    {
+    case AXP2101_BROM_VARIANT_JSEL:
+        batt_cal_data = axp2101_batt_cal_data_jsel;
+        break;
+    case AXP2101_BROM_VARIANT_STML:
+    default:
+        batt_cal_data = axp2101_batt_cal_data_stml;
+        break;
+    }
 
     {
         // check brom
@@ -62,7 +72,7 @@ static bool axp2101_config_battery_param(void)
         EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
         EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
         // verify BROM
-        for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
+        for ( uint8_t i = 0; i < AXP2101_BROM_LEN; i++ )
         {
             val_temp = 0xff;
             EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_BROM, &val_temp));
@@ -82,6 +92,10 @@ static bool axp2101_config_battery_param(void)
         // invalid brom
         pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM invalid, will be programmed");
 
+        // close charger before programming
+        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_MODULE_EN, (1 << 1)));
+        pmu_interface_p->Delay_ms(1000);
+
         // set fuel gauge use SRAM
         EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 4)));
         // reset fuel gauge
@@ -94,7 +108,7 @@ static bool axp2101_config_battery_param(void)
         // program BROM
         const uint8_t bytes_wide = 8;
         char print_buffer[(sizeof("0x00, ") - 1) * 16 + 1] = {'\0'};
-        for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
+        for ( uint8_t i = 0; i < AXP2101_BROM_LEN; i++ )
         {
             EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_BROM, batt_cal_data[i]));
             if ( (i + 1) % 8 == 0 )
@@ -115,7 +129,7 @@ static bool axp2101_config_battery_param(void)
         EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
         EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
         // verify BROM
-        for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
+        for ( uint8_t i = 0; i < AXP2101_BROM_LEN; i++ )
         {
             val_temp = 0;
             EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_BROM, &val_temp));
@@ -130,6 +144,8 @@ static bool axp2101_config_battery_param(void)
                 // reset fuel gauge
                 EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
                 EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
+                // reopen charger
+                EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_MODULE_EN, (1 << 1)));
                 return false;
             }
             pmu_interface_p->Delay_ms(10);
@@ -142,6 +158,8 @@ static bool axp2101_config_battery_param(void)
         // reset fuel gauge
         EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
         EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
+        // reopen charger
+        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_MODULE_EN, (1 << 1)));
     }
     else
     {
@@ -452,6 +470,15 @@ Power_Error_t axp2101_pull_status(void)
 
     if ( status_temp.batteryPresent )
     {
+        uint8_t gauge_cfg = 0;
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_CONFIG, &gauge_cfg));
+        if ( (gauge_cfg & (1 << 4)) == 0 )
+        {
+            pmu_interface_p->Log(PWR_LOG_LEVEL_WARN, "AXP2101 gauge reset detected, re-init params");
+            axp2101_config_battery_param();
+            pmu_interface_p->Delay_ms(500);
+        }
+
         // battery percent
         hlbuff.u8_high = 0;
         EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_SOC, &(hlbuff.u8_low)));
