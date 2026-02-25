@@ -16,6 +16,14 @@ static Power_Status_t status_current = {0};
 
 // functions private
 
+static bool axp2101_reset_mcu_soft(void)
+{
+    // use COMM_CFG bit1 for PMU soft reset (closest to vendor "reset MCU")
+    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
+    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
+    return true;
+}
+
 static bool axp2101_config_voltage(void)
 {
     //  voltages
@@ -37,127 +45,90 @@ static bool axp2101_config_voltage(void)
     return true;
 }
 
-static bool axp2101_config_battery_param(void)
+static const uint8_t axp2101_batt_cal_data[128] = {
+    0x01, 0xf5, 0x40, 0x00, 0x1b, 0x1e, 0x28, 0x0f, 0x0c, 0x1e, 0x32, 0x02, 0x14, 0x05, 0x0a, 0x04, //
+    0x74, 0x00, 0x78, 0x0c, 0xdf, 0x10, 0xcc, 0xfc, 0xd0, 0x01, 0xea, 0x0c, 0x28, 0x06, 0xa4, 0x06, //
+    0x6b, 0x0b, 0x37, 0x0f, 0xe0, 0x0f, 0x81, 0x0a, 0x32, 0x0e, 0xed, 0x0e, 0xe8, 0x04, 0xdc, 0x04, //
+    0xcf, 0x09, 0xc5, 0x0e, 0xb5, 0x0e, 0xb0, 0x09, 0xa5, 0x0e, 0x92, 0x0e, 0x8c, 0x04, 0x7d, 0x04, //
+    0x6d, 0x09, 0x69, 0x0e, 0x57, 0x0d, 0xdf, 0x07, 0x85, 0x59, 0x2c, 0x28, 0x1e, 0x0d, 0x12, 0x08, //
+    0xc5, 0x98, 0x7e, 0x66, 0x4e, 0x44, 0x38, 0x1a, 0x12, 0x0a, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
+    0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
+    0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
+};
+
+static bool axp2101_brom_program_and_verify(void)
 {
-    bool brom_valid = true;
-    uint8_t val_temp = 0xff;
+    // close charger before programming (MODULE_EN bit1)
+    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_MODULE_EN, (1 << 1)));
+    pmu_interface_p->Delay_ms(1000);
 
-    // battery param -> BROM
-    static const uint8_t batt_cal_data[128] = {
-        0x01, 0xf5, 0x40, 0x00, 0x1b, 0x1e, 0x28, 0x0f, 0x0c, 0x1e, 0x32, 0x02, 0x14, 0x05, 0x0a, 0x04, //
-        0x74, 0x00, 0x78, 0x0c, 0xdf, 0x10, 0xcc, 0xfc, 0xd0, 0x01, 0xea, 0x0c, 0x28, 0x06, 0xa4, 0x06, //
-        0x6b, 0x0b, 0x37, 0x0f, 0xe0, 0x0f, 0x81, 0x0a, 0x32, 0x0e, 0xed, 0x0e, 0xe8, 0x04, 0xdc, 0x04, //
-        0xcf, 0x09, 0xc5, 0x0e, 0xb5, 0x0e, 0xb0, 0x09, 0xa5, 0x0e, 0x92, 0x0e, 0x8c, 0x04, 0x7d, 0x04, //
-        0x6d, 0x09, 0x69, 0x0e, 0x57, 0x0d, 0xdf, 0x07, 0x85, 0x59, 0x2c, 0x28, 0x1e, 0x0d, 0x12, 0x08, //
-        0xc5, 0x98, 0x7e, 0x66, 0x4e, 0x44, 0x38, 0x1a, 0x12, 0x0a, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
-        0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
-        0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
-    };
+    // Step 1: reset fuel gauge (reg17 bit2: 1 -> 0)
+    // EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 3)));
+    // EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 3)));
+    axp2101_reset_mcu_soft();
 
+    // Step 2: enable BROM access (regA2 bit0: 0 -> 1)
+    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
+    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
+
+    // Step 3: program BROM
+    const uint8_t bytes_wide = 8;
+    for ( uint8_t i = 0; i < sizeof(axp2101_batt_cal_data); i++ )
     {
-        // check brom
-        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM validating...");
-
-        // enable BROM access
-        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
-        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
-        // verify BROM
-        for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
-        {
-            val_temp = 0xff;
-            EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_BROM, &val_temp));
-            if ( batt_cal_data[i] != val_temp )
-            {
-                brom_valid = false;
-                break;
-            }
-            pmu_interface_p->Delay_ms(10);
-        }
-        // disable BROM access
-        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_BROM, axp2101_batt_cal_data[i]));
     }
 
-    if ( !brom_valid )
+    // Step 4: re-enable BROM access (regA2 bit0: 0 -> 1)
+    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
+    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
+
+    // Step 5: verify BROM
+    for ( uint8_t i = 0; i < sizeof(axp2101_batt_cal_data); i++ )
     {
-        // invalid brom
-        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM invalid, will be programmed");
-
-        // set fuel gauge use SRAM
-        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 4)));
-        // reset fuel gauge
-        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
-        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
-
-        // enable BROM access
-        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
-        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
-        // program BROM
-        const uint8_t bytes_wide = 8;
-        char print_buffer[(sizeof("0x00, ") - 1) * 16 + 1] = {'\0'};
-        for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
+        uint8_t val_temp = 0;
+        EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_BROM, &val_temp));
+        if ( axp2101_batt_cal_data[i] != val_temp )
         {
-            EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_BROM, batt_cal_data[i]));
-            if ( (i + 1) % 8 == 0 )
-            {
-                for ( uint16_t idx = 0; idx < bytes_wide; idx++ )
-                {
-                    sprintf(
-                        print_buffer + ((sizeof("0x00, ") - 1) * idx), "0x%02X, ",
-                        batt_cal_data[i - (bytes_wide - 1) + idx]
-                    );
-                }
-                pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM Prog 0x%02X: %s", (i - (bytes_wide - 1)), print_buffer);
-            }
-            pmu_interface_p->Delay_ms(10);
+            pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "BROM program verify failed!");
+            // Step 6: disable BROM access (regA2 bit0 = 0)
+            EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
+            // reopen charger before exit
+            EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_MODULE_EN, (1 << 1)));
+            return false;
         }
-
-        // enable BROM access
-        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
-        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
-        // verify BROM
-        for ( uint8_t i = 0; i < sizeof(batt_cal_data); i++ )
-        {
-            val_temp = 0;
-            EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_BROM, &val_temp));
-            if ( batt_cal_data[i] != val_temp )
-            {
-                pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "BROM program verify failed!");
-                pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "i=%u, buff=0x%02x, val=0x%02x", i, batt_cal_data[i], val_temp);
-                // disable BROM access
-                EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
-                // set fuel gauge use SRAM
-                EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 4)));
-                // reset fuel gauge
-                EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
-                EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
-                return false;
-            }
-            pmu_interface_p->Delay_ms(10);
-        }
-        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM program verify success!");
-        // disable BROM access
-        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
-        // set fuel gauge use BROM
-        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 4)));
-        // reset fuel gauge
-        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
-        EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
     }
-    else
-    {
-        // valid brom
-        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM valid");
+    pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM program verify success!");
 
-        // set fuel gauge use BROM
-        EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 4)));
-        // reset fuel gauge
-        // Note: as per AXP support suggestion, but will cause sudden jump in fuel gauge value
-        // from out testing this seems not necessary anyways
-        // EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_RESET_CFG, (1 << 2)));
-        // EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_RESET_CFG, (1 << 2)));
-    }
+    // Step 6: disable BROM access (regA2 bit0 = 0)
+    EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_CONFIG, (1 << 0)));
+
+    // set update mark (A2 bit4 = 1)
+    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 4)));
+
+    // reset MCU to load new parameters (vendor flow)
+    EC_E_BOOL_R_BOOL(axp2101_reset_mcu_soft());
+    pmu_interface_p->Delay_ms(500);
+
+    // reopen charger (MODULE_EN bit1)
+    EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_MODULE_EN, (1 << 1)));
 
     return true;
+}
+
+static bool axp2101_config_battery_param(void)
+{
+    uint8_t reg_val = 0;
+
+    axp2101_select_battery_profile();
+
+    // check update mark (A2 bit4)
+    EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_CONFIG, &reg_val));
+    pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM update mark reg: 0x%02X", reg_val);
+    if ( (reg_val & (1 << 4)) != 0 )
+        return true;
+    pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "BROM updating...");
+
+    return axp2101_brom_program_and_verify();
 }
 
 #define AXP2101_VTS_TO_VHTF(mv) (mv / 2)
@@ -452,6 +423,18 @@ Power_Error_t axp2101_pull_status(void)
 
     if ( status_temp.batteryPresent )
     {
+        uint8_t gauge_cfg = 0;
+        EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_CONFIG, &gauge_cfg));
+
+        // if update mark not set, re-init gauge parameters (vendor flow)
+        if ( (gauge_cfg & (1 << 4)) == 0 )
+        {
+            pmu_interface_p->Log(PWR_LOG_LEVEL_WARN, "AXP2101 gauge reset detected, re-init params");
+            axp2101_config_battery_param();
+            pmu_interface_p->Delay_ms(500);
+            EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_CONFIG, &gauge_cfg));
+        }
+
         // battery percent
         hlbuff.u8_high = 0;
         EC_E_BOOL_R_PWR_ERR(axp2101_reg_read(AXP2101_SOC, &(hlbuff.u8_low)));
