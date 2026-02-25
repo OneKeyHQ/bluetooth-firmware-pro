@@ -1,5 +1,7 @@
 #include "axp2101.h"
 
+#include "device_config.h"
+#include "nrf.h"
 #include "ntc_util.h"
 
 // macros
@@ -45,7 +47,7 @@ static bool axp2101_config_voltage(void)
     return true;
 }
 
-static const uint8_t axp2101_batt_cal_data[128] = {
+static const uint8_t axp2101_batt_cal_data_default[128] = {
     0x01, 0xf5, 0x40, 0x00, 0x1b, 0x1e, 0x28, 0x0f, 0x0c, 0x1e, 0x32, 0x02, 0x14, 0x05, 0x0a, 0x04, //
     0x74, 0x00, 0x78, 0x0c, 0xdf, 0x10, 0xcc, 0xfc, 0xd0, 0x01, 0xea, 0x0c, 0x28, 0x06, 0xa4, 0x06, //
     0x6b, 0x0b, 0x37, 0x0f, 0xe0, 0x0f, 0x81, 0x0a, 0x32, 0x0e, 0xed, 0x0e, 0xe8, 0x04, 0xdc, 0x04, //
@@ -56,8 +58,36 @@ static const uint8_t axp2101_batt_cal_data[128] = {
     0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
 };
 
+static const uint8_t axp2101_batt_cal_data_jsel[128] = {
+    0x01, 0xf5, 0x40, 0x00, 0x1b, 0x1e, 0x28, 0x0f, 0x0c, 0x1e, 0x32, 0x02, 0x14, 0x05, 0x0a, 0x04, //
+    0x74, 0xfb, 0xc8, 0x0d, 0xa7, 0x10, 0xac, 0xfb, 0x46, 0x01, 0xea, 0x01, 0xfc, 0x06, 0xac, 0x06, //
+    0x98, 0x0b, 0x61, 0x0f, 0xf6, 0x0f, 0x8f, 0x0a, 0x42, 0x0f, 0xf7, 0x0e, 0xf0, 0x04, 0xe1, 0x04, //
+    0xd5, 0x09, 0xca, 0x0e, 0xba, 0x0e, 0xb5, 0x09, 0xab, 0x0e, 0x97, 0x0e, 0x95, 0x04, 0x86, 0x04, //
+    0x73, 0x09, 0x6d, 0x0e, 0x63, 0x0e, 0x27, 0x08, 0x5c, 0xdf, 0x7f, 0x64, 0x4d, 0x31, 0x34, 0x24, //
+    0xc5, 0x98, 0x7e, 0x66, 0x4e, 0x44, 0x38, 0x1a, 0x12, 0x0a, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
+    0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
+    0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xfb, 0x00, 0x00, 0xf6, 0x00, 0x00, 0xf6, 0x00, 0xf6, //
+};
+
+static const uint8_t* axp2101_select_battery_profile(void)
+{
+    // Keep battery flag away from CUSTOMER[0], which is used by device_config keystore backup.
+    uint32_t bat_flag = NRF_UICR->CUSTOMER[31];
+
+    if ( bat_flag == BATTERY_FLAG_JSEL )
+    {
+        pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "AXP2101 use NEW battery profile, flag=0x%08X", bat_flag);
+        return axp2101_batt_cal_data_jsel;
+    }
+
+    pmu_interface_p->Log(PWR_LOG_LEVEL_INFO, "AXP2101 use DEFAULT battery profile, flag=0x%08X", bat_flag);
+    return axp2101_batt_cal_data_default;
+}
+
 static bool axp2101_brom_program_and_verify(void)
 {
+    const uint8_t* batt_cal_data = axp2101_select_battery_profile();
+
     // close charger before programming (MODULE_EN bit1)
     EC_E_BOOL_R_BOOL(axp2101_clr_bits(AXP2101_MODULE_EN, (1 << 1)));
     pmu_interface_p->Delay_ms(1000);
@@ -72,10 +102,9 @@ static bool axp2101_brom_program_and_verify(void)
     EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
 
     // Step 3: program BROM
-    const uint8_t bytes_wide = 8;
-    for ( uint8_t i = 0; i < sizeof(axp2101_batt_cal_data); i++ )
+    for ( uint8_t i = 0; i < sizeof(axp2101_batt_cal_data_default); i++ )
     {
-        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_BROM, axp2101_batt_cal_data[i]));
+        EC_E_BOOL_R_BOOL(axp2101_reg_write(AXP2101_BROM, batt_cal_data[i]));
     }
 
     // Step 4: re-enable BROM access (regA2 bit0: 0 -> 1)
@@ -83,11 +112,11 @@ static bool axp2101_brom_program_and_verify(void)
     EC_E_BOOL_R_BOOL(axp2101_set_bits(AXP2101_CONFIG, (1 << 0)));
 
     // Step 5: verify BROM
-    for ( uint8_t i = 0; i < sizeof(axp2101_batt_cal_data); i++ )
+    for ( uint8_t i = 0; i < sizeof(axp2101_batt_cal_data_default); i++ )
     {
         uint8_t val_temp = 0;
         EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_BROM, &val_temp));
-        if ( axp2101_batt_cal_data[i] != val_temp )
+        if ( batt_cal_data[i] != val_temp )
         {
             pmu_interface_p->Log(PWR_LOG_LEVEL_ERR, "BROM program verify failed!");
             // Step 6: disable BROM access (regA2 bit0 = 0)
@@ -118,8 +147,6 @@ static bool axp2101_brom_program_and_verify(void)
 static bool axp2101_config_battery_param(void)
 {
     uint8_t reg_val = 0;
-
-    axp2101_select_battery_profile();
 
     // check update mark (A2 bit4)
     EC_E_BOOL_R_BOOL(axp2101_reg_read(AXP2101_CONFIG, &reg_val));

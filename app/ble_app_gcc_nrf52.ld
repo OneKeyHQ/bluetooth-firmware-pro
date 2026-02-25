@@ -12,10 +12,18 @@ MEMORY
   /* size depends on sdk_config.h settings for FDS_VIRTUAL_PAGE_SIZE and FDS_VIRTUAL_PAGES */
   /* the spcace counts down from the end of flash or bootloader, towards app space */
   /* this unexpected and hidden flash allocation is really odd to see in a commercial SDK */
+  /* UICR CUSTOMER[31], keep away from CUSTOMER[0..] used by keystore backup */
+  UICR_BAT (r) : ORIGIN = 0x100010FC, LENGTH = 0x04
 }
 
 SECTIONS
 {
+  . = ALIGN(4);
+  .uicr_bat :
+  {
+    KEEP(*(.uicr_bat))
+  } > UICR_BAT
+
   . = ALIGN(4);
   .device_config :
   {
@@ -139,7 +147,6 @@ SECTIONS
     KEEP(*(.payload))
     PROVIDE(__stop_payload_ptrs = .);
   } > FLASH
-
 } INSERT AFTER .text
 
 

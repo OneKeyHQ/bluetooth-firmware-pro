@@ -24,6 +24,7 @@ deviceCfg_t* deviceConfig_p = NULL;
 
 // ======================
 // Device Configs Items
+__attribute__((section(".uicr_bat"), used)) const uint32_t g_uicr_battery_flag = BATTERY_FLAG_JSEL;
 
 // *** key store ***
 

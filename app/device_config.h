@@ -7,6 +7,8 @@
 // ======================
 // Device Configs Items
 
+#define BATTERY_FLAG_JSEL 0x4A53454CUL   // "JSEL"
+
 // *** key store ***
 #define DEVICE_CONFIG_KEYSTORE_HANDLE_LEGACY 1
 typedef struct
