@@ -385,3 +385,9 @@ bool device_config_init(void)
 
     return true;
 }
+
+uint32_t device_config_get_battery_flag(void)
+{
+    volatile const uint32_t* battery_flag_p = &g_uicr_battery_flag;
+    return *battery_flag_p;
+}

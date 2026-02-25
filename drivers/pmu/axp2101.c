@@ -1,7 +1,6 @@
 #include "axp2101.h"
 
 #include "device_config.h"
-#include "nrf.h"
 #include "ntc_util.h"
 
 // macros
@@ -71,8 +70,7 @@ static const uint8_t axp2101_batt_cal_data_jsel[128] = {
 
 static const uint8_t* axp2101_select_battery_profile(void)
 {
-    // Keep battery flag away from CUSTOMER[0], which is used by device_config keystore backup.
-    uint32_t bat_flag = NRF_UICR->CUSTOMER[31];
+    uint32_t bat_flag = device_config_get_battery_flag();
 
     if ( bat_flag == BATTERY_FLAG_JSEL )
     {

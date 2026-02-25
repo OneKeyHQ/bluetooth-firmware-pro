@@ -64,5 +64,6 @@ extern deviceCfg_t* deviceConfig_p;
 // bool device_config_validate(void);
 bool device_config_commit(void);
 bool device_config_init(void);
+uint32_t device_config_get_battery_flag(void);
 
 #endif //_DEVICE_CONFIG_
