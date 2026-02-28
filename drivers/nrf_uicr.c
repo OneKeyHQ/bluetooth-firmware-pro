@@ -14,7 +14,7 @@ static bool uicr_validate_addr_range(uint32_t addr, uint32_t len_word)
     if ( addr % sizeof(uint32_t) != 0 )
         return false;
 
-    if ( len_word % sizeof(uint32_t) != 0 )
+    if ( len_word == 0 )
         return false;
 
     if ( !(UICR_START <= addr) )
@@ -93,17 +93,19 @@ bool uicr_update_bootloader_addr(uint32_t bootloader_addr)
     return true; // remember to reboot !
 }
 
-bool uicr_update_customer(void* data, uint8_t len)
+bool uicr_update_customer(uint8_t offset, void* data, uint8_t len)
 {
-    if ( len > sizeof(NRF_UICR->CUSTOMER) )
+    if ( (offset % sizeof(uint32_t)) != 0 || (len % sizeof(uint32_t)) != 0 )
+        return false;
+    if ( (offset + len) > sizeof(NRF_UICR->CUSTOMER) )
         return false;
 
     // backup
     NRF_UICR_Type uicr_backup;
-    EC_E_BOOL_R_BOOL(uicr_read(UICR_START, &uicr_backup, sizeof(NRF_UICR_Type) / sizeof(uint32_t)))
+    EC_E_BOOL_R_BOOL(uicr_read(UICR_START, &uicr_backup, sizeof(NRF_UICR_Type) / sizeof(uint32_t)));
 
-    // copy over new customer region
-    memcpy((uint8_t*)(&(uicr_backup.CUSTOMER)), data, len);
+    // copy over new customer region at offset
+    memcpy((uint8_t*)(&(uicr_backup.CUSTOMER)) + offset, data, len);
 
     // wipe
     EC_E_NRFX_SUCCESS_R_BOOL(nrfx_nvmc_uicr_erase());
@@ -114,21 +116,20 @@ bool uicr_update_customer(void* data, uint8_t len)
     return true; // remember to reboot !
 }
 
-bool uicr_get_customer(void* data, uint8_t len)
+bool uicr_get_customer(uint8_t offset, void* data, uint8_t len)
 {
-    if ( len > sizeof(NRF_UICR->CUSTOMER) )
+    if ( (offset % sizeof(uint32_t)) != 0 || (len % sizeof(uint32_t)) != 0 )
+        return false;
+    if ( (offset + len) > sizeof(NRF_UICR->CUSTOMER) )
         return false;
 
-    // check blank
-    if ( uicr_check_blank((uint32_t)(&(NRF_UICR->CUSTOMER)), sizeof(NRF_UICR->CUSTOMER) / sizeof(uint32_t)) )
+    // check blank (only check the requested region)
+    uint32_t start_addr = (uint32_t)(&(NRF_UICR->CUSTOMER)) + offset;
+    if ( uicr_check_blank(start_addr, len / sizeof(uint32_t)) )
         return false;
 
     // read
-    NRF_UICR_Type uicr_copy;
-    EC_E_BOOL_R_BOOL(uicr_read(UICR_START, &uicr_copy, sizeof(NRF_UICR_Type) / sizeof(uint32_t)))
-
-    // copy over new customer region
-    memcpy((uint8_t*)data, (uint8_t*)(&(uicr_copy.CUSTOMER)), len);
+    memcpy((uint8_t*)data, (uint8_t*)(&(NRF_UICR->CUSTOMER)) + offset, len);
 
     return true;
 }

@@ -79,7 +79,7 @@ static bool deviceCfg_keystore_convert_legacy(deviceCfg_keystore_t* converted)
 static bool deviceCfg_keystore_write_to_uicr(deviceCfg_keystore_t* keystore)
 {
     // write to uicr
-    if ( !uicr_update_customer((uint8_t*)(keystore), sizeof(deviceCfg_keystore_t)) )
+    if ( !uicr_update_customer(0, (uint8_t*)(keystore), sizeof(deviceCfg_keystore_t)) )
         return false;
 
     // no need to wait busy as UICR programming is a blocking operation
@@ -89,7 +89,7 @@ static bool deviceCfg_keystore_write_to_uicr(deviceCfg_keystore_t* keystore)
 
 static bool deviceCfg_keystore_read_from_uicr(deviceCfg_keystore_t* keystore)
 {
-    return uicr_get_customer((uint8_t*)keystore, sizeof(deviceCfg_keystore_t));
+    return uicr_get_customer(0, (uint8_t*)keystore, sizeof(deviceCfg_keystore_t));
 }
 
 uint32_t deviceCfg_keystore_crc32(deviceCfg_keystore_t* keystore)
@@ -115,7 +115,7 @@ bool deviceCfg_keystore_restore_from_uicr(deviceCfg_keystore_t* keystore)
 
     // check if update needed
     if ( memcmp(keystore, &keystore_uicr, sizeof(deviceCfg_keystore_t)) == 0 )
-        return true;
+        return deviceCfg_keystore_validate(keystore);
 
     // check if both valid
     bool is_flash_keystore_valid = deviceCfg_keystore_validate(keystore);
