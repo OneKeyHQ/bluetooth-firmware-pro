@@ -45,8 +45,13 @@ static bool axp2101_config_battery_param(void)
 
     // battery param -> BROM
     uint32_t bat_flag = devicePresistence_get_battery_profile_flag();
-    if ( bat_flag == 0xFFFFFFFF )
+    if (
+        bat_flag != AXP2101_BROM_VARIANT_JSEL && ///
+        bat_flag != AXP2101_BROM_VARIANT_STML    //
+    )
     {
+        // default to STML if not set or invalid
+        // this happens if upgrade from older verison, or the flag is corrupted
         bat_flag = AXP2101_BROM_VARIANT_STML;
         devicePresistence_set_battery_profile_flag(bat_flag);
     }
