@@ -28,11 +28,16 @@ deviceCfg_t* deviceConfig_p = NULL;
 // UICR 31 is used for battery profile flag
 uint32_t devicePresistence_get_battery_profile_flag(void)
 {
-    return NRF_UICR->CUSTOMER[31];
+    uint32_t flag = 0xFFFFFFFF;
+    uicr_get_customer(31 * sizeof(uint32_t), &flag, sizeof(uint32_t));
+    return flag;
 }
 bool devicePresistence_set_battery_profile_flag(uint32_t flag)
 {
-    return uicr_write((uint32_t)(&(NRF_UICR->CUSTOMER[31])), &flag, 1);
+    if ( !uicr_update_customer(31 * sizeof(uint32_t), &flag, sizeof(uint32_t)) )
+        return false;
+    NVIC_SystemReset();
+    return true; // should never reach here
 }
 
 // ======================
@@ -125,7 +130,7 @@ bool deviceCfg_keystore_restore_from_uicr(deviceCfg_keystore_t* keystore)
     if ( !is_uicr_keystore_valid )
         return false;
 
-    // if uicr copy invalid, no flag check, restore only
+    // if flash copy invalid, no flag check, restore only
     if ( is_uicr_keystore_valid && !is_flash_keystore_valid )
         memcpy(keystore, &keystore_uicr, sizeof(deviceCfg_keystore_t));
 
