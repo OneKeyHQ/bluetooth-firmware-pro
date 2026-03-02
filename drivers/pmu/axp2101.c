@@ -46,7 +46,7 @@ static bool axp2101_config_battery_param(void)
     // battery param -> BROM
     uint32_t bat_flag = devicePresistence_get_battery_profile_flag();
     if (
-        bat_flag != AXP2101_BROM_VARIANT_JSEL && ///
+        bat_flag != AXP2101_BROM_VARIANT_JSEL && //
         bat_flag != AXP2101_BROM_VARIANT_STML    //
     )
     {
