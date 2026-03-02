@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     intel_hex = IntelHex()
     intel_hex.frombytes(
-        bytes=(battery_profile_flag).to_bytes(4, byteorder="big"), offset=UICR_CUSTOMER_31_ADDR
+        bytes=(battery_profile_flag).to_bytes(4, byteorder="little"), offset=UICR_CUSTOMER_31_ADDR
     )
     intel_hex.dump()
     intel_hex.write_hex_file(args.output)

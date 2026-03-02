@@ -135,7 +135,7 @@
 
 // battery profiles for different battery suppliers, programmed to BROM
 #define AXP2101_BROM_LEN          (128)
-#define AXP2101_BROM_VARIANT_STML 0x53544D4CL  // "STML"
+#define AXP2101_BROM_VARIANT_STML 0x53544D4CUL // "STML"
 #define AXP2101_BROM_VARIANT_JSEL 0x4A53454CUL // "JSEL"
 
 static const uint8_t axp2101_batt_cal_data_stml[AXP2101_BROM_LEN] = {
