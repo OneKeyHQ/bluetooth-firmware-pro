@@ -93,7 +93,7 @@ bool uicr_update_bootloader_addr(uint32_t bootloader_addr)
     return true; // remember to reboot !
 }
 
-bool uicr_update_customer(uint8_t offset, void* data, uint8_t len)
+bool uicr_update_customer(uint8_t offset, void* data, uint32_t len)
 {
     if ( (offset % sizeof(uint32_t)) != 0 || (len % sizeof(uint32_t)) != 0 )
         return false;
@@ -116,7 +116,7 @@ bool uicr_update_customer(uint8_t offset, void* data, uint8_t len)
     return true; // remember to reboot !
 }
 
-bool uicr_get_customer(uint8_t offset, void* data, uint8_t len)
+bool uicr_get_customer(uint8_t offset, void* data, uint32_t len)
 {
     if ( (offset % sizeof(uint32_t)) != 0 || (len % sizeof(uint32_t)) != 0 )
         return false;
